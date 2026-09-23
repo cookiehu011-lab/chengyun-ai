@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>发布前预览</title>
+    <style id="theme-vars">
+/* ============================================================
+   治理配置 Hi-Fi — 项目品牌 CSS（用户锁定 token，light-only）
+   城运 AI · 东城二期 · 治理配置模块
+   ============================================================ */
+
+:root {
+  /* ---- 基础色板（用户锁定） ---- */
+  --gc-bg: #F6F8FB;            /* 页面底色 */
+  --gc-panel: #FFFFFF;         /* 面板/卡片 */
+  --gc-text: #0F172A;          /* 主文本 */
+  --gc-muted: #64748B;         /* 次级文本 */
+  --gc-line: #E2E8F0;          /* 分隔线/描边 */
+  --gc-accent: #2F6BFF;        /* 品牌主蓝 */
+  --gc-accent-soft: #DCEBFF;   /* 主蓝浅底 */
+  --gc-func-green: #2E9B68;    /* 功能绿（生效/成功/治理基础蓝组补充） */
+  --gc-func-orange: #D98A20;   /* 功能橙（草稿/流程运行） */
+  --gc-func-red: #D94C4C;      /* 功能红（阻断/错误） */
+  --gc-func-purple: #7967D8;   /* 功能紫（配置管理组） */
+
+  /* ---- 衍生层级（保持同色系） ---- */
+  --gc-accent-hover: #1F5AE6;
+  --gc-accent-active: #174CBF;
+  --gc-bg-hover: #EEF2F8;
+  --gc-bg-active: #E2E9F5;
+  --gc-line-strong: #CBD5E1;
+  --gc-func-green-soft: #E6F4EC;
+  --gc-func-orange-soft: #FBF0DF;
+  --gc-func-red-soft: #FBE7E7;
+  --gc-func-purple-soft: #EEEBFA;
+  --gc-disabled-bg: #F1F5F9;
+  --gc-disabled-text: #94A3B8;
+
+  /* ---- 语义别名（apply-html-head-contract 必需） ---- */
+  --gc-background: var(--gc-bg);
+  --gc-foreground: var(--gc-text);
+  --gc-card: var(--gc-panel);
+  --gc-card-foreground: var(--gc-text);
+  --gc-popover: var(--gc-panel);
+  --gc-popover-foreground: var(--gc-text);
+  --gc-primary: var(--gc-accent);
+  --gc-primary-foreground: #FFFFFF;
+  --gc-muted: var(--gc-muted);
+  --gc-muted-foreground: var(--gc-muted);
+  --gc-border: var(--gc-line);
+  --gc-input: var(--gc-line);
+  --gc-ring: var(--gc-accent);
+
+  /* ---- 半径（用户锁定 8/10/14，上限 14 ≤16） ---- */
+  --gc-radius-small: 8px;
+  --gc-radius-medium: 10px;
+  --gc-radius-large: 14px;
+  --gc-radius-sm: var(--gc-radius-small);
+  --gc-radius-md: var(--gc-radius-medium);
+  --gc-radius-lg: var(--gc-radius-large);
+  --gc-radius-full: 9999px;
+
+  /* ---- 状态色语义 ---- */
+  --gc-state-success: var(--gc-func-green);
+  --gc-state-warning: var(--gc-func-orange);
+  --gc-state-error: var(--gc-func-red);
+  --gc-state-info: var(--gc-accent);
+
+  /* ---- 字体（系统 CJK 栈，不引外部字体） ---- */
+  --gc-font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Helvetica Neue", Arial, sans-serif;
+  --gc-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* ---- 排版体系 ---- */
+html.light body {
+  font-family: var(--gc-font-sans);
+  background: var(--gc-background);
+  color: var(--gc-foreground);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.gc-h1 { font-size: 20px; line-height: 1.3; font-weight: 600; color: var(--gc-foreground); letter-spacing: -0.01em; }
+.gc-h2 { font-size: 16px; line-height: 1.4; font-weight: 600; color: var(--gc-foreground); }
+.gc-h3 { font-size: 14px; line-height: 1.45; font-weight: 600; color: var(--gc-foreground); }
+.gc-body { font-size: 14px; line-height: 1.5; color: var(--gc-foreground); }
+.gc-body-sm { font-size: 13px; line-height: 1.5; color: var(--gc-foreground); }
+.gc-caption { font-size: 12px; line-height: 1.5; color: var(--gc-muted-foreground); }
+.gc-num { font-variant-numeric: tabular-nums; }
+
+/* ===== Common components ===== */
+
+/* ============================================================
+   P27 全局协调 · 事件标准（生效版视图） — page-local CSS
+   Static CSS, only --gc-* tokens; banner / tree / table / cards.
+   ============================================================ */
+
+/* ---- 顶栏身份区 ---- */
+.gc-topbar-identity { display: flex; align-items: center; gap: 8px; }
+.gc-identity-name { font-size: 13px; font-weight: 500; color: var(--gc-text); white-space: nowrap; }
+
+/* ---- 页头 ---- */
+.gc-page-head { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.gc-breadcrumb { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--gc-muted); }
+.gc-breadcrumb-link { color: var(--gc-muted); text-decoration: none; border-radius: 2px; transition: color 0.15s cubic-bezier(.2,.8,.2,1); }
+.gc-breadcrumb-link:hover { color: var(--gc-accent); }
+.gc-breadcrumb-link:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-breadcrumb-sep { color: var(--gc-line-strong); }
+.gc-breadcrumb-current { color: var(--gc-text); font-weight: 500; }
+.gc-page-title { margin: 4px 0 0; }
+.gc-page-impact { margin: 0; font-size: 13px; line-height: 1.5; color: var(--gc-text); }
+.gc-page-note { margin: 0; font-size: 12px; line-height: 1.5; color: var(--gc-muted); }
+.gc-page-meta { margin: 4px 0 0; font-size: 12px; line-height: 1.5; color: var(--gc-muted); font-variant-numeric: tabular-nums; }
+
+/* ---- 生效版横幅（绿色细条） ---- */
+.gc-banner-live {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px;
+  background: var(--gc-func-green-soft);
+  color: var(--gc-func-green);
+  font-size: 13px;
+  font-weight: 500;
+}
+.gc-banner-live svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* ---- 正文双栏：左树 300px + 右表自适应 ---- */
+.gc-module-grid {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+/* ---- 卡片 ---- */
+.gc-card {
+  background: var(--gc-panel);
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius-large);
+  overflow: hidden;
+}
+.gc-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--gc-line);
+}
+.gc-card-title { margin: 0; font-size: 14px; font-weight: 600; color: var(--gc-text); }
+.gc-card-aside { font-size: 12px; color: var(--gc-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* ---- 分类标准树 ---- */
+.gc-tree { padding: 8px 0; }
+.gc-tree-cat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--gc-text);
+}
+.gc-tree-cat-icon { width: 14px; height: 14px; flex-shrink: 0; color: var(--gc-muted); }
+.gc-tree-cat-name { flex: 1; min-width: 0; }
+.gc-tree-count { font-size: 12px; color: var(--gc-muted); font-variant-numeric: tabular-nums; }
+.gc-tree-cat--active { background: var(--gc-accent-soft); color: var(--gc-accent); font-weight: 600; }
+.gc-tree-cat--active .gc-tree-cat-icon,
+.gc-tree-cat--active .gc-tree-count { color: var(--gc-accent); }
+.gc-tree-sub {
+  margin: 4px 0 8px 28px;
+  padding-left: 12px;
+  border-left: 1px solid var(--gc-line);
+  display: flex;
+  flex-direction: column;
+}
+.gc-tree-sub-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px 4px 0;
+  font-size: 13px;
+  color: var(--gc-text);
+}
+.gc-tree-sub-tag { margin-left: auto; font-size: 11px; color: var(--gc-muted); white-space: nowrap; }
+.gc-tree-note {
+  margin: 0;
+  padding: 12px 20px;
+  border-top: 1px solid var(--gc-line);
+  font-size: 12px;
+  color: var(--gc-muted);
+}
+
+/* ---- 字典摘录表 ---- */
+.gc-table-scroll { overflow-x: auto; }
+.gc-table { width: 100%; min-width: 960px; border-collapse: collapse; }
+.gc-table th {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gc-muted);
+  text-align: left;
+  background: var(--gc-bg);
+  border-bottom: 1px solid var(--gc-line);
+  white-space: nowrap;
+}
+.gc-table td {
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--gc-text);
+  border-bottom: 1px solid var(--gc-line);
+  vertical-align: middle;
+}
+.gc-table th:first-child,
+.gc-table td:first-child { padding-left: 20px; }
+.gc-table th:last-child,
+.gc-table td:last-child { padding-right: 20px; }
+.gc-table tbody tr:last-child td { border-bottom: 0; }
+.gc-td-name { font-weight: 500; white-space: nowrap; }
+.gc-td-code { font-family: var(--gc-font-mono); font-size: 12px; color: var(--gc-muted); white-space: nowrap; }
+.gc-td-dash { color: var(--gc-disabled-text); }
+.gc-td-actions { white-space: nowrap; }
+.gc-td-actions > * + * { margin-left: 8px; }
+.gc-row-note { font-size: 11px; color: var(--gc-muted); }
+.gc-table-note {
+  margin: 0;
+  padding: 12px 20px;
+  border-top: 1px solid var(--gc-line);
+  font-size: 12px;
+  color: var(--gc-muted);
+}
+
+/* ---- 状态胶囊 ---- */
+.gc-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  border-radius: var(--gc-radius-full);
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+.gc-chip--on { color: var(--gc-func-green); background: var(--gc-func-green-soft); }
+.gc-chip--off { color: var(--gc-disabled-text); background: var(--gc-disabled-bg); }
+
+/* ---- 行内按钮（规则 / 删除） ---- */
+.gc-btn-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--gc-accent);
+  background: transparent;
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius-small);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s cubic-bezier(.2,.8,.2,1), background-color 0.15s cubic-bezier(.2,.8,.2,1), border-color 0.15s cubic-bezier(.2,.8,.2,1);
+}
+.gc-btn-link:hover { color: var(--gc-accent); background: var(--gc-accent-soft); border-color: var(--gc-accent-soft); }
+.gc-btn-link:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 1px; }
+.gc-btn-link--disabled,
+.gc-btn-link--disabled:hover {
+  color: var(--gc-disabled-text);
+  background: var(--gc-disabled-bg);
+  border-color: var(--gc-line);
+  cursor: not-allowed;
+}
+
+/* ---- 底部主按钮（编辑） ---- */
+.gc-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--gc-primary-foreground);
+  background: var(--gc-accent);
+  border: none;
+  border-radius: var(--gc-radius-small);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s cubic-bezier(.2,.8,.2,1);
+}
+.gc-btn-primary:hover { background: var(--gc-accent-hover); }
+.gc-btn-primary:active { background: var(--gc-accent-active); }
+.gc-btn-primary:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-btn-primary svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .gc-breadcrumb-link,
+  .gc-btn-link,
+  .gc-btn-primary {
+    transition: none;
+  }
+}
+
+/* --- banners (common) --- */
+.gc-banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 16px; border-radius: 10px; font-size: 13px; }
+.gc-banner--green { background: var(--gc-func-green-soft); color: var(--gc-func-green); }
+.gc-banner--orange { background: var(--gc-func-orange-soft); color: var(--gc-func-orange); }
+.gc-banner--muted { background: var(--gc-bg-active); color: var(--gc-muted); }
+.gc-banner a, .gc-banner .gc-link { color: inherit; text-decoration: underline; text-underline-offset: 2px; font-weight: 500; }
+.gc-banner--green a, .gc-banner--green .gc-link { color: var(--gc-func-green); }
+.gc-banner--orange a, .gc-banner--orange .gc-link { color: var(--gc-func-orange); }
+
+
+    </style>
+
+
+    <style id="gc-static-tailwind">
+/* Precompiled Tailwind v4 base + used utilities (no runtime CDN).
+   Generated from @tailwindcss/node@4.3.3; candidates: antialiased,
+   font-sans, min-h-screen. Supersedes the former browser build block. */
+/*! tailwindcss v4.3.3 | MIT License | https://tailwindcss.com */
+@layer theme, base, components, utilities;
+@layer theme {
+  :root, :host {
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+      "Segoe UI Symbol", "Noto Color Emoji";
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      "Courier New", monospace;
+    --default-font-family: var(--font-sans);
+    --default-mono-font-family: var(--font-mono);
+  }
+}
+@layer base {
+  *, ::after, ::before, ::backdrop, ::file-selector-button {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid;
+  }
+  html, :host {
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    tab-size: 4;
+    font-family: var(--default-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji");
+    font-feature-settings: var(--default-font-feature-settings, normal);
+    font-variation-settings: var(--default-font-variation-settings, normal);
+    -webkit-tap-highlight-color: transparent;
+  }
+  hr {
+    height: 0;
+    color: inherit;
+    border-top-width: 1px;
+  }
+  abbr:where([title]) {
+    -webkit-text-decoration: underline dotted;
+    text-decoration: underline dotted;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+  a {
+    color: inherit;
+    -webkit-text-decoration: inherit;
+    text-decoration: inherit;
+  }
+  b, strong {
+    font-weight: bolder;
+  }
+  code, kbd, samp, pre {
+    font-family: var(--default-mono-font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+    font-feature-settings: var(--default-mono-font-feature-settings, normal);
+    font-variation-settings: var(--default-mono-font-variation-settings, normal);
+    font-size: 1em;
+  }
+  small {
+    font-size: 80%;
+  }
+  sub, sup {
+    font-size: 75%;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+  }
+  sub {
+    bottom: -0.25em;
+  }
+  sup {
+    top: -0.5em;
+  }
+  table {
+    text-indent: 0;
+    border-color: inherit;
+    border-collapse: collapse;
+  }
+  :-moz-focusring:where(:not(iframe)) {
+    outline: auto;
+  }
+  progress {
+    vertical-align: baseline;
+  }
+  summary {
+    display: list-item;
+  }
+  ol, ul, menu {
+    list-style: none;
+  }
+  img, svg, video, canvas, audio, iframe, embed, object {
+    display: block;
+    vertical-align: middle;
+  }
+  img, video {
+    max-width: 100%;
+    height: auto;
+  }
+  button, input, select, optgroup, textarea, ::file-selector-button {
+    font: inherit;
+    font-feature-settings: inherit;
+    font-variation-settings: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    border-radius: 0;
+    background-color: transparent;
+    opacity: 1;
+  }
+  :where(select:is([multiple], [size])) optgroup {
+    font-weight: bolder;
+  }
+  :where(select:is([multiple], [size])) optgroup option {
+    padding-inline-start: 20px;
+  }
+  ::file-selector-button {
+    margin-inline-end: 4px;
+  }
+  ::placeholder {
+    opacity: 1;
+  }
+  @supports (not (-webkit-appearance: -apple-pay-button))  or (contain-intrinsic-size: 1px) {
+    ::placeholder {
+      color: currentcolor;
+      @supports (color: color-mix(in lab, red, red)) {
+        color: color-mix(in oklab, currentcolor 50%, transparent);
+      }
+    }
+  }
+  textarea {
+    resize: vertical;
+  }
+  ::-webkit-search-decoration {
+    -webkit-appearance: none;
+  }
+  ::-webkit-date-and-time-value {
+    min-height: 1lh;
+    text-align: inherit;
+  }
+  ::-webkit-datetime-edit {
+    display: inline-flex;
+  }
+  ::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+  }
+  ::-webkit-datetime-edit, ::-webkit-datetime-edit-year-field, ::-webkit-datetime-edit-month-field, ::-webkit-datetime-edit-day-field, ::-webkit-datetime-edit-hour-field, ::-webkit-datetime-edit-minute-field, ::-webkit-datetime-edit-second-field, ::-webkit-datetime-edit-millisecond-field, ::-webkit-datetime-edit-meridiem-field {
+    padding-block: 0;
+  }
+  ::-webkit-calendar-picker-indicator {
+    line-height: 1;
+  }
+  :-moz-ui-invalid {
+    box-shadow: none;
+  }
+  button, input:where([type="button"], [type="reset"], [type="submit"]), ::file-selector-button {
+    appearance: button;
+  }
+  ::-webkit-inner-spin-button, ::-webkit-outer-spin-button {
+    height: auto;
+  }
+  [hidden]:where(:not([hidden="until-found"])) {
+    display: none !important;
+  }
+}
+@layer utilities {
+  .min-h-screen {
+    min-height: 100vh;
+  }
+  .font-sans {
+    font-family: var(--font-sans);
+  }
+  .antialiased {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+@layer base {
+  body {
+    background: var(--gc-background);
+    color: var(--gc-foreground);
+  }
+  td, th {
+    overflow-wrap: break-word;
+    word-break: break-all;
+    word-break: auto-phrase;
+  }
+  th {
+    white-space: nowrap;
+  }
+}
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--gc-background); }
+      .text-background { color: var(--gc-background); }
+      .border-background { border-color: var(--gc-background); }
+      .ring-background { --tw-ring-color: var(--gc-background); }
+      .bg-foreground { background-color: var(--gc-foreground); }
+      .text-foreground { color: var(--gc-foreground); }
+      .border-foreground { border-color: var(--gc-foreground); }
+      .ring-foreground { --tw-ring-color: var(--gc-foreground); }
+      .bg-card { background-color: var(--gc-card); }
+      .text-card { color: var(--gc-card); }
+      .border-card { border-color: var(--gc-card); }
+      .ring-card { --tw-ring-color: var(--gc-card); }
+      .bg-card-foreground { background-color: var(--gc-card-foreground); }
+      .text-card-foreground { color: var(--gc-card-foreground); }
+      .border-card-foreground { border-color: var(--gc-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--gc-card-foreground); }
+      .bg-popover { background-color: var(--gc-popover); }
+      .text-popover { color: var(--gc-popover); }
+      .border-popover { border-color: var(--gc-popover); }
+      .ring-popover { --tw-ring-color: var(--gc-popover); }
+      .bg-popover-foreground { background-color: var(--gc-popover-foreground); }
+      .text-popover-foreground { color: var(--gc-popover-foreground); }
+      .border-popover-foreground { border-color: var(--gc-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--gc-popover-foreground); }
+      .bg-primary { background-color: var(--gc-primary); }
+      .text-primary { color: var(--gc-primary); }
+      .border-primary { border-color: var(--gc-primary); }
+      .ring-primary { --tw-ring-color: var(--gc-primary); }
+      .bg-primary-foreground { background-color: var(--gc-primary-foreground); }
+      .text-primary-foreground { color: var(--gc-primary-foreground); }
+      .border-primary-foreground { border-color: var(--gc-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--gc-primary-foreground); }
+      .bg-muted { background-color: var(--gc-muted); }
+      .text-muted { color: var(--gc-muted); }
+      .border-muted { border-color: var(--gc-muted); }
+      .ring-muted { --tw-ring-color: var(--gc-muted); }
+      .bg-muted-foreground { background-color: var(--gc-muted-foreground); }
+      .text-muted-foreground { color: var(--gc-muted-foreground); }
+      .border-muted-foreground { border-color: var(--gc-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--gc-muted-foreground); }
+      .bg-accent { background-color: var(--gc-accent); }
+      .text-accent { color: var(--gc-accent); }
+      .border-accent { border-color: var(--gc-accent); }
+      .ring-accent { --tw-ring-color: var(--gc-accent); }
+      .bg-border { background-color: var(--gc-border); }
+      .text-border { color: var(--gc-border); }
+      .border-border { border-color: var(--gc-border); }
+      .ring-border { --tw-ring-color: var(--gc-border); }
+      .bg-input { background-color: var(--gc-input); }
+      .text-input { color: var(--gc-input); }
+      .border-input { border-color: var(--gc-input); }
+      .ring-input { --tw-ring-color: var(--gc-input); }
+      .bg-ring { background-color: var(--gc-ring); }
+      .text-ring { color: var(--gc-ring); }
+      .border-ring { border-color: var(--gc-ring); }
+      .ring-ring { --tw-ring-color: var(--gc-ring); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body>
+<style id="critical-layout">
+/* ============================================================
+   治理配置 Hi-Fi — Shared Project Shell (Critical Layout CSS)
+   Static CSS — no Tailwind runtime dependency.
+   All tokens reference project-local colors_and_type.css (--gc-* prefix).
+   Viewport: 1920×1080 desktop, app-shell mode.
+   ============================================================ */
+
+/* ---- Shell grid ---- */
+.gc-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--gc-bg);
+  font-family: var(--gc-font-sans);
+  color: var(--gc-text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Topbar (56px fixed) ---- */
+.gc-shell-topbar {
+  height: 56px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: var(--gc-panel);
+  border-bottom: 1px solid var(--gc-line);
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+}
+
+.gc-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.gc-topbar-brand {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gc-text);
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
+.gc-topbar-center {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.gc-top-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--gc-muted);
+  text-decoration: none;
+  border-radius: var(--gc-radius-small);
+  transition: color 0.15s cubic-bezier(.2,.8,.2,1), background-color 0.15s cubic-bezier(.2,.8,.2,1);
+  white-space: nowrap;
+}
+.gc-top-tab:hover {
+  color: var(--gc-text);
+  background: var(--gc-bg-hover);
+}
+.gc-top-tab:focus-visible {
+  outline: 2px solid var(--gc-accent);
+  outline-offset: -2px;
+}
+.gc-top-tab--active {
+  background: var(--gc-accent-soft);
+  color: var(--gc-accent);
+  font-weight: 600;
+}
+.gc-top-tab--active:hover {
+  background: var(--gc-accent-soft);
+  color: var(--gc-accent);
+}
+
+.gc-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.gc-role-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--gc-muted);
+  background: transparent;
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius-small);
+  cursor: pointer;
+  transition: color 0.15s cubic-bezier(.2,.8,.2,1), border-color 0.15s cubic-bezier(.2,.8,.2,1);
+  font-family: inherit;
+}
+.gc-role-switch:hover {
+  color: var(--gc-text);
+  border-color: var(--gc-line-strong);
+}
+.gc-role-switch:focus-visible {
+  outline: 2px solid var(--gc-accent);
+  outline-offset: -1px;
+}
+.gc-role-switch .gc-caret {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.gc-identity-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  background: var(--gc-accent-soft);
+  color: var(--gc-accent);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 10px;
+  white-space: nowrap;
+}
+
+/* ---- Shell body (sidebar + workspace) ---- */
+.gc-shell-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ---- Sidebar (380px fixed) ---- */
+.gc-shell-sidebar {
+  width: 300px;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  background: var(--gc-panel);
+  border-right: 1px solid var(--gc-line);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.gc-sidebar-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--gc-line);
+  flex-shrink: 0;
+}
+.gc-sidebar-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.gc-sidebar-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gc-text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.gc-version-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--gc-func-green);
+  background: var(--gc-func-green-soft);
+  border-radius: 9999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.gc-shell-sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0 8px;
+}
+
+.gc-nav-group {
+  margin-bottom: 2px;
+}
+.gc-nav-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 20px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.gc-nav-group-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.gc-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px 10px 16px;
+  min-height: 40px;
+  text-decoration: none;
+  color: var(--gc-text);
+  position: relative;
+  transition: background-color 0.15s cubic-bezier(.2,.8,.2,1);
+}
+.gc-nav-item:hover {
+  background: var(--gc-bg-hover);
+}
+.gc-nav-item:focus-visible {
+  outline: 2px solid var(--gc-accent);
+  outline-offset: -2px;
+}
+.gc-nav-bar {
+  width: 4px;
+  height: 16px;
+  border-radius: 2px;
+  background: transparent;
+  flex-shrink: 0;
+  transition: background-color 0.15s cubic-bezier(.2,.8,.2,1);
+}
+.gc-nav-item--active {
+  background: var(--gc-bg-active);
+  font-weight: 600;
+}
+.gc-nav-item--active .gc-nav-bar {
+  background: var(--gc-accent);
+}
+.gc-nav-label {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.gc-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 9999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.gc-badge-published {
+  color: var(--gc-func-green);
+  background: var(--gc-func-green-soft);
+}
+.gc-badge-draft {
+  color: var(--gc-func-orange);
+  background: var(--gc-func-orange-soft);
+}
+
+/* ---- Workspace (flex-1) ---- */
+.gc-shell-workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--gc-bg);
+  min-width: 0;
+}
+
+.gc-workspace-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 24px 16px;
+  background: var(--gc-panel);
+  border-bottom: 1px solid var(--gc-line);
+  flex-shrink: 0;
+}
+.gc-workspace-header-main {
+  flex: 1;
+  min-width: 0;
+}
+.gc-workspace-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.gc-workspace-banner-slot {
+  flex-shrink: 0;
+}
+
+.gc-shell-workspace-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px;
+}
+
+.gc-shell-footer {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 24px;
+  background: var(--gc-panel);
+  border-top: 1px solid var(--gc-line);
+  flex-shrink: 0;
+}
+
+/* ---- Scrollbar styling (sidebar + workspace) ---- */
+.gc-shell-sidebar-nav::-webkit-scrollbar,
+.gc-shell-workspace-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.gc-shell-sidebar-nav::-webkit-scrollbar-thumb,
+.gc-shell-workspace-scroll::-webkit-scrollbar-thumb {
+  background: var(--gc-line-strong);
+  border-radius: 3px;
+}
+.gc-shell-sidebar-nav::-webkit-scrollbar-track,
+.gc-shell-workspace-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .gc-top-tab,
+  .gc-nav-item,
+  .gc-nav-bar,
+  .gc-role-switch {
+    transition: none;
+  }
+}
+</style>
+<style id="page-css">.gc-stage-tabs { display: flex; align-items: center; gap: 8px; padding: 12px 24px 0; flex-wrap: wrap; }
+.gc-stage-tab { display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 9999px; font-size: 12px; color: var(--gc-muted); text-decoration: none; border: 1px solid var(--gc-line); }
+.gc-stage-tab:hover { color: var(--gc-text); background: var(--gc-bg-hover); }
+.gc-stage-tab:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-stage-tab--active { background: var(--gc-accent-soft); color: var(--gc-accent); font-weight: 600; border-color: transparent; }
+.gc-stage-sep { color: var(--gc-line-strong); font-size: 12px; }
+.gc-stack { display: flex; flex-direction: column; gap: 16px; margin-top: 16px; }
+.gc-prev-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 1400px) { .gc-prev-grid { grid-template-columns: minmax(0, 1fr); } }
+.gc-card-note { font-size: 12px; color: var(--gc-muted); font-weight: 400; }
+.gc-prev-line { margin: 4px 0 0; font-size: 13px; color: var(--gc-text); }
+.gc-prev-sub { margin: 6px 0 0; font-size: 12px; color: var(--gc-muted); }
+.gc-prev-sub--only { margin: 4px 0 0; }
+.gc-reason-box { margin-top: 4px; border: 1px solid var(--gc-line-strong); border-radius: 8px; background: var(--gc-panel); padding: 10px 12px; font-size: 13px; color: var(--gc-text); min-height: 40px; }
+.gc-td-code { font-family: var(--gc-font-mono); font-size: 12px; color: var(--gc-muted); }
+.gc-diff-to { color: var(--gc-func-orange); font-weight: 500; }
+.gc-btn-secondary { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--gc-line-strong); background: var(--gc-panel); color: var(--gc-text); font-size: 13px; font-weight: 500; text-decoration: none; }
+.gc-btn-secondary:hover { background: var(--gc-bg-hover); }
+.gc-btn-secondary:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+</style>
+<style id="gc-publish-guard-css">
+/* ---- 发布校验：场景切换（仅用于演示，不改业务规则） ---- */
+.gc-pub-scene { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.gc-pub-scene-label { font-size: 12px; color: var(--gc-muted); }
+.gc-pub-scene-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--gc-radius-full); border: 1px solid var(--gc-line); background: var(--gc-panel); color: var(--gc-muted); font-size: 12px; font-family: inherit; line-height: 1.5; cursor: pointer; }
+.gc-pub-scene-btn:hover { color: var(--gc-text); background: var(--gc-bg-hover); }
+.gc-pub-scene-btn[aria-pressed="true"] { background: var(--gc-accent-soft); color: var(--gc-accent); font-weight: 600; border-color: transparent; }
+.gc-pub-scene-btn:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+
+/* ---- 校验结论 ---- */
+.gc-pub-verdict { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; padding: 12px 14px; border-radius: var(--gc-radius-medium); font-size: 13px; }
+.gc-pub-verdict--ok { background: var(--gc-func-green-soft); color: var(--gc-func-green); }
+.gc-pub-verdict--warn { background: var(--gc-func-orange-soft); color: var(--gc-func-orange); }
+.gc-pub-verdict--block { background: var(--gc-func-red-soft); color: var(--gc-func-red); }
+.gc-pub-verdict-ico { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+.gc-pub-verdict-body { min-width: 0; }
+.gc-pub-verdict-main { margin: 0; font-weight: 600; }
+.gc-pub-verdict-sub { margin: 4px 0 0; font-size: 12px; line-height: 1.6; }
+
+/* ---- 5.8 逐条校验清单 ---- */
+.gc-pub-check-list { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.gc-pub-check { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--gc-line); border-radius: var(--gc-radius-medium); font-size: 13px; }
+.gc-pub-check--block { border-color: var(--gc-func-red); background: var(--gc-func-red-soft); }
+.gc-pub-check-no { font-family: var(--gc-font-mono); font-size: 11px; color: var(--gc-muted); padding-top: 2px; }
+.gc-pub-check-body { flex: 1; min-width: 0; }
+.gc-pub-check-title { margin: 0; font-weight: 500; color: var(--gc-text); }
+.gc-pub-check-hint { margin: 4px 0 0; font-size: 12px; line-height: 1.6; color: var(--gc-muted); }
+.gc-pub-check--block .gc-pub-check-hint { color: var(--gc-func-red); }
+.gc-chip--block { color: var(--gc-func-red); background: #FFFFFF; }
+
+/* ---- 差异为空 / 阻断时的业务后果 ---- */
+.gc-table-note--empty { color: var(--gc-func-orange); }
+.gc-table-scroll[hidden] { display: none; }
+.gc-pub-tip { margin: 10px 0 0; font-size: 12px; line-height: 1.6; color: var(--gc-muted); }
+
+/* ---- 底部：唯一「确认发布」按钮的可用态 ---- */
+.gc-shell-footer-note { margin: 0 auto 0 0; font-size: 12px; color: var(--gc-muted); }
+.gc-shell-footer-note--block { color: var(--gc-func-red); font-weight: 500; }
+.gc-btn-primary[disabled] { background: var(--gc-disabled-bg); color: var(--gc-disabled-text); cursor: not-allowed; }
+.gc-btn-primary[disabled]:hover { background: var(--gc-disabled-bg); }
+
+.gc-banner.gc-pub-banner--block { background: var(--gc-func-red-soft); color: var(--gc-func-red); }
+
+/* ---- 轻提示（不出现在业务模块页，仅本页解释阻断原因） ---- */
+.gc-pub-toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 60; display: none; max-width: 560px; padding: 10px 16px; border-radius: var(--gc-radius-medium); background: var(--gc-text); color: #FFFFFF; font-size: 13px; line-height: 1.6; }
+.gc-pub-toast--show { display: block; }
+</style>
+
+<!-- ============================================================
+     SeeTime 城运AI · 治理配置 — Shared Project Shell
+     Fragment only: no <html>/<head>/<body>. All leaf pages inherit this.
+     Shared regions: topbar, sidebar, workspace frame.
+     Leaf pages fill: SLOT:identityArea, SLOT:sidebarActiveItem,
+       SLOT:sidebarBadges, SLOT:activeTopTab, SLOT:pageTitle,
+       SLOT:pageActions, SLOT:banner, SLOT:moduleContent, SLOT:footerActions.
+     ============================================================ -->
+<style id="shell-collapse-css">
+.gc-collapse-btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: none; background: transparent; color: var(--gc-muted); cursor: pointer; padding: 0; border-radius: 6px; flex-shrink: 0; }
+.gc-collapse-btn:hover { color: var(--gc-text); background: var(--gc-bg-hover); }
+.gc-collapse-btn:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-collapse-btn svg { width: 15px; height: 15px; }
+.gc-shell-sidebar { transition: width 0.18s cubic-bezier(.2,.8,.2,1), min-width 0.18s cubic-bezier(.2,.8,.2,1); }
+
+/* 收起态：64px 图标栏（名称悬浮提示） */
+.gc-shell-body.gc-rail .gc-shell-sidebar { width: 64px; min-width: 64px; }
+.gc-shell-body.gc-rail .gc-sidebar-header { padding: 12px 0 10px; }
+.gc-shell-body.gc-rail .gc-sidebar-header-row { flex-direction: column; gap: 6px; }
+.gc-shell-body.gc-rail .gc-sidebar-title, .gc-shell-body.gc-rail .gc-version-badge { display: none; }
+.gc-shell-body.gc-rail .gc-nav-group-title { justify-content: center; padding: 10px 0 4px; }
+.gc-shell-body.gc-rail .gc-nav-group-name { display: none; }
+.gc-shell-body.gc-rail .gc-nav-item { justify-content: center; padding: 10px 0; margin: 2px 14px; }
+.gc-shell-body.gc-rail .gc-nav-bar, .gc-shell-body.gc-rail .gc-nav-label, .gc-shell-body.gc-rail .gc-nav-badge { display: none; }
+
+/* 模块图标 */
+.gc-nav-ico { width: 16px; height: 16px; color: var(--gc-muted); flex-shrink: 0; display: inline-flex; }
+.gc-nav-ico svg { width: 16px; height: 16px; }
+.gc-nav-item--active .gc-nav-ico { color: var(--gc-accent); }
+
+/* SaaS 视觉打磨 */
+.gc-shell-sidebar { width: 300px; min-width: 300px; background: #F7F9FC; }
+.gc-nav-item { margin: 2px 10px; padding: 9px 12px; border-radius: 8px; }
+.gc-nav-item--active { background: var(--gc-accent-soft); }
+.gc-nav-item--active .gc-nav-label { color: var(--gc-accent); }
+.gc-card { border-radius: 12px; box-shadow: 0 1px 2px rgba(15,23,42,0.04); }
+.gc-page-title { font-size: 18px; }
+.gc-table thead th { background: #F7F9FC; }
+.gc-table tbody tr:hover td { background: rgba(50,109,255,0.04); }
+.gc-topbar-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
+.gc-brand-mark { width: 20px; height: 20px; border-radius: 6px; background: linear-gradient(135deg, var(--gc-accent), #5B8CFF); display: inline-flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+@media (prefers-reduced-motion: reduce) { .gc-shell-sidebar { transition: none; } }
+</style>
+<div class="gc-shell">
+
+  <!-- ======== 1. 顶部全局导航 (height 56px) ======== -->
+  <header class="gc-shell-topbar">
+
+    <!-- 左：品牌名 -->
+    <div class="gc-topbar-left">
+      <span class="gc-topbar-brand"><span class="gc-brand-mark" aria-hidden="true">城</span>SeeTime 城运AI</span>
+    </div>
+
+    <!-- 中：六模块tab水平排列 -->
+    <nav class="gc-topbar-center" aria-label="全局模块导航">
+      <a href="#" class="gc-top-tab">治理大屏</a>
+      <a href="#" class="gc-top-tab">AI实时治理</a>
+      <a href="#" class="gc-top-tab">事件档案</a>
+      <a href="#" class="gc-top-tab">AI统计</a>
+      <a href="#" class="gc-top-tab">AI工作台</a>
+      <a href="#" class="gc-top-tab gc-top-tab--active" aria-current="page">治理配置</a>
+    </nav>
+
+    <!-- 右：角色身份区 -->
+    <div class="gc-topbar-right">
+      <button type="button" class="gc-role-switch" data-dom-id="role-switch" aria-haspopup="listbox" aria-expanded="false">
+        <span>切换角色</span>
+        <svg class="gc-caret" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div class="gc-topbar-identity"><span class="gc-identity-name">王倩</span><span class="gc-identity-badge">全局协调</span></div>
+    </div>
+
+  </header>
+
+  <!-- ======== Shell body: sidebar + workspace ======== -->
+  <div class="gc-shell-body">
+
+    <!-- ======== 2. 左侧模块导航栏 (width 380px) ======== -->
+    <aside class="gc-shell-sidebar">
+
+      <!-- 顶部标题区 -->
+      <div class="gc-sidebar-header">
+        <div class="gc-sidebar-header-row">
+          <div class="gc-sidebar-title">治理配置</div>
+          <button type="button" class="gc-collapse-btn" data-dom-id="sidebar-toggle" aria-expanded="true" aria-label="收起左侧导航" title="收起左侧导航"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/></svg></button>
+          <span class="gc-version-badge">V2026.08.18</span>
+        </div>
+      </div>
+
+      <!-- 分组筛选 + 模块列表 (flex-1 overflow-y-auto) -->
+      <nav class="gc-shell-sidebar-nav" aria-label="治理配置模块导航">
+
+
+        <!-- Group 1: 治理基础 (蓝 var(--gc-accent)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-accent);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-accent);"></span><span class="gc-nav-group-name">治理基础</span>
+          </div>
+          <a href="org-permission-live.html" data-dom-id="nav-org-permission-live" title="组织与权限" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+            <span class="gc-nav-label">组织与权限</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+          <a href="space-responsibility-live.html" data-dom-id="nav-space-responsibility-live" title="空间与责任" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span>
+            <span class="gc-nav-label">空间与责任</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+          <a href="event-standard-live.html" data-dom-id="nav-event-standard-live" title="事件标准" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg></span>
+            <span class="gc-nav-label">事件标准</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+        </div>
+
+        <!-- Group 2: 流程运行 (橙 var(--gc-func-orange)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-func-orange);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-func-orange);"></span><span class="gc-nav-group-name">流程运行</span>
+          </div>
+          <a href="lifecycle-live.html" data-dom-id="nav-lifecycle" title="生命周期" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span>
+            <span class="gc-nav-label">生命周期</span>
+            <span class="gc-nav-badge gc-badge-draft">草稿</span>
+          </a>
+          <a href="sla-matrix-live.html" data-dom-id="nav-sla-matrix-live" title="时限规则" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
+            <span class="gc-nav-label">时限规则</span>
+            <span class="gc-nav-badge gc-badge-draft">草稿</span>
+          </a>
+          <a href="dispatch-claim-live.html" data-dom-id="nav-dispatch-claim-live" title="派工与认领" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>
+            <span class="gc-nav-label">派工与认领</span>
+            <span class="gc-nav-badge gc-badge-draft">草稿</span>
+          </a>
+        </div>
+
+        <!-- Group 3: 持续治理 (绿 var(--gc-func-green)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-func-green);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-func-green);"></span><span class="gc-nav-group-name">持续治理</span>
+          </div>
+          <a href="dedup-recurrence-live.html" data-dom-id="nav-dedup-recurrence-live" title="查重复发" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span>
+            <span class="gc-nav-label">查重复发</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+          <a href="metric-caliber-live.html" data-dom-id="nav-metric-caliber-live" title="评价口径" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></span>
+            <span class="gc-nav-label">评价口径</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+        </div>
+
+        <!-- Group 4: 配置管理 (紫 var(--gc-func-purple)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-func-purple);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-func-purple);"></span><span class="gc-nav-group-name">配置管理</span>
+          </div>
+          <a href="publish-draft-review.html" data-dom-id="nav-publish-draft-review" title="发布与审计" class="gc-nav-item gc-nav-item--active">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></span>
+            <span class="gc-nav-label">发布与审计</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+        </div>
+
+        
+      </nav>
+
+    </aside>
+
+    <!-- ======== 3. 右侧工作区框架 (flex-1, flex-col) ======== -->
+    <main class="gc-shell-workspace">
+
+      <!-- 页头: 标题 + 动作区 (fixed, 不滚动) -->
+      <div class="gc-workspace-header">
+        <div class="gc-workspace-header-main">
+          <div class="gc-page-head">
+            <nav class="gc-breadcrumb" aria-label="面包屑"><a href="#" class="gc-breadcrumb-link">治理配置</a><span class="gc-breadcrumb-sep" aria-hidden="true">/</span><span class="gc-breadcrumb-current" aria-current="page">发布与审计</span></nav>
+            <h1 class="gc-h2 gc-page-title">发布前预览</h1>
+            <p class="gc-page-impact">这是唯一拥有「确认发布」按钮的地方。</p>
+            <p class="gc-page-meta">当前生效版本 V2026.08.18 · 本次将发布 V2026.08.19</p>
+          </div>
+        </div>
+        <div class="gc-workspace-header-actions">
+          
+        </div>
+      </div>
+
+      <!-- 横幅区 (fixed, 不滚动; 为空时0高度) -->
+      <div class="gc-workspace-banner-slot">
+        <div class="gc-banner gc-banner--orange" id="gc-pub-banner">
+          <span data-gc-pub-banner-text>发布前必经：看清影响范围、影响对象、生效方式与版本差异。</span>
+          <span class="gc-chip gc-chip--on" data-gc-pub-banner-chip>可以发布</span>
+        </div>
+      </div>
+
+      <!-- 正文内容区 (可滚动) -->
+      <div class="gc-shell-workspace-scroll">
+        <nav class="gc-stage-tabs" aria-label="发布流程阶段">
+  <a href="publish-draft-review.html" data-dom-id="tab-s36a" class="gc-stage-tab">① 草稿核对</a>
+  <span class="gc-stage-sep" aria-hidden="true">→</span>
+  <a href="publish-preview.html" data-dom-id="tab-s36b" class="gc-stage-tab gc-stage-tab--active" aria-current="step">② 发布前预览</a>
+  <span class="gc-stage-sep" aria-hidden="true">→</span>
+  <a href="publish-effective.html" data-dom-id="tab-s36c" class="gc-stage-tab">③ 已生效版本</a>
+  <span class="gc-stage-sep" aria-hidden="true">→</span>
+  <a href="publish-rollback.html" data-dom-id="tab-s36d" class="gc-stage-tab">④ 版本回滚</a>
+</nav>
+
+<div class="gc-stack">
+  <div class="gc-prev-grid">
+    <section class="gc-card" aria-labelledby="gc-scope-title">
+      <header class="gc-card-head"><h2 class="gc-card-title" id="gc-scope-title">影响范围</h2></header>
+      <p class="gc-prev-line">东城区 · 自动结案与处置动作、时限风险与超时升级、派工领取</p>
+      <p class="gc-prev-sub">按本次有差异的模块自动归纳，不需手填。</p>
+    </section>
+    <section class="gc-card" aria-labelledby="gc-target-title">
+      <header class="gc-card-head"><h2 class="gc-card-title" id="gc-target-title">影响对象</h2></header>
+      <p class="gc-prev-line">立案审核、网格责任人</p>
+      <p class="gc-prev-sub">已结案 / 已中止 / 已无效档案只读引用当时版本。</p>
+    </section>
+    <section class="gc-card" aria-labelledby="gc-mode-title">
+      <header class="gc-card-head"><h2 class="gc-card-title" id="gc-mode-title">生效方式（固定）</h2></header>
+      <p class="gc-prev-line">发布后只作用于新事件，不改写历史结论。</p>
+      <p class="gc-prev-sub">发布成功后左栏草稿徽章消失，版本号 +1。</p>
+    </section>
+    <section class="gc-card" aria-labelledby="gc-reason-title">
+      <header class="gc-card-head"><h2 class="gc-card-title" id="gc-reason-title">发布原因（必填，≥ 8 字）</h2></header>
+      <div class="gc-reason-box" aria-label="发布原因输入（演示预填）">调整共享单车自动结案与派工参数（演示）</div>
+    </section>
+  </div>
+
+  <section class="gc-card" aria-labelledby="gc-verdiff-title">
+    <header class="gc-card-head">
+      <h2 class="gc-card-title" id="gc-verdiff-title">版本差异（逐条 from → to）</h2>
+      <span class="gc-card-note" data-gc-pub-diffcount>本次 3 项差异</span>
+    </header>
+    <div class="gc-table-scroll" data-gc-pub-diff-wrap>
+      <table class="gc-table">
+        <thead><tr><th>字段名</th><th>生效值</th><th>草稿值</th><th>所属模块</th></tr></thead>
+        <tbody>
+          <tr><td class="gc-td-name">自动结案</td><td>关</td><td class="gc-diff-to">开（细类=共享单车乱停放）</td><td>生命周期</td></tr>
+          <tr><td class="gc-td-name">共享单车乱停放 · 处置时限</td><td class="gc-td-code">120 分</td><td class="gc-td-code gc-diff-to">90 分</td><td>时限规则</td></tr>
+          <tr><td class="gc-td-name">待立案默认件数</td><td class="gc-td-code">10</td><td class="gc-td-code gc-diff-to">5</td><td>派工与认领</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="gc-table-note" data-gc-pub-diffnote>逐条对照：差异只来自草稿，未发布的改动对线上事件无影响。</p>
+  </section>
+
+  <section class="gc-card" aria-labelledby="gc-guard-title">
+    <header class="gc-card-head">
+      <h2 class="gc-card-title" id="gc-guard-title">发布校验（冲突阻断）</h2>
+      <span class="gc-card-note">任一命中即不能发布 · 本页只做判断，不提供直接修改</span>
+    </header>
+
+    <div class="gc-pub-scene" role="group" aria-label="演示：切换校验场景">
+      <span class="gc-pub-scene-label">演示场景</span>
+      <button type="button" class="gc-pub-scene-btn" data-gc-pub-scene="ok" aria-pressed="true">A 有差异 · 无冲突</button>
+      <button type="button" class="gc-pub-scene-btn" data-gc-pub-scene="nodiff" aria-pressed="false">B 无差异</button>
+      <button type="button" class="gc-pub-scene-btn" data-gc-pub-scene="conflict" aria-pressed="false">C 存在冲突</button>
+    </div>
+
+    <div class="gc-pub-verdict gc-pub-verdict--ok" data-gc-pub-verdict role="status" aria-live="polite">
+      <svg class="gc-pub-verdict-ico" data-gc-pub-verdict-ico viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+      <div class="gc-pub-verdict-body">
+        <p class="gc-pub-verdict-main" data-gc-pub-verdict-main>校验通过，可以发布</p>
+        <p class="gc-pub-verdict-sub" data-gc-pub-verdict-sub>差异 3 项，冲突 0 条。发布后只作用于新事件，已结案 / 已中止 / 已无效档案继续引用当时版本。</p>
+      </div>
+    </div>
+
+    <ul class="gc-pub-check-list" data-gc-pub-check-list>
+      <li class="gc-pub-check" data-gc-pub-check="rules">
+        <span class="gc-pub-check-no">01</span>
+        <div class="gc-pub-check-body">
+          <p class="gc-pub-check-title">同一细类是否同时命中「必须人工核查」与「允许自动结案」</p>
+          <p class="gc-pub-check-hint" data-gc-pub-check-hint>通过：本批差异未让任一细类同时成立两种终局方式。</p>
+        </div>
+        <span class="gc-chip gc-chip--on" data-gc-pub-check-chip>通过</span>
+      </li>
+      <li class="gc-pub-check" data-gc-pub-check="owner">
+        <span class="gc-pub-check-no">02</span>
+        <div class="gc-pub-check-body">
+          <p class="gc-pub-check-title">同一网格是否被配置为两个主责任人</p>
+          <p class="gc-pub-check-hint" data-gc-pub-check-hint>通过：一事件同一时刻只有一个网格主责任人。</p>
+        </div>
+        <span class="gc-chip gc-chip--on" data-gc-pub-check-chip>通过</span>
+      </li>
+      <li class="gc-pub-check" data-gc-pub-check="candidate">
+        <span class="gc-pub-check-no">03</span>
+        <div class="gc-pub-check-body">
+          <p class="gc-pub-check-title">自动结案适用细类是否已启用、且在「允许自动结案候选=开」范围内</p>
+          <p class="gc-pub-check-hint" data-gc-pub-check-hint>通过：共享单车乱停放已在候选开关内启用。</p>
+        </div>
+        <span class="gc-chip gc-chip--on" data-gc-pub-check-chip>通过</span>
+      </li>
+      <li class="gc-pub-check" data-gc-pub-check="sla">
+        <span class="gc-pub-check-no">04</span>
+        <div class="gc-pub-check-body">
+          <p class="gc-pub-check-title">同一适用对象是否存在两条启用中的时限规则</p>
+          <p class="gc-pub-check-hint" data-gc-pub-check-hint>通过：共享单车乱停放 · Ⅲ 级 · 全区仅一条启用行，按更细优先（网格 &gt; 街道 &gt; 全区）取值。</p>
+        </div>
+        <span class="gc-chip gc-chip--on" data-gc-pub-check-chip>通过</span>
+      </li>
+      <li class="gc-pub-check" data-gc-pub-check="dedup">
+        <span class="gc-pub-check-no">05</span>
+        <div class="gc-pub-check-body">
+          <p class="gc-pub-check-title">判重规则是否至少绑定同相机或同位置之一</p>
+          <p class="gc-pub-check-hint" data-gc-pub-check-hint>通过：命中判重只追加记录、不建新主事件，重复上报与复发分表处理。</p>
+        </div>
+        <span class="gc-chip gc-chip--on" data-gc-pub-check-chip>通过</span>
+      </li>
+      <li class="gc-pub-check" data-gc-pub-check="account">
+        <span class="gc-pub-check-no">06</span>
+        <div class="gc-pub-check-body">
+          <p class="gc-pub-check-title">是否存在至少一个可发布的全局协调账号</p>
+          <p class="gc-pub-check-hint" data-gc-pub-check-hint>通过：当前有 1 个启用中的全局协调账号。</p>
+        </div>
+        <span class="gc-chip gc-chip--on" data-gc-pub-check-chip>通过</span>
+      </li>
+    </ul>
+
+    <p class="gc-pub-tip" data-gc-pub-tip>阻断后请回对应模块页修改草稿，再回本页重新校验；本页不提供就地改规则，也不在业务模块页提供「确认发布」。</p>
+  </section>
+
+  <section class="gc-card gc-card--reserved" aria-labelledby="gc-deep-title">
+    <header class="gc-card-head">
+      <h2 class="gc-card-title" id="gc-deep-title">影响预览（深化）</h2>
+      <span class="gc-card-note">预留区块</span>
+    </header>
+    <p class="gc-prev-sub gc-prev-sub--only">本期列出范围与对象，不列出正在办理的事件名单。</p>
+  </section>
+</div>
+
+      </div>
+
+      <!-- 底部动作条 (fixed, 不滚动) -->
+      <div class="gc-shell-footer">
+        <p class="gc-shell-footer-note" data-gc-pub-footer-note role="status" aria-live="polite">校验通过：差异 3 项、冲突 0 条，可发布。</p>
+        <a class="gc-btn-secondary" href="publish-draft-review.html" data-dom-id="cta-back-draft">
+          <span>返回草稿核对</span>
+        </a>
+        <button type="button" class="gc-btn-primary" id="gc-confirm-publish" data-dom-id="cta-confirm-publish" aria-describedby="gc-pub-publish-reason">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+          <span>确认发布</span>
+        </button>
+        <span id="gc-pub-publish-reason" hidden>发布校验未通过时此按钮不可用；本页是全站唯一提供「确认发布」的位置。</span>
+      </div>
+
+    </main>
+
+  </div><!-- /.gc-shell-body -->
+
+</div><!-- /.gc-shell -->
+<div class="gc-pub-toast" data-gc-pub-toast role="alert" aria-live="assertive"></div>
+
+<script id="shell-collapse-js">
+(function () {
+  var btn = document.querySelector('.gc-collapse-btn');
+  var body = document.querySelector('.gc-shell-body');
+  if (!btn || !body) return;
+  function setRail(on) {
+    body.classList.toggle('gc-rail', on);
+    btn.setAttribute('aria-expanded', on ? 'false' : 'true');
+    btn.setAttribute('aria-label', on ? '展开左侧导航' : '收起左侧导航');
+  }
+  btn.addEventListener('click', function () { setRail(!body.classList.contains('gc-rail')); });
+})();
+</script>
+
+<script id="gc-publish-guard-js">
+(function () {
+  var PASS = {
+    rules: '通过：本批差异未让任一细类同时成立两种终局方式。',
+    owner: '通过：一事件同一时刻只有一个网格主责任人。',
+    candidate: '通过：共享单车乱停放已在「允许自动结案候选」开关内启用。',
+    sla: '通过：共享单车乱停放 · Ⅲ 级 · 全区仅一条启用行，按更细优先（网格 > 街道 > 全区）取值。',
+    dedup: '通过：命中判重只追加记录、不建新主事件；重复上报与结案后复发分表处理。',
+    account: '通过：当前有 1 个启用中的全局协调账号。'
+  };
+
+  function passAll() {
+    return {
+      rules: { state: 'pass', hint: PASS.rules },
+      owner: { state: 'pass', hint: PASS.owner },
+      candidate: { state: 'pass', hint: PASS.candidate },
+      sla: { state: 'pass', hint: PASS.sla },
+      dedup: { state: 'pass', hint: PASS.dedup },
+      account: { state: 'pass', hint: PASS.account }
+    };
+  }
+
+  var SCENES = {
+    ok: {
+      canPublish: true,
+      verdict: 'ok',
+      verdictMain: '校验通过，可以发布',
+      verdictSub: '差异 3 项，冲突 0 条。发布后只作用于新事件，已结案 / 已中止 / 已无效档案继续引用当时版本。',
+      checks: passAll(),
+      diffCount: '本次 3 项差异',
+      diffNote: '逐条对照：差异只来自草稿，未发布的改动对线上事件无影响。',
+      diffNoteEmpty: false,
+      diffTable: true,
+      bannerClass: 'gc-banner--orange',
+      bannerText: '发布前必经：看清影响范围、影响对象、生效方式与版本差异。',
+      bannerChip: '可以发布',
+      bannerChipOn: true,
+      footerNote: '校验通过：差异 3 项、冲突 0 条，可发布。',
+      footerBlock: false,
+      buttonTitle: '发布草稿版本 V2026.08.19'
+    },
+    nodiff: {
+      canPublish: false,
+      verdict: 'warn',
+      verdictMain: '阻断：无差异不能发布',
+      verdictSub: '6 条冲突校验全部通过，但当前草稿与生效版本 V2026.08.18 完全一致，发布不会产生任何变化。请先回对应模块修改规则并保存为草稿。',
+      checks: passAll(),
+      diffCount: '本次 0 项差异',
+      diffNote: '当前草稿与生效版本无差异，本次没有可发布的内容；继续发布不会改变任何线上判断，只会占用一次版本号与审计记录。请先回对应模块修改规则。',
+      diffNoteEmpty: true,
+      diffTable: false,
+      bannerClass: 'gc-banner--orange',
+      bannerText: '无差异不能发布：当前草稿与生效版本一致。',
+      bannerChip: '不能发布',
+      bannerChipOn: false,
+      footerNote: '无差异不能发布：草稿与生效版本一致，发布不产生变化。',
+      footerBlock: true,
+      buttonTitle: '当前无差异，不能发布'
+    },
+    conflict: {
+      canPublish: false,
+      verdict: 'block',
+      verdictMain: '阻断：存在冲突，不能发布',
+      verdictSub: '冲突 1 条 —— 细类「共享单车乱停放」同时命中「必须人工核查」与「允许自动结案」。请回「事件标准 · 分类字典」修正互斥开关后，再回本页重新校验。',
+      checks: (function () {
+        var c = passAll();
+        c.rules = { state: 'block', hint: '阻断：细类「共享单车乱停放」同时命中「必须人工核查」（开）与「允许自动结案」（开），两种终局方式互斥。修正入口：事件标准 · 分类字典 · DM-0102。' };
+        return c;
+      })(),
+      diffCount: '本次 3 项差异',
+      diffNote: '差异存在，但冲突未清零，因此仍不能发布。',
+      diffNoteEmpty: false,
+      diffTable: true,
+      bannerClass: 'gc-banner--orange',
+      bannerText: '存在冲突不能发布：细类「共享单车乱停放」互斥未清零。',
+      bannerChip: '不能发布',
+      bannerChipOn: false,
+      footerNote: '冲突 1 条未通过，不能发布。',
+      footerBlock: true,
+      buttonTitle: '存在冲突，不能发布'
+    }
+  };
+
+  var ICON_OK = '<path d="M20 6 9 17l-5-5"/>';
+  var ICON_BLOCK = '<circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/>';
+
+  var checkList = document.querySelector('[data-gc-pub-check-list]');
+  var verdictBox = document.querySelector('[data-gc-pub-verdict]');
+  var verdictIco = document.querySelector('[data-gc-pub-verdict-ico]');
+  var verdictMain = document.querySelector('[data-gc-pub-verdict-main]');
+  var verdictSub = document.querySelector('[data-gc-pub-verdict-sub]');
+  var diffCountEl = document.querySelector('[data-gc-pub-diffcount]');
+  var diffWrapEl = document.querySelector('[data-gc-pub-diff-wrap]');
+  var diffNoteEl = document.querySelector('[data-gc-pub-diffnote]');
+  var bannerEl = document.getElementById('gc-pub-banner');
+  var bannerTextEl = document.querySelector('[data-gc-pub-banner-text]');
+  var bannerChipEl = document.querySelector('[data-gc-pub-banner-chip]');
+  var footerNoteEl = document.querySelector('[data-gc-pub-footer-note]');
+  var pubBtn = document.getElementById('gc-confirm-publish');
+  var toastEl = document.querySelector('[data-gc-pub-toast]');
+  var toastTimer = null;
+  var current = 'ok';
+
+  function rows() {
+    return checkList ? checkList.querySelectorAll('[data-gc-pub-check]') : [];
+  }
+
+  function toast(msg) {
+    if (!toastEl) return;
+    toastEl.textContent = msg;
+    toastEl.classList.add('gc-pub-toast--show');
+    if (toastTimer) { clearTimeout(toastTimer); }
+    toastTimer = setTimeout(function () {
+      toastEl.classList.remove('gc-pub-toast--show');
+    }, 3200);
+  }
+
+  function setScene(name, silent) {
+    var s = SCENES[name] || SCENES.ok;
+    current = name;
+
+    if (verdictBox) {
+      verdictBox.className = 'gc-pub-verdict gc-pub-verdict--' + s.verdict;
+    }
+    if (verdictIco) {
+      verdictIco.innerHTML = (s.verdict === 'ok') ? ICON_OK : ICON_BLOCK;
+    }
+    if (verdictMain) { verdictMain.textContent = s.verdictMain; }
+    if (verdictSub) { verdictSub.textContent = s.verdictSub; }
+
+    for (var i = 0; i < rows().length; i++) {
+      var li = rows()[i];
+      var key = li.getAttribute('data-gc-pub-check');
+      var st = s.checks[key] || { state: 'pass', hint: '' };
+      li.classList.toggle('gc-pub-check--block', st.state === 'block');
+      var hint = li.querySelector('[data-gc-pub-check-hint]');
+      if (hint) { hint.textContent = st.hint; }
+      var chip = li.querySelector('[data-gc-pub-check-chip]');
+      if (chip) {
+        chip.textContent = (st.state === 'block') ? '阻断' : '通过';
+        chip.className = 'gc-chip ' + ((st.state === 'block') ? 'gc-chip--block' : 'gc-chip--on');
+      }
+    }
+
+    if (diffCountEl) { diffCountEl.textContent = s.diffCount; }
+    if (diffWrapEl) { diffWrapEl.hidden = !s.diffTable; }
+    if (diffNoteEl) {
+      diffNoteEl.textContent = s.diffNote;
+      diffNoteEl.className = 'gc-table-note' + (s.diffNoteEmpty ? ' gc-table-note--empty' : '');
+    }
+
+    if (bannerEl) {
+      bannerEl.className = 'gc-banner ' + s.bannerClass + (s.canPublish ? '' : ' gc-pub-banner--block');
+    }
+    if (bannerTextEl) { bannerTextEl.textContent = s.bannerText; }
+    if (bannerChipEl) {
+      bannerChipEl.textContent = s.bannerChip;
+      bannerChipEl.className = 'gc-chip ' + (s.bannerChipOn ? 'gc-chip--on' : 'gc-chip--block');
+    }
+
+    if (footerNoteEl) {
+      footerNoteEl.textContent = s.footerNote;
+      footerNoteEl.className = 'gc-shell-footer-note' + (s.footerBlock ? ' gc-shell-footer-note--block' : '');
+    }
+
+    if (pubBtn) {
+      pubBtn.disabled = !s.canPublish;
+      pubBtn.setAttribute('title', s.buttonTitle);
+      pubBtn.setAttribute('data-gc-pub-state', s.canPublish ? 'ready' : 'blocked');
+    }
+
+    var btns = document.querySelectorAll('[data-gc-pub-scene]');
+    for (var j = 0; j < btns.length; j++) {
+      btns[j].setAttribute('aria-pressed', btns[j].getAttribute('data-gc-pub-scene') === name ? 'true' : 'false');
+    }
+
+    if (!silent) {
+      try { history.replaceState(null, '', '?scene=' + name); } catch (e) {}
+    }
+  }
+
+  var sceneBtns = document.querySelectorAll('[data-gc-pub-scene]');
+  for (var k = 0; k < sceneBtns.length; k++) {
+    sceneBtns[k].addEventListener('click', function () {
+      setScene(this.getAttribute('data-gc-pub-scene'));
+    });
+  }
+
+  if (pubBtn) {
+    pubBtn.addEventListener('click', function () {
+      var st = pubBtn.getAttribute('data-gc-pub-state');
+      if (st === 'blocked') {
+        var s = SCENES[current] || SCENES.ok;
+        toast('无法发布：' + s.verdictSub);
+        return;
+      }
+      window.location.href = 'publish-effective.html';
+    });
+  }
+
+  var current = 'ok';
+  try {
+    var m = /[?&]scene=([a-z]+)/.exec(window.location.search);
+    if (m && SCENES[m[1]]) { current = m[1]; }
+  } catch (e) {}
+  setScene(current, true);
+})();
+</script>
+</body>
+</html>

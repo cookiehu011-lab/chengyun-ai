@@ -1,0 +1,1998 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>查重复发 · 草稿编辑中</title>
+    <style id="theme-vars">
+/* ============================================================
+   治理配置 Hi-Fi — 项目品牌 CSS（用户锁定 token，light-only）
+   城运 AI · 东城二期 · 治理配置模块
+   ============================================================ */
+
+:root {
+  /* ---- 基础色板（用户锁定） ---- */
+  --gc-bg: #F6F8FB;            /* 页面底色 */
+  --gc-panel: #FFFFFF;         /* 面板/卡片 */
+  --gc-text: #0F172A;          /* 主文本 */
+  --gc-muted: #64748B;         /* 次级文本 */
+  --gc-line: #E2E8F0;          /* 分隔线/描边 */
+  --gc-accent: #2F6BFF;        /* 品牌主蓝 */
+  --gc-accent-soft: #DCEBFF;   /* 主蓝浅底 */
+  --gc-func-green: #2E9B68;    /* 功能绿（生效/成功/治理基础蓝组补充） */
+  --gc-func-orange: #D98A20;   /* 功能橙（草稿/流程运行） */
+  --gc-func-red: #D94C4C;      /* 功能红（阻断/错误） */
+  --gc-func-purple: #7967D8;   /* 功能紫（配置管理组） */
+
+  /* ---- 衍生层级（保持同色系） ---- */
+  --gc-accent-hover: #1F5AE6;
+  --gc-accent-active: #174CBF;
+  --gc-bg-hover: #EEF2F8;
+  --gc-bg-active: #E2E9F5;
+  --gc-line-strong: #CBD5E1;
+  --gc-func-green-soft: #E6F4EC;
+  --gc-func-orange-soft: #FBF0DF;
+  --gc-func-red-soft: #FBE7E7;
+  --gc-func-purple-soft: #EEEBFA;
+  --gc-disabled-bg: #F1F5F9;
+  --gc-disabled-text: #94A3B8;
+
+  /* ---- 语义别名（apply-html-head-contract 必需） ---- */
+  --gc-background: var(--gc-bg);
+  --gc-foreground: var(--gc-text);
+  --gc-card: var(--gc-panel);
+  --gc-card-foreground: var(--gc-text);
+  --gc-popover: var(--gc-panel);
+  --gc-popover-foreground: var(--gc-text);
+  --gc-primary: var(--gc-accent);
+  --gc-primary-foreground: #FFFFFF;
+  --gc-muted: var(--gc-muted);
+  --gc-muted-foreground: var(--gc-muted);
+  --gc-border: var(--gc-line);
+  --gc-input: var(--gc-line);
+  --gc-ring: var(--gc-accent);
+
+  /* ---- 半径（用户锁定 8/10/14，上限 14 ≤16） ---- */
+  --gc-radius-small: 8px;
+  --gc-radius-medium: 10px;
+  --gc-radius-large: 14px;
+  --gc-radius-sm: var(--gc-radius-small);
+  --gc-radius-md: var(--gc-radius-medium);
+  --gc-radius-lg: var(--gc-radius-large);
+  --gc-radius-full: 9999px;
+
+  /* ---- 状态色语义 ---- */
+  --gc-state-success: var(--gc-func-green);
+  --gc-state-warning: var(--gc-func-orange);
+  --gc-state-error: var(--gc-func-red);
+  --gc-state-info: var(--gc-accent);
+
+  /* ---- 字体（系统 CJK 栈，不引外部字体） ---- */
+  --gc-font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Helvetica Neue", Arial, sans-serif;
+  --gc-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* ---- 排版体系 ---- */
+html.light body {
+  font-family: var(--gc-font-sans);
+  background: var(--gc-background);
+  color: var(--gc-foreground);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.gc-h1 { font-size: 20px; line-height: 1.3; font-weight: 600; color: var(--gc-foreground); letter-spacing: -0.01em; }
+.gc-h2 { font-size: 16px; line-height: 1.4; font-weight: 600; color: var(--gc-foreground); }
+.gc-h3 { font-size: 14px; line-height: 1.45; font-weight: 600; color: var(--gc-foreground); }
+.gc-body { font-size: 14px; line-height: 1.5; color: var(--gc-foreground); }
+.gc-body-sm { font-size: 13px; line-height: 1.5; color: var(--gc-foreground); }
+.gc-caption { font-size: 12px; line-height: 1.5; color: var(--gc-muted-foreground); }
+.gc-num { font-variant-numeric: tabular-nums; }
+
+/* ===== Common components ===== */
+
+/* ============================================================
+   P27 全局协调 · 事件标准（生效版视图） — page-local CSS
+   Static CSS, only --gc-* tokens; banner / tree / table / cards.
+   ============================================================ */
+
+/* ---- 顶栏身份区 ---- */
+.gc-topbar-identity { display: flex; align-items: center; gap: 8px; }
+.gc-identity-name { font-size: 13px; font-weight: 500; color: var(--gc-text); white-space: nowrap; }
+
+/* ---- 页头 ---- */
+.gc-page-head { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.gc-breadcrumb { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--gc-muted); }
+.gc-breadcrumb-link { color: var(--gc-muted); text-decoration: none; border-radius: 2px; transition: color 0.15s cubic-bezier(.2,.8,.2,1); }
+.gc-breadcrumb-link:hover { color: var(--gc-accent); }
+.gc-breadcrumb-link:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-breadcrumb-sep { color: var(--gc-line-strong); }
+.gc-breadcrumb-current { color: var(--gc-text); font-weight: 500; }
+.gc-page-title { margin: 4px 0 0; }
+.gc-page-impact { margin: 0; font-size: 13px; line-height: 1.5; color: var(--gc-text); }
+.gc-page-note { margin: 0; font-size: 12px; line-height: 1.5; color: var(--gc-muted); }
+.gc-page-meta { margin: 4px 0 0; font-size: 12px; line-height: 1.5; color: var(--gc-muted); font-variant-numeric: tabular-nums; }
+
+/* ---- 生效版横幅（绿色细条） ---- */
+.gc-banner-live {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px;
+  background: var(--gc-func-green-soft);
+  color: var(--gc-func-green);
+  font-size: 13px;
+  font-weight: 500;
+}
+.gc-banner-live svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* ---- 正文双栏：左树 300px + 右表自适应 ---- */
+.gc-module-grid {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+/* ---- 卡片 ---- */
+.gc-card {
+  background: var(--gc-panel);
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius-large);
+  overflow: hidden;
+}
+.gc-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--gc-line);
+}
+.gc-card-title { margin: 0; font-size: 14px; font-weight: 600; color: var(--gc-text); }
+.gc-card-aside { font-size: 12px; color: var(--gc-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* ---- 分类标准树 ---- */
+.gc-tree { padding: 8px 0; }
+.gc-tree-cat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--gc-text);
+}
+.gc-tree-cat-icon { width: 14px; height: 14px; flex-shrink: 0; color: var(--gc-muted); }
+.gc-tree-cat-name { flex: 1; min-width: 0; }
+.gc-tree-count { font-size: 12px; color: var(--gc-muted); font-variant-numeric: tabular-nums; }
+.gc-tree-cat--active { background: var(--gc-accent-soft); color: var(--gc-accent); font-weight: 600; }
+.gc-tree-cat--active .gc-tree-cat-icon,
+.gc-tree-cat--active .gc-tree-count { color: var(--gc-accent); }
+.gc-tree-sub {
+  margin: 4px 0 8px 28px;
+  padding-left: 12px;
+  border-left: 1px solid var(--gc-line);
+  display: flex;
+  flex-direction: column;
+}
+.gc-tree-sub-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px 4px 0;
+  font-size: 13px;
+  color: var(--gc-text);
+}
+.gc-tree-sub-tag { margin-left: auto; font-size: 11px; color: var(--gc-muted); white-space: nowrap; }
+.gc-tree-note {
+  margin: 0;
+  padding: 12px 20px;
+  border-top: 1px solid var(--gc-line);
+  font-size: 12px;
+  color: var(--gc-muted);
+}
+
+/* ---- 字典摘录表 ---- */
+.gc-table-scroll { overflow-x: auto; }
+.gc-table { width: 100%; min-width: 960px; border-collapse: collapse; }
+.gc-table th {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gc-muted);
+  text-align: left;
+  background: var(--gc-bg);
+  border-bottom: 1px solid var(--gc-line);
+  white-space: nowrap;
+}
+.gc-table td {
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--gc-text);
+  border-bottom: 1px solid var(--gc-line);
+  vertical-align: middle;
+}
+.gc-table th:first-child,
+.gc-table td:first-child { padding-left: 20px; }
+.gc-table th:last-child,
+.gc-table td:last-child { padding-right: 20px; }
+.gc-table tbody tr:last-child td { border-bottom: 0; }
+.gc-td-name { font-weight: 500; white-space: nowrap; }
+.gc-td-code { font-family: var(--gc-font-mono); font-size: 12px; color: var(--gc-muted); white-space: nowrap; }
+.gc-td-dash { color: var(--gc-disabled-text); }
+.gc-td-actions { white-space: nowrap; }
+.gc-td-actions > * + * { margin-left: 8px; }
+.gc-row-note { font-size: 11px; color: var(--gc-muted); }
+.gc-table-note {
+  margin: 0;
+  padding: 12px 20px;
+  border-top: 1px solid var(--gc-line);
+  font-size: 12px;
+  color: var(--gc-muted);
+}
+
+/* ---- 状态胶囊 ---- */
+.gc-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  border-radius: var(--gc-radius-full);
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+.gc-chip--on { color: var(--gc-func-green); background: var(--gc-func-green-soft); }
+.gc-chip--off { color: var(--gc-disabled-text); background: var(--gc-disabled-bg); }
+
+/* ---- 行内按钮（规则 / 删除） ---- */
+.gc-btn-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--gc-accent);
+  background: transparent;
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius-small);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s cubic-bezier(.2,.8,.2,1), background-color 0.15s cubic-bezier(.2,.8,.2,1), border-color 0.15s cubic-bezier(.2,.8,.2,1);
+}
+.gc-btn-link:hover { color: var(--gc-accent); background: var(--gc-accent-soft); border-color: var(--gc-accent-soft); }
+.gc-btn-link:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 1px; }
+.gc-btn-link--disabled,
+.gc-btn-link--disabled:hover {
+  color: var(--gc-disabled-text);
+  background: var(--gc-disabled-bg);
+  border-color: var(--gc-line);
+  cursor: not-allowed;
+}
+
+/* ---- 底部主按钮（编辑） ---- */
+.gc-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--gc-primary-foreground);
+  background: var(--gc-accent);
+  border: none;
+  border-radius: var(--gc-radius-small);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s cubic-bezier(.2,.8,.2,1);
+}
+.gc-btn-primary:hover { background: var(--gc-accent-hover); }
+.gc-btn-primary:active { background: var(--gc-accent-active); }
+.gc-btn-primary:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-btn-primary svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .gc-breadcrumb-link,
+  .gc-btn-link,
+  .gc-btn-primary {
+    transition: none;
+  }
+}
+
+/* --- banners (common) --- */
+.gc-banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 16px; border-radius: 10px; font-size: 13px; }
+.gc-banner--green { background: var(--gc-func-green-soft); color: var(--gc-func-green); }
+.gc-banner--orange { background: var(--gc-func-orange-soft); color: var(--gc-func-orange); }
+.gc-banner--muted { background: var(--gc-bg-active); color: var(--gc-muted); }
+.gc-banner a, .gc-banner .gc-link { color: inherit; text-decoration: underline; text-underline-offset: 2px; font-weight: 500; }
+.gc-banner--green a, .gc-banner--green .gc-link { color: var(--gc-func-green); }
+.gc-banner--orange a, .gc-banner--orange .gc-link { color: var(--gc-func-orange); }
+
+
+    </style>
+
+
+    <style id="gc-static-tailwind">
+/* Precompiled Tailwind v4 base + used utilities (no runtime CDN).
+   Generated from @tailwindcss/node@4.3.3; candidates: antialiased,
+   font-sans, min-h-screen. Supersedes the former browser build block. */
+/*! tailwindcss v4.3.3 | MIT License | https://tailwindcss.com */
+@layer theme, base, components, utilities;
+@layer theme {
+  :root, :host {
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+      "Segoe UI Symbol", "Noto Color Emoji";
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      "Courier New", monospace;
+    --default-font-family: var(--font-sans);
+    --default-mono-font-family: var(--font-mono);
+  }
+}
+@layer base {
+  *, ::after, ::before, ::backdrop, ::file-selector-button {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid;
+  }
+  html, :host {
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    tab-size: 4;
+    font-family: var(--default-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji");
+    font-feature-settings: var(--default-font-feature-settings, normal);
+    font-variation-settings: var(--default-font-variation-settings, normal);
+    -webkit-tap-highlight-color: transparent;
+  }
+  hr {
+    height: 0;
+    color: inherit;
+    border-top-width: 1px;
+  }
+  abbr:where([title]) {
+    -webkit-text-decoration: underline dotted;
+    text-decoration: underline dotted;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+  a {
+    color: inherit;
+    -webkit-text-decoration: inherit;
+    text-decoration: inherit;
+  }
+  b, strong {
+    font-weight: bolder;
+  }
+  code, kbd, samp, pre {
+    font-family: var(--default-mono-font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+    font-feature-settings: var(--default-mono-font-feature-settings, normal);
+    font-variation-settings: var(--default-mono-font-variation-settings, normal);
+    font-size: 1em;
+  }
+  small {
+    font-size: 80%;
+  }
+  sub, sup {
+    font-size: 75%;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+  }
+  sub {
+    bottom: -0.25em;
+  }
+  sup {
+    top: -0.5em;
+  }
+  table {
+    text-indent: 0;
+    border-color: inherit;
+    border-collapse: collapse;
+  }
+  :-moz-focusring:where(:not(iframe)) {
+    outline: auto;
+  }
+  progress {
+    vertical-align: baseline;
+  }
+  summary {
+    display: list-item;
+  }
+  ol, ul, menu {
+    list-style: none;
+  }
+  img, svg, video, canvas, audio, iframe, embed, object {
+    display: block;
+    vertical-align: middle;
+  }
+  img, video {
+    max-width: 100%;
+    height: auto;
+  }
+  button, input, select, optgroup, textarea, ::file-selector-button {
+    font: inherit;
+    font-feature-settings: inherit;
+    font-variation-settings: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    border-radius: 0;
+    background-color: transparent;
+    opacity: 1;
+  }
+  :where(select:is([multiple], [size])) optgroup {
+    font-weight: bolder;
+  }
+  :where(select:is([multiple], [size])) optgroup option {
+    padding-inline-start: 20px;
+  }
+  ::file-selector-button {
+    margin-inline-end: 4px;
+  }
+  ::placeholder {
+    opacity: 1;
+  }
+  @supports (not (-webkit-appearance: -apple-pay-button))  or (contain-intrinsic-size: 1px) {
+    ::placeholder {
+      color: currentcolor;
+      @supports (color: color-mix(in lab, red, red)) {
+        color: color-mix(in oklab, currentcolor 50%, transparent);
+      }
+    }
+  }
+  textarea {
+    resize: vertical;
+  }
+  ::-webkit-search-decoration {
+    -webkit-appearance: none;
+  }
+  ::-webkit-date-and-time-value {
+    min-height: 1lh;
+    text-align: inherit;
+  }
+  ::-webkit-datetime-edit {
+    display: inline-flex;
+  }
+  ::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+  }
+  ::-webkit-datetime-edit, ::-webkit-datetime-edit-year-field, ::-webkit-datetime-edit-month-field, ::-webkit-datetime-edit-day-field, ::-webkit-datetime-edit-hour-field, ::-webkit-datetime-edit-minute-field, ::-webkit-datetime-edit-second-field, ::-webkit-datetime-edit-millisecond-field, ::-webkit-datetime-edit-meridiem-field {
+    padding-block: 0;
+  }
+  ::-webkit-calendar-picker-indicator {
+    line-height: 1;
+  }
+  :-moz-ui-invalid {
+    box-shadow: none;
+  }
+  button, input:where([type="button"], [type="reset"], [type="submit"]), ::file-selector-button {
+    appearance: button;
+  }
+  ::-webkit-inner-spin-button, ::-webkit-outer-spin-button {
+    height: auto;
+  }
+  [hidden]:where(:not([hidden="until-found"])) {
+    display: none !important;
+  }
+}
+@layer utilities {
+  .min-h-screen {
+    min-height: 100vh;
+  }
+  .font-sans {
+    font-family: var(--font-sans);
+  }
+  .antialiased {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+@layer base {
+  body {
+    background: var(--gc-background);
+    color: var(--gc-foreground);
+  }
+  td, th {
+    overflow-wrap: break-word;
+    word-break: break-all;
+    word-break: auto-phrase;
+  }
+  th {
+    white-space: nowrap;
+  }
+}
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--gc-background); }
+      .text-background { color: var(--gc-background); }
+      .border-background { border-color: var(--gc-background); }
+      .ring-background { --tw-ring-color: var(--gc-background); }
+      .bg-foreground { background-color: var(--gc-foreground); }
+      .text-foreground { color: var(--gc-foreground); }
+      .border-foreground { border-color: var(--gc-foreground); }
+      .ring-foreground { --tw-ring-color: var(--gc-foreground); }
+      .bg-card { background-color: var(--gc-card); }
+      .text-card { color: var(--gc-card); }
+      .border-card { border-color: var(--gc-card); }
+      .ring-card { --tw-ring-color: var(--gc-card); }
+      .bg-card-foreground { background-color: var(--gc-card-foreground); }
+      .text-card-foreground { color: var(--gc-card-foreground); }
+      .border-card-foreground { border-color: var(--gc-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--gc-card-foreground); }
+      .bg-popover { background-color: var(--gc-popover); }
+      .text-popover { color: var(--gc-popover); }
+      .border-popover { border-color: var(--gc-popover); }
+      .ring-popover { --tw-ring-color: var(--gc-popover); }
+      .bg-popover-foreground { background-color: var(--gc-popover-foreground); }
+      .text-popover-foreground { color: var(--gc-popover-foreground); }
+      .border-popover-foreground { border-color: var(--gc-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--gc-popover-foreground); }
+      .bg-primary { background-color: var(--gc-primary); }
+      .text-primary { color: var(--gc-primary); }
+      .border-primary { border-color: var(--gc-primary); }
+      .ring-primary { --tw-ring-color: var(--gc-primary); }
+      .bg-primary-foreground { background-color: var(--gc-primary-foreground); }
+      .text-primary-foreground { color: var(--gc-primary-foreground); }
+      .border-primary-foreground { border-color: var(--gc-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--gc-primary-foreground); }
+      .bg-muted { background-color: var(--gc-muted); }
+      .text-muted { color: var(--gc-muted); }
+      .border-muted { border-color: var(--gc-muted); }
+      .ring-muted { --tw-ring-color: var(--gc-muted); }
+      .bg-muted-foreground { background-color: var(--gc-muted-foreground); }
+      .text-muted-foreground { color: var(--gc-muted-foreground); }
+      .border-muted-foreground { border-color: var(--gc-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--gc-muted-foreground); }
+      .bg-accent { background-color: var(--gc-accent); }
+      .text-accent { color: var(--gc-accent); }
+      .border-accent { border-color: var(--gc-accent); }
+      .ring-accent { --tw-ring-color: var(--gc-accent); }
+      .bg-border { background-color: var(--gc-border); }
+      .text-border { color: var(--gc-border); }
+      .border-border { border-color: var(--gc-border); }
+      .ring-border { --tw-ring-color: var(--gc-border); }
+      .bg-input { background-color: var(--gc-input); }
+      .text-input { color: var(--gc-input); }
+      .border-input { border-color: var(--gc-input); }
+      .ring-input { --tw-ring-color: var(--gc-input); }
+      .bg-ring { background-color: var(--gc-ring); }
+      .text-ring { color: var(--gc-ring); }
+      .border-ring { border-color: var(--gc-ring); }
+      .ring-ring { --tw-ring-color: var(--gc-ring); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+<style id="gc-crud-base-css">
+/* ══ 通用后台管理：卡片 / 表格基础样式（补齐本页缺失，与其它配置页一致） ══ */
+.gc-card[data-gc-crud] { overflow: hidden; }
+.gc-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--gc-line); }
+.gc-card-title { margin: 0; font-size: 14px; font-weight: 600; color: var(--gc-text); }
+.gc-card-note { font-size: 12px; color: var(--gc-muted); font-weight: 400; }
+.gc-card-foot { margin: 0; padding: 12px 20px; border-top: 1px solid var(--gc-line); font-size: 12px; line-height: 1.6; color: var(--gc-muted); }
+.gc-table { width: 100%; min-width: 960px; border-collapse: collapse; }
+.gc-table th { padding: 8px 12px; font-size: 12px; font-weight: 500; color: var(--gc-muted); text-align: left; border-bottom: 1px solid var(--gc-line); white-space: nowrap; }
+.gc-table td { padding: 8px 12px; font-size: 13px; line-height: 1.5; color: var(--gc-text); border-bottom: 1px solid var(--gc-line); vertical-align: middle; }
+.gc-table th:first-child, .gc-table td:first-child { padding-left: 20px; }
+.gc-table th:last-child, .gc-table td:last-child { padding-right: 20px; }
+.gc-table tbody tr:last-child td { border-bottom: 0; }
+.gc-td-name { font-weight: 500; white-space: nowrap; }
+.gc-td-code { font-family: var(--gc-font-mono); font-size: 12px; color: var(--gc-muted); white-space: nowrap; }
+.gc-td-dash { color: var(--gc-disabled-text); }
+.gc-td-actions { white-space: nowrap; }
+.gc-td-actions > * + * { margin-left: 8px; }
+.gc-th-actions { text-align: left; }
+</style>
+<style id="gc-crud-css">
+/* ══ 治理配置 · 通用后台管理引擎（列表 + 新增 / 编辑 / 删除 / 启用·停用） ══ */
+/* 工具条 */
+.gc-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 20px; border-bottom: 1px solid var(--gc-line); }
+.gc-search { display: flex; align-items: center; gap: 8px; flex: 1; max-width: 460px; }
+.gc-search svg { width: 14px; height: 14px; color: var(--gc-muted); flex-shrink: 0; }
+.gc-search input { flex: 1; height: 34px; padding: 0 12px; border: 1px solid var(--gc-line-strong); border-radius: 8px; font: inherit; font-size: 13px; color: var(--gc-text); background: var(--gc-panel); min-width: 0; }
+.gc-search input:focus { outline: 2px solid var(--gc-accent); outline-offset: -1px; border-color: var(--gc-accent); }
+.gc-btn-ghost { height: 34px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--gc-line-strong); background: var(--gc-panel); color: var(--gc-text); font-size: 13px; cursor: pointer; font-family: inherit; white-space: nowrap; }
+.gc-btn-ghost:hover { background: var(--gc-bg-hover); }
+.gc-btn-ghost:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-table-scroll { overflow-x: auto; }
+/* 状态与行操作 */
+.gc-chip--green { background: var(--gc-func-green-soft); color: var(--gc-func-green); font-size: 11px; font-weight: 500; border-radius: 9999px; padding: 1px 8px; white-space: nowrap; }
+.gc-btn-link--danger,
+.gc-btn-link--danger:hover { color: var(--gc-func-red); background: var(--gc-func-red-soft); border-color: var(--gc-func-red-soft); }
+.gc-empty-row td { text-align: center; color: var(--gc-muted); padding: 24px 0; }
+tr.gc-empty-row[hidden],
+tr[data-empty-row][hidden],
+.gc-scrim[hidden],
+.gc-drawer[hidden] { display: none !important; }
+/* 抽屉与表单（自包含，供各页复用） */
+.gc-scrim { position: fixed; inset: 0; background: rgba(22, 45, 77, 0.32); z-index: 50; }
+.gc-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 460px; max-width: 92vw; background: var(--gc-panel); border-left: 1px solid var(--gc-line); z-index: 60; display: flex; flex-direction: column; }
+.gc-drawer-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--gc-line); }
+.gc-drawer-title { font-size: 15px; font-weight: 600; margin: 0; }
+.gc-drawer-body { flex: 1; overflow-y: auto; padding: 16px 20px; font-size: 13px; }
+.gc-drawer-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--gc-line); }
+.gc-ov-close { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--gc-line); background: var(--gc-panel); color: var(--gc-muted); cursor: pointer; font-size: 14px; font-family: inherit; }
+.gc-ov-close:hover { color: var(--gc-text); background: var(--gc-bg-hover); }
+.gc-ov-close:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.gc-form-grid .gc-field--full { grid-column: 1 / -1; }
+.gc-field { display: flex; flex-direction: column; gap: 6px; }
+.gc-field label { font-size: 12px; color: var(--gc-muted); }
+.gc-field input, .gc-field select { height: 36px; border: 1px solid var(--gc-line-strong); border-radius: 8px; padding: 0 10px; font: inherit; font-size: 13px; background: var(--gc-panel); color: var(--gc-text); min-width: 0; }
+.gc-field input:focus, .gc-field select:focus { outline: 2px solid var(--gc-accent); outline-offset: -1px; border-color: var(--gc-accent); }
+.gc-field--err label { color: var(--gc-func-red); }
+.gc-field--err input, .gc-field--err select { border-color: var(--gc-func-red); }
+.gc-req { color: var(--gc-func-red); }
+.gc-form-err { display: none; margin: 12px 0 0; font-size: 12px; color: var(--gc-func-red); }
+.gc-form-err--show { display: block; }
+.gc-ov-note { margin: 12px 0 0; font-size: 12px; color: var(--gc-muted); }
+/* 草稿提示条 */
+.gc-draft-toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 60; display: none; max-width: 640px; padding: 10px 16px; border-radius: var(--gc-radius-medium); background: var(--gc-text); color: #FFFFFF; font-size: 13px; line-height: 1.6; }
+.gc-draft-toast--show { display: block; }
+</style>
+</head>
+<body>
+<style id="critical-layout">
+/* ============================================================
+   治理配置 Hi-Fi — Shared Project Shell (Critical Layout CSS)
+   Static CSS — no Tailwind runtime dependency.
+   All tokens reference project-local colors_and_type.css (--gc-* prefix).
+   Viewport: 1920×1080 desktop, app-shell mode.
+   ============================================================ */
+
+/* ---- Shell grid ---- */
+.gc-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--gc-bg);
+  font-family: var(--gc-font-sans);
+  color: var(--gc-text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Topbar (56px fixed) ---- */
+.gc-shell-topbar {
+  height: 56px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: var(--gc-panel);
+  border-bottom: 1px solid var(--gc-line);
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+}
+
+.gc-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.gc-topbar-brand {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gc-text);
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
+.gc-topbar-center {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.gc-top-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--gc-muted);
+  text-decoration: none;
+  border-radius: var(--gc-radius-small);
+  transition: color 0.15s cubic-bezier(.2,.8,.2,1), background-color 0.15s cubic-bezier(.2,.8,.2,1);
+  white-space: nowrap;
+}
+.gc-top-tab:hover {
+  color: var(--gc-text);
+  background: var(--gc-bg-hover);
+}
+.gc-top-tab:focus-visible {
+  outline: 2px solid var(--gc-accent);
+  outline-offset: -2px;
+}
+.gc-top-tab--active {
+  background: var(--gc-accent-soft);
+  color: var(--gc-accent);
+  font-weight: 600;
+}
+.gc-top-tab--active:hover {
+  background: var(--gc-accent-soft);
+  color: var(--gc-accent);
+}
+
+.gc-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.gc-role-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--gc-muted);
+  background: transparent;
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius-small);
+  cursor: pointer;
+  transition: color 0.15s cubic-bezier(.2,.8,.2,1), border-color 0.15s cubic-bezier(.2,.8,.2,1);
+  font-family: inherit;
+}
+.gc-role-switch:hover {
+  color: var(--gc-text);
+  border-color: var(--gc-line-strong);
+}
+.gc-role-switch:focus-visible {
+  outline: 2px solid var(--gc-accent);
+  outline-offset: -1px;
+}
+.gc-role-switch .gc-caret {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.gc-identity-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  background: var(--gc-accent-soft);
+  color: var(--gc-accent);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 10px;
+  white-space: nowrap;
+}
+
+/* ---- Shell body (sidebar + workspace) ---- */
+.gc-shell-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ---- Sidebar (380px fixed) ---- */
+.gc-shell-sidebar {
+  width: 300px;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  background: var(--gc-panel);
+  border-right: 1px solid var(--gc-line);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.gc-sidebar-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--gc-line);
+  flex-shrink: 0;
+}
+.gc-sidebar-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.gc-sidebar-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gc-text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.gc-version-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--gc-func-green);
+  background: var(--gc-func-green-soft);
+  border-radius: 9999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.gc-shell-sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0 8px;
+}
+
+.gc-nav-group {
+  margin-bottom: 2px;
+}
+.gc-nav-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 20px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.gc-nav-group-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.gc-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px 10px 16px;
+  min-height: 40px;
+  text-decoration: none;
+  color: var(--gc-text);
+  position: relative;
+  transition: background-color 0.15s cubic-bezier(.2,.8,.2,1);
+}
+.gc-nav-item:hover {
+  background: var(--gc-bg-hover);
+}
+.gc-nav-item:focus-visible {
+  outline: 2px solid var(--gc-accent);
+  outline-offset: -2px;
+}
+.gc-nav-bar {
+  width: 4px;
+  height: 16px;
+  border-radius: 2px;
+  background: transparent;
+  flex-shrink: 0;
+  transition: background-color 0.15s cubic-bezier(.2,.8,.2,1);
+}
+.gc-nav-item--active {
+  background: var(--gc-bg-active);
+  font-weight: 600;
+}
+.gc-nav-item--active .gc-nav-bar {
+  background: var(--gc-accent);
+}
+.gc-nav-label {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.gc-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 9999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.gc-badge-published {
+  color: var(--gc-func-green);
+  background: var(--gc-func-green-soft);
+}
+.gc-badge-draft {
+  color: var(--gc-func-orange);
+  background: var(--gc-func-orange-soft);
+}
+
+/* ---- Workspace (flex-1) ---- */
+.gc-shell-workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--gc-bg);
+  min-width: 0;
+}
+
+.gc-workspace-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 24px 16px;
+  background: var(--gc-panel);
+  border-bottom: 1px solid var(--gc-line);
+  flex-shrink: 0;
+}
+.gc-workspace-header-main {
+  flex: 1;
+  min-width: 0;
+}
+.gc-workspace-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.gc-workspace-banner-slot {
+  flex-shrink: 0;
+}
+
+.gc-shell-workspace-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px;
+}
+
+.gc-shell-footer {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 24px;
+  background: var(--gc-panel);
+  border-top: 1px solid var(--gc-line);
+  flex-shrink: 0;
+}
+
+/* ---- Scrollbar styling (sidebar + workspace) ---- */
+.gc-shell-sidebar-nav::-webkit-scrollbar,
+.gc-shell-workspace-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.gc-shell-sidebar-nav::-webkit-scrollbar-thumb,
+.gc-shell-workspace-scroll::-webkit-scrollbar-thumb {
+  background: var(--gc-line-strong);
+  border-radius: 3px;
+}
+.gc-shell-sidebar-nav::-webkit-scrollbar-track,
+.gc-shell-workspace-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .gc-top-tab,
+  .gc-nav-item,
+  .gc-nav-bar,
+  .gc-role-switch {
+    transition: none;
+  }
+}
+</style>
+<style id="page-css">.gc-stack { display: flex; flex-direction: column; gap: 16px; }
+.gc-card-note { font-size: 12px; color: var(--gc-muted); font-weight: 400; }
+.gc-card-foot { margin: 12px 0 0; font-size: 12px; line-height: 1.5; color: var(--gc-muted); }
+.gc-dupe-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 4px; }
+@media (max-width: 1400px) { .gc-dupe-grid { grid-template-columns: minmax(0, 1fr); } }
+.gc-dupe-col { border: 1px solid var(--gc-line); border-radius: 10px; padding: 12px 16px; }
+.gc-dupe-name { font-weight: 600; font-size: 14px; }
+.gc-dupe-mean { margin: 6px 0 0; font-size: 13px; color: var(--gc-text); }
+.gc-dupe-do { margin: 6px 0 0; font-size: 12px; color: var(--gc-accent); }
+.gc-dupe-where { margin: 6px 0 0; font-size: 12px; color: var(--gc-muted); }
+.gc-chip--green { background: var(--gc-func-green-soft); color: var(--gc-func-green); font-size: 11px; font-weight: 500; border-radius: 9999px; padding: 1px 8px; white-space: nowrap; }
+</style>
+
+<!-- ============================================================
+     SeeTime 城运AI · 治理配置 — Shared Project Shell
+     Fragment only: no <html>/<head>/<body>. All leaf pages inherit this.
+     Shared regions: topbar, sidebar, workspace frame.
+     Leaf pages fill: SLOT:identityArea, SLOT:sidebarActiveItem,
+       SLOT:sidebarBadges, SLOT:activeTopTab, SLOT:pageTitle,
+       SLOT:pageActions, SLOT:banner, SLOT:moduleContent, SLOT:footerActions.
+     ============================================================ -->
+<style id="shell-collapse-css">
+.gc-collapse-btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: none; background: transparent; color: var(--gc-muted); cursor: pointer; padding: 0; border-radius: 6px; flex-shrink: 0; }
+.gc-collapse-btn:hover { color: var(--gc-text); background: var(--gc-bg-hover); }
+.gc-collapse-btn:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-collapse-btn svg { width: 15px; height: 15px; }
+.gc-shell-sidebar { transition: width 0.18s cubic-bezier(.2,.8,.2,1), min-width 0.18s cubic-bezier(.2,.8,.2,1); }
+
+/* 收起态：64px 图标栏（名称悬浮提示） */
+.gc-shell-body.gc-rail .gc-shell-sidebar { width: 64px; min-width: 64px; }
+.gc-shell-body.gc-rail .gc-sidebar-header { padding: 12px 0 10px; }
+.gc-shell-body.gc-rail .gc-sidebar-header-row { flex-direction: column; gap: 6px; }
+.gc-shell-body.gc-rail .gc-sidebar-title, .gc-shell-body.gc-rail .gc-version-badge { display: none; }
+.gc-shell-body.gc-rail .gc-nav-group-title { justify-content: center; padding: 10px 0 4px; }
+.gc-shell-body.gc-rail .gc-nav-group-name { display: none; }
+.gc-shell-body.gc-rail .gc-nav-item { justify-content: center; padding: 10px 0; margin: 2px 14px; }
+.gc-shell-body.gc-rail .gc-nav-bar, .gc-shell-body.gc-rail .gc-nav-label, .gc-shell-body.gc-rail .gc-nav-badge { display: none; }
+
+/* 模块图标 */
+.gc-nav-ico { width: 16px; height: 16px; color: var(--gc-muted); flex-shrink: 0; display: inline-flex; }
+.gc-nav-ico svg { width: 16px; height: 16px; }
+.gc-nav-item--active .gc-nav-ico { color: var(--gc-accent); }
+
+/* SaaS 视觉打磨 */
+.gc-shell-sidebar { width: 300px; min-width: 300px; background: #F7F9FC; }
+.gc-nav-item { margin: 2px 10px; padding: 9px 12px; border-radius: 8px; }
+.gc-nav-item--active { background: var(--gc-accent-soft); }
+.gc-nav-item--active .gc-nav-label { color: var(--gc-accent); }
+.gc-card { border-radius: 12px; box-shadow: 0 1px 2px rgba(15,23,42,0.04); }
+.gc-page-title { font-size: 18px; }
+.gc-table thead th { background: #F7F9FC; }
+.gc-table tbody tr:hover td { background: rgba(50,109,255,0.04); }
+.gc-topbar-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
+.gc-brand-mark { width: 20px; height: 20px; border-radius: 6px; background: linear-gradient(135deg, var(--gc-accent), #5B8CFF); display: inline-flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+@media (prefers-reduced-motion: reduce) { .gc-shell-sidebar { transition: none; } }
+</style>
+<div class="gc-shell">
+
+  <!-- ======== 1. 顶部全局导航 (height 56px) ======== -->
+  <header class="gc-shell-topbar">
+
+    <!-- 左：品牌名 -->
+    <div class="gc-topbar-left">
+      <span class="gc-topbar-brand"><span class="gc-brand-mark" aria-hidden="true">城</span>SeeTime 城运AI</span>
+    </div>
+
+    <!-- 中：六模块tab水平排列 -->
+    <nav class="gc-topbar-center" aria-label="全局模块导航">
+      <a href="#" class="gc-top-tab">治理大屏</a>
+      <a href="#" class="gc-top-tab">AI实时治理</a>
+      <a href="#" class="gc-top-tab">事件档案</a>
+      <a href="#" class="gc-top-tab">AI统计</a>
+      <a href="#" class="gc-top-tab">AI工作台</a>
+      <a href="#" class="gc-top-tab gc-top-tab--active" aria-current="page">治理配置</a>
+    </nav>
+
+    <!-- 右：角色身份区 -->
+    <div class="gc-topbar-right">
+      <button type="button" class="gc-role-switch" data-dom-id="role-switch" aria-haspopup="listbox" aria-expanded="false">
+        <span>切换角色</span>
+        <svg class="gc-caret" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div class="gc-topbar-identity"><span class="gc-identity-name">王倩</span><span class="gc-identity-badge">全局协调</span></div>
+    </div>
+
+  </header>
+
+  <!-- ======== Shell body: sidebar + workspace ======== -->
+  <div class="gc-shell-body">
+
+    <!-- ======== 2. 左侧模块导航栏 (width 380px) ======== -->
+    <aside class="gc-shell-sidebar">
+
+      <!-- 顶部标题区 -->
+      <div class="gc-sidebar-header">
+        <div class="gc-sidebar-header-row">
+          <div class="gc-sidebar-title">治理配置</div>
+          <button type="button" class="gc-collapse-btn" data-dom-id="sidebar-toggle" aria-expanded="true" aria-label="收起左侧导航" title="收起左侧导航"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/></svg></button>
+          <span class="gc-version-badge">V2026.08.18</span>
+        </div>
+      </div>
+
+      <!-- 分组筛选 + 模块列表 (flex-1 overflow-y-auto) -->
+      <nav class="gc-shell-sidebar-nav" aria-label="治理配置模块导航">
+
+
+        <!-- Group 1: 治理基础 (蓝 var(--gc-accent)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-accent);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-accent);"></span><span class="gc-nav-group-name">治理基础</span>
+          </div>
+          <a href="org-permission-live.html" data-dom-id="nav-org-permission-live" title="组织与权限" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+            <span class="gc-nav-label">组织与权限</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+          <a href="space-responsibility-live.html" data-dom-id="nav-space-responsibility-live" title="空间与责任" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span>
+            <span class="gc-nav-label">空间与责任</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+          <a href="event-standard-live.html" data-dom-id="nav-event-standard-live" title="事件标准" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg></span>
+            <span class="gc-nav-label">事件标准</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+        </div>
+
+        <!-- Group 2: 流程运行 (橙 var(--gc-func-orange)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-func-orange);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-func-orange);"></span><span class="gc-nav-group-name">流程运行</span>
+          </div>
+          <a href="lifecycle-live.html" data-dom-id="nav-lifecycle" title="生命周期" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span>
+            <span class="gc-nav-label">生命周期</span>
+            <span class="gc-nav-badge gc-badge-draft">草稿</span>
+          </a>
+          <a href="sla-matrix-live.html" data-dom-id="nav-sla-matrix-live" title="时限规则" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
+            <span class="gc-nav-label">时限规则</span>
+            <span class="gc-nav-badge gc-badge-draft">草稿</span>
+          </a>
+          <a href="dispatch-claim-live.html" data-dom-id="nav-dispatch-claim-live" title="派工与认领" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>
+            <span class="gc-nav-label">派工与认领</span>
+            <span class="gc-nav-badge gc-badge-draft">草稿</span>
+          </a>
+        </div>
+
+        <!-- Group 3: 持续治理 (绿 var(--gc-func-green)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-func-green);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-func-green);"></span><span class="gc-nav-group-name">持续治理</span>
+          </div>
+          <a href="dedup-recurrence-live.html" data-dom-id="nav-dedup-recurrence-live" title="查重复发" class="gc-nav-item gc-nav-item--active">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span>
+            <span class="gc-nav-label">查重复发</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+          <a href="metric-caliber-live.html" data-dom-id="nav-metric-caliber-live" title="评价口径" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></span>
+            <span class="gc-nav-label">评价口径</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+        </div>
+
+        <!-- Group 4: 配置管理 (紫 var(--gc-func-purple)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-func-purple);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-func-purple);"></span><span class="gc-nav-group-name">配置管理</span>
+          </div>
+          <a href="publish-draft-review.html" data-dom-id="nav-publish-draft-review" title="发布与审计" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></span>
+            <span class="gc-nav-label">发布与审计</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+        </div>
+
+        
+      </nav>
+
+    </aside>
+
+    <!-- ======== 3. 右侧工作区框架 (flex-1, flex-col) ======== -->
+    <main class="gc-shell-workspace">
+
+      <!-- 页头: 标题 + 动作区 (fixed, 不滚动) -->
+      <div class="gc-workspace-header">
+        <div class="gc-workspace-header-main">
+          <div class="gc-page-head">
+            <nav class="gc-breadcrumb" aria-label="面包屑"><a href="#" class="gc-breadcrumb-link">治理配置</a><span class="gc-breadcrumb-sep" aria-hidden="true">/</span><span class="gc-breadcrumb-current" aria-current="page">查重复发</span></nav>
+            <h1 class="gc-h2 gc-page-title">查重与复发治理</h1>
+            <p class="gc-page-impact">区分重复上报与结案后复发，避免重复派发或漏建关联。</p>
+            <p class="gc-page-meta">编辑中 · 基于 生效版本 V2026.08.18 · 修改人 全局协调 · 王倩 · 2026-08-19 09:22</p>
+          </div>
+        </div>
+        <div class="gc-workspace-header-actions">
+          
+        </div>
+      </div>
+
+      <!-- 横幅区 (fixed, 不滚动; 为空时0高度) -->
+      <div class="gc-workspace-banner-slot">
+              </div>
+
+      <!-- 正文内容区 (可滚动) -->
+      <div class="gc-shell-workspace-scroll">
+        <div class="gc-stack">
+  <section class="gc-card" aria-labelledby="gc-dupe-title">
+    <header class="gc-card-head">
+      <h2 class="gc-card-title" id="gc-dupe-title">两个概念，两条规则</h2>
+      <span class="gc-card-note">不要配成同一条规则</span>
+    </header>
+    <div class="gc-dupe-grid">
+      <div class="gc-dupe-col">
+        <div class="gc-dupe-name">重复上报</div>
+        <p class="gc-dupe-mean">同一存续问题被 AI 或人再次报告</p>
+        <p class="gc-dupe-do">系统：不建新主事件，只追加重复上报记录</p>
+        <p class="gc-dupe-where">出现在实时治理 / 事件详情</p>
+      </div>
+      <div class="gc-dupe-col">
+        <div class="gc-dupe-name">结案后复发</div>
+        <p class="gc-dupe-mean">原事件已闭环，同类问题再次出现</p>
+        <p class="gc-dupe-do">系统：创建新事件，与历史事件建复发关联</p>
+        <p class="gc-dupe-where">新事件立案；专题在 AI 统计</p>
+      </div>
+    </div>
+    <p class="gc-card-foot">重复上报不建新事件；结案后复发创建新事件。</p>
+  </section>
+
+  <!-- 2. 判重条件（行 = 一个判重条件；同相机 / 同位置即空间条件） -->
+  <section class="gc-card" id="gc-duprule-card" aria-labelledby="gc-duprule-title" data-gc-crud="dr-dup" data-gc-crud-name="判重条件"
+    data-gc-crud-fields='[{"k":"cond","label":"条件","kind":"name","required":true,"primary":true,"ph":"如 同相机 / 同位置 / 同细类"},{"k":"kind","label":"条件类型","type":"select","options":["空间条件","细类条件","时间条件","兜底处理"],"def":"空间条件"},{"k":"param","label":"取值 / 参数","ph":"如 半径 50 米 / 24 小时"},{"k":"note","label":"说明","full":true,"ph":"可留空"}]'
+    data-gc-crud-note="一行一个判重条件。命中后系统不建新主事件，只追加「AI重复识别」或「人工重复上报」；已结案的事件不走判重，走「结案后复发」。判重必须有空间条件：列表里必须至少留一条启用中的「空间条件」（同相机或同位置），否则会被阻断。">
+    <header class="gc-card-head">
+      <h2 class="gc-card-title" id="gc-duprule-title">重复上报规则 · 存续事件判重</h2>
+      <span class="gc-card-note">命中后不建新主事件，只追加重复上报记录</span>
+    </header>
+    <div class="gc-toolbar">
+      <div class="gc-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="text" id="gc-q-dr-dup" placeholder="搜索条件 / 取值 / 说明" aria-label="搜索判重条件" data-gc-crud-q>
+        <button type="button" class="gc-btn-ghost" data-gc-crud-search>查询</button>
+      </div>
+      <button type="button" class="gc-btn-primary" data-gc-crud-new>＋ 新增判重条件</button>
+    </div>
+    <div class="gc-table-scroll">
+      <table class="gc-table" data-gc-crud-table data-gc-dr-table="dup">
+        <thead><tr><th>条件</th><th>条件类型</th><th>取值 / 参数</th><th>说明</th><th>状态</th><th class="gc-th-actions">操作</th></tr></thead>
+        <tbody>
+          <tr data-gc-row>
+            <td class="gc-td-name" data-col="cond" data-primary>同相机</td>
+            <td data-col="kind">空间条件</td>
+            <td data-col="param" class="gc-td-dash">—</td>
+            <td data-col="note">同一相机的再次上报优先判为重复。</td>
+            <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+            <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+          </tr>
+          <tr data-gc-row>
+            <td class="gc-td-name" data-col="cond" data-primary>同位置</td>
+            <td data-col="kind">空间条件</td>
+            <td data-col="param">半径 50 米</td>
+            <td data-col="note">与「同相机」至少保留一条，作为判重的空间条件。</td>
+            <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+            <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+          </tr>
+          <tr data-gc-row>
+            <td class="gc-td-name" data-col="cond" data-primary>同细类</td>
+            <td data-col="kind">细类条件</td>
+            <td data-col="param">细类来自「事件标准」</td>
+            <td data-col="note">建议启用；停用后不同细类也会被并成重复。</td>
+            <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+            <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+          </tr>
+          <tr data-gc-row>
+            <td class="gc-td-name" data-col="cond" data-primary>时间窗</td>
+            <td data-col="kind">时间条件</td>
+            <td data-col="param">24 小时</td>
+            <td data-col="note">相对已有存续事件的发现 / 创建时间。</td>
+            <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+            <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+          </tr>
+          <tr data-gc-row>
+            <td class="gc-td-name" data-col="cond" data-primary>启用细类范围</td>
+            <td data-col="kind">细类条件</td>
+            <td data-col="param" class="gc-td-dash">—</td>
+            <td data-col="note">空 = 全部启用细类。</td>
+            <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+            <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+          </tr>
+          <tr data-gc-row>
+            <td class="gc-td-name" data-col="cond" data-primary>无法确认时</td>
+            <td data-col="kind">兜底处理</td>
+            <td data-col="param">标「疑似重复」交人工</td>
+            <td data-col="note">不确定时不自动并单，交人工判断。</td>
+            <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+            <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="gc-card-foot">判重必须有空间条件（同相机或同位置至少开一项），否则会把不同类型全区事件误判为重复。停用或删除后列表里必须仍留一条启用中的「空间条件」，否则本页不能进入发布前预览。</p>
+  </section>
+
+  <!-- 3. 结案后复发条件（行 = 一个复发判定项） -->
+  <section class="gc-card" id="gc-recur-card" aria-labelledby="gc-recur-title" data-gc-crud="dr-recur" data-gc-crud-name="复发判定项"
+    data-gc-crud-fields='[{"k":"cond","label":"判定项","kind":"name","required":true,"primary":true,"ph":"如 同相机 / 时间窗"},{"k":"value","label":"取值","ph":"如 开 / 30 天 / 1 次"},{"k":"note","label":"说明","full":true,"ph":"可留空"}]'
+    data-gc-crud-note="一行一个复发判定项。原事件必须已闭环才走复发；命中后创建新事件并与历史事件建复发关联（不是追加记录）。停用某行即该条件不参与复发判定。">
+    <header class="gc-card-head">
+      <h2 class="gc-card-title" id="gc-recur-title">结案后复发规则</h2>
+      <span class="gc-card-note">命中后创建新事件 + 复发关联</span>
+    </header>
+    <div class="gc-toolbar">
+      <div class="gc-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="text" id="gc-q-dr-recur" placeholder="搜索判定项 / 取值 / 说明" aria-label="搜索复发判定项" data-gc-crud-q>
+        <button type="button" class="gc-btn-ghost" data-gc-crud-search>查询</button>
+      </div>
+      <button type="button" class="gc-btn-primary" data-gc-crud-new>＋ 新增判定项</button>
+    </div>
+    <div class="gc-table-scroll">
+      <table class="gc-table" data-gc-crud-table data-gc-dr-table="recur">
+        <thead><tr><th>判定项</th><th>取值</th><th>说明</th><th>状态</th><th class="gc-th-actions">操作</th></tr></thead>
+        <tbody>
+          <tr data-gc-row>
+            <td class="gc-td-name" data-col="cond" data-primary>原事件必须已闭环</td>
+            <td data-col="value">开 · 已结案 / 已中止</td>
+            <td data-col="note">平台判定项，不可关闭；已无效默认不参与复发，见下一行。</td>
+            <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+            <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+          </tr>
+          <tr data-gc-row>
+            <td class="gc-td-name" data-col="cond" data-primary>已无效是否计入</td>
+            <td data-col="value">关</td>
+            <td data-col="note">开启后已无效事件也参与复发判定。</td>
+            <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+            <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+          </tr>
+          <tr data-gc-row>
+            <td class="gc-td-name" data-col="cond" data-primary>同相机</td>
+            <td data-col="value">开</td>
+            <td data-col="note">与原事件同一相机。</td>
+            <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+            <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+          </tr>
+          <tr data-gc-row>
+            <td class="gc-td-name" data-col="cond" data-primary>同位置 + 半径</td>
+            <td data-col="value">开 · 50 米</td>
+            <td data-col="note">与原事件位置的直线距离。</td>
+            <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+            <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+          </tr>
+          <tr data-gc-row>
+            <td class="gc-td-name" data-col="cond" data-primary>同细类</td>
+            <td data-col="value">开</td>
+            <td data-col="note">细类取自「事件标准」。</td>
+            <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+            <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+          </tr>
+          <tr data-gc-row>
+            <td class="gc-td-name" data-col="cond" data-primary>时间窗</td>
+            <td data-col="value">30 天</td>
+            <td data-col="note">相对原事件终态时间。</td>
+            <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+            <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+          </tr>
+          <tr data-gc-row>
+            <td class="gc-td-name" data-col="cond" data-primary>次数</td>
+            <td data-col="value">1</td>
+            <td data-col="note">次数=1 表示只要结案后再次出现即建新事件。专题候选的「几次才进专题」在下一段，不要和这里配成同一个数字。</td>
+            <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+            <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+          </tr>
+          <tr data-gc-row>
+            <td class="gc-td-name" data-col="cond" data-primary>命中动作</td>
+            <td data-col="value">创建新事件 + 复发关联</td>
+            <td data-col="note">不是追加记录，新事件需重新立案。</td>
+            <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+            <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 4. 候选专题与观察期（行 = 一个候选口径项；原「调整阈值」抽屉改为按行维护） -->
+  <section class="gc-card" id="gc-topic-card" aria-labelledby="gc-topic-title" data-gc-crud="dr-topic" data-gc-crud-name="专题候选口径项"
+    data-gc-crud-fields='[{"k":"item","label":"口径项","kind":"name","required":true,"primary":true,"ph":"如 观察期"},{"k":"value","label":"取值","ph":"如 3 次 / 7 天 / 30 天"},{"k":"note","label":"说明","full":true,"ph":"可留空"}]'
+    data-gc-crud-note="一行一个候选专题口径项。示例配置值，由管理方按行修改；评价口径中的复发率读取「观察期」。">
+    <header class="gc-card-head">
+      <h2 class="gc-card-title" id="gc-topic-title">候选专题与观察期</h2>
+      <span class="gc-card-note">示例配置值 · 按行维护</span>
+    </header>
+    <div class="gc-toolbar">
+      <div class="gc-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="text" id="gc-q-dr-topic" placeholder="搜索口径项 / 取值 / 说明" aria-label="搜索专题候选口径项" data-gc-crud-q>
+        <button type="button" class="gc-btn-ghost" data-gc-crud-search>查询</button>
+      </div>
+      <button type="button" class="gc-btn-primary" data-gc-crud-new>＋ 新增口径项</button>
+    </div>
+    <div class="gc-table-scroll">
+      <table class="gc-table" data-gc-crud-table data-gc-dr-table="topic">
+        <thead><tr><th>口径项</th><th>取值</th><th>说明</th><th>状态</th><th class="gc-th-actions">操作</th></tr></thead>
+        <tbody>
+          <tr data-gc-row>
+            <td class="gc-td-name" data-col="item" data-primary>候选成立：复发次数</td>
+            <td data-col="value">3 次</td>
+            <td data-col="note">关联新事件次数。</td>
+            <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+            <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+          </tr>
+          <tr data-gc-row>
+            <td class="gc-td-name" data-col="item" data-primary>候选成立：间隔</td>
+            <td data-col="value">7 天</td>
+            <td data-col="note">相邻两次间隔上限。</td>
+            <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+            <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+          </tr>
+          <tr data-gc-row>
+            <td class="gc-td-name" data-col="item" data-primary>观察期</td>
+            <td data-col="value">30 天</td>
+            <td data-col="note">措施后继续监控多久；评价口径中的复发率读这个值。</td>
+            <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+            <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+          </tr>
+          <tr data-gc-row>
+            <td class="gc-td-name" data-col="item" data-primary>专题成立方式</td>
+            <td data-col="value">仅进入候选，人工确认</td>
+            <td data-col="note">未冻结：不排除后续支持自动成立。</td>
+            <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+            <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="gc-card" aria-labelledby="gc-preview-title">
+    <header class="gc-card-head">
+      <h2 class="gc-card-title" id="gc-preview-title">预览（演示对）</h2>
+      <span class="gc-card-note">按当前生效规则推演</span>
+    </header>
+    <div class="gc-table-scroll">
+      <table class="gc-table">
+        <thead><tr><th>示例对</th><th>预览结论</th></tr></thead>
+        <tbody>
+          <tr><td>同一相机、同一细类、间隔 2 小时、原事件待处置</td><td>重复上报，追加记录，不新建</td></tr>
+          <tr><td>同一相机、同一细类、原事件已结案 10 天</td><td>复发，将创建新事件并关联</td></tr>
+          <tr><td>不同细类、同一相机</td><td>互不关联（当「同细类」开启时）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+      </div>
+
+      <!-- 底部动作条 (fixed, 不滚动)：本页只写入草稿，发布不在模块页 -->
+      <div class="gc-shell-footer">
+        <p class="gc-shell-footer-note" data-gc-dr-footer-note>本页只写入草稿；「确认发布」在「规则版本」页，须经「发布前预览」做冲突校验后确认。</p>
+        <button type="button" class="gc-btn-secondary" id="gc-dr-save-draft" data-gc-dr-save-draft data-dom-id="cta-save-draft">保存到草稿</button>
+        <button type="button" class="gc-btn-primary" id="gc-dr-go-preview" data-dom-id="cta-go-preview" aria-describedby="gc-dr-footer-reason" disabled>去发布前预览</button>
+        <span id="gc-dr-footer-reason" hidden></span>
+      </div>
+
+    </main>
+
+  </div><!-- /.gc-shell-body -->
+
+</div><!-- /.gc-shell -->
+<div class="gc-draft-toast" data-gc-draft-toast role="alert" aria-live="assertive"></div>
+<script id="shell-collapse-js">
+(function () {
+  var btn = document.querySelector('.gc-collapse-btn');
+  var body = document.querySelector('.gc-shell-body');
+  if (!btn || !body) return;
+  function setRail(on) {
+    body.classList.toggle('gc-rail', on);
+    btn.setAttribute('aria-expanded', on ? 'false' : 'true');
+    btn.setAttribute('aria-label', on ? '展开左侧导航' : '收起左侧导航');
+  }
+  btn.addEventListener('click', function () { setRail(!body.classList.contains('gc-rail')); });
+})();
+</script>
+<style id="gc-rev17-css">
+.gc-btn-link { display: inline-flex; align-items: center; justify-content: center; padding: 4px 12px; font-size: 12px; font-weight: 500; font-family: inherit; color: var(--gc-accent); background: transparent; border: 1px solid var(--gc-line); border-radius: var(--gc-radius-small, 7px); text-decoration: none; cursor: pointer; }
+.gc-btn-link:hover { color: var(--gc-accent); background: var(--gc-accent-soft); border-color: var(--gc-accent-soft); }
+.gc-btn-link:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 1px; }
+.gc-chip { display: inline-flex; align-items: center; font-size: 11px; font-weight: 500; line-height: 1.5; border-radius: 9999px; padding: 1px 8px; white-space: nowrap; }
+.gc-chip--on { color: var(--gc-func-green); background: var(--gc-func-green-soft); }
+.gc-chip--off { color: var(--gc-disabled-text); background: var(--gc-disabled-bg); }
+.gc-th-actions { text-align: right; }
+.gc-td-actions { white-space: nowrap; }
+.gc-td-actions > * + * { margin-left: 8px; }
+</style>
+
+<style id="gc-footer-css">
+/* 底部动作条：草稿范式（模块页只写入草稿，发布在规则版本页） */
+.gc-btn-secondary { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: var(--gc-radius-small); border: 1px solid var(--gc-line-strong); background: var(--gc-panel); color: var(--gc-text); font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; white-space: nowrap; }
+.gc-btn-secondary:hover { background: var(--gc-bg-hover); }
+.gc-btn-secondary:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-shell-footer-note { margin: 0 auto 0 0; font-size: 12px; color: var(--gc-muted); }
+.gc-shell-footer-note--block { color: var(--gc-func-red); font-weight: 500; }
+.gc-draft-toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 60; display: none; max-width: 640px; padding: 10px 16px; border-radius: var(--gc-radius-medium); background: var(--gc-text); color: #FFFFFF; font-size: 13px; line-height: 1.6; }
+.gc-draft-toast--show { display: block; }
+</style>
+
+<script id="gc-footer-js">
+(function () {
+  var footerNote = document.querySelector('[data-gc-dr-footer-note]');
+  var previewBtn = document.getElementById('gc-dr-go-preview');
+  var reasonEl = document.getElementById('gc-dr-footer-reason');
+  var toastEl = document.querySelector('[data-gc-draft-toast]');
+  var dupCard = document.getElementById('gc-duprule-card');
+  var READY_NOTE = '本页只写入草稿；「确认发布」在「规则版本」页，须经「发布前预览」做冲突校验后确认。';
+
+  // 阻断条件取自本页规则原文：判重必须有空间条件。
+  // 判定 = 「判重条件」列表里至少存在一条「条件类型 = 空间条件」且状态为「启用」的行。
+  function spaceRuleCount() {
+    if (!dupCard) return 0;
+    var rows = dupCard.querySelectorAll('tbody tr[data-gc-row]');
+    var n = 0;
+    for (var i = 0; i < rows.length; i++) {
+      var kind = rows[i].querySelector('[data-col="kind"]');
+      var st = rows[i].querySelector('[data-col="status"]');
+      if (!kind || !st) continue;
+      if (kind.textContent.replace(/\s+/g, '') !== '空间条件') continue;
+      if (st.textContent.indexOf('启用') === -1) continue;
+      n++;
+    }
+    return n;
+  }
+
+  function scanConflicts() {
+    var blocked = spaceRuleCount() === 0;
+    if (footerNote) {
+      footerNote.textContent = blocked
+        ? '不能进入发布前预览：判重必须有空间条件，列表里必须至少保留一条「条件类型 = 空间条件」且状态为「启用」的行，否则会把不同类型全区事件误判为重复。'
+        : READY_NOTE;
+      footerNote.classList.toggle('gc-shell-footer-note--block', blocked);
+    }
+    if (previewBtn) {
+      previewBtn.disabled = blocked;
+      var tip = blocked
+        ? '当前判重条件里没有启用中的空间条件，不能进入发布前预览'
+        : '带着本草稿进入发布前预览';
+      previewBtn.title = tip;
+      if (reasonEl) reasonEl.textContent = tip;
+    }
+    document.body.setAttribute('data-gc-draft-state', blocked ? 'blocked' : 'ready');
+    return blocked;
+  }
+
+  // ── 底部动作条：只写入草稿 / 进入发布前预览（发布不在模块页） ──
+  var saveDraft = document.querySelector('[data-gc-dr-save-draft]');
+  if (saveDraft) saveDraft.addEventListener('click', function () {
+    scanConflicts();
+    toast(previewBtn && previewBtn.disabled
+      ? '已写入草稿，尚未生效。当前仍被阻断：判重条件里没有启用中的空间条件。'
+      : '已写入草稿，尚未生效。发布需在「规则版本」页经「发布前预览」做冲突校验后确认。');
+  });
+  if (previewBtn) previewBtn.addEventListener('click', function () {
+    if (previewBtn.disabled) return;
+    location.href = 'publish-preview.html?scene=ok';
+  });
+  function toast(msg) {
+    if (!toastEl) return;
+    toastEl.textContent = msg;
+    toastEl.classList.add('gc-draft-toast--show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { toastEl.classList.remove('gc-draft-toast--show'); }, 3200);
+  }
+
+  // ── 列表行变化（启停 / 新增 / 删除 / 编辑）后复检 ──
+  document.addEventListener('click', function () { setTimeout(scanConflicts, 0); });
+  if (dupCard && window.MutationObserver) {
+    new MutationObserver(function () { scanConflicts(); })
+      .observe(dupCard, { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'class'] });
+  }
+  scanConflicts();
+  setTimeout(scanConflicts, 0);
+})();
+</script>
+<script id="gc-crud-js">
+(function () {
+  var DASH = '—';
+  var registry = {};
+  var cur = null;
+  var scrim = null, drawer = null, titleEl = null, formEl = null, errEl = null, noteEl = null, saveBtn = null;
+
+  function q(sel, root) { return (root || document).querySelector(sel); }
+  function qa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function norm(s) { return (s == null ? '' : String(s)).replace(/\s+/g, ' ').trim(); }
+  function lower(s) { return norm(s).toLowerCase(); }
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  /* ── 草稿提示（复用页脚 toast 或自建） ── */
+  function toast(msg) {
+    var el = q('[data-gc-draft-toast]');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'gc-draft-toast';
+      el.setAttribute('data-gc-draft-toast', '');
+      el.setAttribute('role', 'alert');
+      el.setAttribute('aria-live', 'assertive');
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('gc-draft-toast--show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { el.classList.remove('gc-draft-toast--show'); }, 3200);
+  }
+
+  /* ── 抽屉外壳 ── */
+  function shell() {
+    if (drawer) return;
+    scrim = document.createElement('div');
+    scrim.className = 'gc-scrim';
+    scrim.setAttribute('data-gc-crud-scrim', '');
+    scrim.hidden = true;
+    drawer = document.createElement('aside');
+    drawer.className = 'gc-drawer';
+    drawer.setAttribute('role', 'dialog');
+    drawer.setAttribute('aria-modal', 'true');
+    drawer.setAttribute('aria-labelledby', 'gc-crud-title');
+    drawer.setAttribute('data-gc-crud-drawer', '');
+    drawer.hidden = true;
+    drawer.innerHTML =
+      '<div class="gc-drawer-head">' +
+        '<h2 class="gc-drawer-title" id="gc-crud-title" data-gc-crud-title></h2>' +
+        '<button type="button" class="gc-ov-close" data-gc-crud-cancel aria-label="关闭">✕</button>' +
+      '</div>' +
+      '<div class="gc-drawer-body">' +
+        '<div class="gc-form-grid" data-gc-crud-form></div>' +
+        '<p class="gc-form-err" data-gc-crud-err role="alert"></p>' +
+        '<p class="gc-ov-note" data-gc-crud-note></p>' +
+      '</div>' +
+      '<div class="gc-drawer-foot">' +
+        '<button type="button" class="gc-btn-ghost" data-gc-crud-cancel>取消</button>' +
+        '<button type="button" class="gc-btn-primary" data-gc-crud-save>保存到草稿</button>' +
+      '</div>';
+    document.body.appendChild(scrim);
+    document.body.appendChild(drawer);
+    titleEl = q('[data-gc-crud-title]', drawer);
+    formEl = q('[data-gc-crud-form]', drawer);
+    errEl = q('[data-gc-crud-err]', drawer);
+    noteEl = q('[data-gc-crud-note]', drawer);
+    saveBtn = q('[data-gc-crud-save]', drawer);
+    scrim.addEventListener('click', closeDrawer);
+    qa('[data-gc-crud-cancel]', drawer).forEach(function (b) { b.addEventListener('click', closeDrawer); });
+    saveBtn.addEventListener('click', save);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && drawer && !drawer.hidden) closeDrawer();
+    });
+  }
+  function closeDrawer() {
+    if (!drawer) return;
+    drawer.hidden = true;
+    scrim.hidden = true;
+    cur = null;
+  }
+
+  /* ── 行读取 / 写入 ── */
+  function pkOf(info) { for (var i = 0; i < info.fields.length; i++) if (info.fields[i].primary) return info.fields[i].k; return info.fields.length ? info.fields[0].k : ''; }
+  function rowsOf(info) { return qa('tr[data-gc-row]', info.tbody); }
+  function cellOf(row, k) { return row ? q('td[data-col="' + k + '"]', row) : null; }
+  function valueOf(row, k) {
+    var td = cellOf(row, k);
+    if (!td) return '';
+    var t = norm(td.textContent);
+    return (t === DASH || t === '（空）' || t === '空') ? '' : t;
+  }
+  function rowEnabled(row) {
+    var td = cellOf(row, 'status');
+    if (!td) return false;
+    return td.textContent.indexOf('启用') > -1;
+  }
+  function setRowEnabled(row, on) {
+    var td = cellOf(row, 'status');
+    if (td) td.innerHTML = '<span class="gc-chip ' + (on ? 'gc-chip--green' : 'gc-chip--off') + '">' + (on ? '启用' : '停用') + '</span>';
+    var btn = q('[data-gc-crud-toggle]', row);
+    if (btn) btn.textContent = on ? '停用' : '启用';
+  }
+  function cellClass(f, v) {
+    if (!v) return 'gc-td-dash';
+    if (f.kind === 'name') return 'gc-td-name';
+    if (f.kind === 'code') return 'gc-td-code';
+    return '';
+  }
+  function writeRow(info, row, vals) {
+    info.fields.forEach(function (f) {
+      var td = cellOf(row, f.k);
+      if (!td) return;
+      var v = vals[f.k];
+      td.className = cellClass(f, v);
+      td.textContent = v || DASH;
+    });
+  }
+  function actionsHTML() {
+    return '<button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button>' +
+      '<button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button>' +
+      '<button type="button" class="gc-btn-link" data-gc-crud-del>删除</button>';
+  }
+  function lockSingle(info) {
+    if (!info.single) return;
+    var tip = '启用中的' + info.name + '不可删除，请先启用其它' + info.name;
+    rowsOf(info).forEach(function (tr) {
+      var del = q('[data-gc-crud-del]', tr);
+      if (!del) return;
+      if (rowEnabled(tr)) {
+        del.setAttribute('data-gc-crud-nodelete', tip);
+        del.classList.add('gc-btn-link--disabled');
+        del.setAttribute('title', tip);
+      } else if (del.getAttribute('data-gc-crud-nodelete') === tip) {
+        del.removeAttribute('data-gc-crud-nodelete');
+        del.classList.remove('gc-btn-link--disabled');
+        del.removeAttribute('title');
+      }
+    });
+  }
+
+  /* ── 搜索过滤 ── */
+  function applyFilter(info) {
+    var input = q('[data-gc-crud-q]', info.card);
+    var kw = input ? lower(input.value) : '';
+    var shown = 0;
+    rowsOf(info).forEach(function (tr) {
+      var hit = !kw;
+      if (!hit) {
+        var cells = qa('td[data-col]', tr);
+        for (var i = 0; i < cells.length; i++) {
+          if (lower(cells[i].textContent).indexOf(kw) > -1) { hit = true; break; }
+        }
+      }
+      tr.hidden = !hit;
+      if (hit) shown++;
+    });
+    var empty = q('tr.gc-empty-row, tr[data-empty-row]', info.tbody);
+    if (!empty) {
+      empty = document.createElement('tr');
+      empty.className = 'gc-empty-row';
+      empty.innerHTML = '<td colspan="' + (qa('thead th', info.table).length || 1) + '">未找到匹配' + esc(info.name) + '，请调整关键词</td>';
+      info.tbody.appendChild(empty);
+    }
+    empty.hidden = !kw || shown > 0;
+    return shown;
+  }
+  function afterChange(info) { applyFilter(info); lockSingle(info); }
+
+  /* ── 表单 ── */
+  function buildForm(info, row) {
+    var html = '';
+    info.fields.forEach(function (f) {
+      var v = row ? valueOf(row, f.k) : (f.def == null ? '' : f.def);
+      html += '<div class="gc-field' + (f.full ? ' gc-field--full' : '') + '" data-field="' + esc(f.k) + '">' +
+        '<label for="gc-crud-input-' + esc(f.k) + '">' + esc(f.label) + (f.required ? ' <span class="gc-req" aria-hidden="true">*</span>' : '') + '</label>';
+      if (f.type === 'select') {
+        var opts = (f.options || []).map(function (o) {
+          return '<option value="' + esc(o) + '"' + (o === v ? ' selected' : '') + '>' + esc(o) + '</option>';
+        }).join('');
+        if (v === '' || (f.options || []).indexOf(v) < 0) opts = '<option value="" selected></option>' + opts;
+        html += '<select id="gc-crud-input-' + esc(f.k) + '" data-gc-crud-input="' + esc(f.k) + '">' + opts + '</select>';
+      } else {
+        html += '<input type="' + esc(f.type || 'text') + '" id="gc-crud-input-' + esc(f.k) + '" data-gc-crud-input="' + esc(f.k) + '"' +
+          (f.type === 'number' ? ' min="0" step="1" inputmode="numeric"' : '') +
+          ' value="' + esc(v) + '"' + (f.ph ? ' placeholder="' + esc(f.ph) + '"' : '') + '>';
+      }
+      html += '</div>';
+    });
+    formEl.innerHTML = html;
+  }
+  function showErr(msg, field) {
+    errEl.textContent = msg;
+    errEl.classList.add('gc-form-err--show');
+    qa('.gc-field--err', formEl).forEach(function (w) { w.classList.remove('gc-field--err'); });
+    if (field) {
+      var w = field.closest ? field.closest('.gc-field') : null;
+      if (w) w.classList.add('gc-field--err');
+      field.focus();
+    }
+  }
+  function openDrawer(info, row) {
+    shell();
+    cur = { info: info, row: row || null };
+    titleEl.textContent = (row ? '编辑' : '新增') + info.name;
+    noteEl.textContent = info.note || '';
+    noteEl.hidden = !info.note;
+    errEl.textContent = '';
+    errEl.classList.remove('gc-form-err--show');
+    buildForm(info, row);
+    scrim.hidden = false;
+    drawer.hidden = false;
+    var first = q('input, select', formEl);
+    if (first) first.focus();
+  }
+  function save() {
+    if (!cur) return;
+    var info = cur.info, row = cur.row, err = '', errField = null, vals = {};
+    info.fields.forEach(function (f) {
+      var el = q('[data-gc-crud-input="' + f.k + '"]', formEl);
+      var v = el ? norm(el.value) : '';
+      if (f.required && !v && !err) { err = '「' + f.label + '」为必填项'; errField = el; }
+      else if (f.type === 'number' && v !== '' && !/^\d+(\.\d+)?$/.test(v) && !err) { err = '「' + f.label + '」须填写数字'; errField = el; }
+      vals[f.k] = v;
+    });
+    var pk = pkOf(info);
+    if (!err && pk && vals[pk]) {
+      var dup = false;
+      rowsOf(info).forEach(function (tr) {
+        if (tr === row || dup) return;
+        if (lower(valueOf(tr, pk)) === lower(vals[pk])) dup = true;
+      });
+      if (dup) { err = '「' + vals[pk] + '」已存在，' + info.name + '不可重复'; errField = q('[data-gc-crud-input="' + pk + '"]', formEl); }
+    }
+    if (err) { showErr(err, errField); return; }
+    var label = vals[pk] || vals[info.fields[0].k] || info.name;
+    if (row) {
+      writeRow(info, row, vals);
+      toast('已更新「' + label + '」，写入草稿，尚未生效。');
+    } else {
+      var tr = document.createElement('tr');
+      tr.setAttribute('data-gc-row', '');
+      var html = '';
+      info.fields.forEach(function (f) {
+        var v = vals[f.k];
+        html += '<td class="' + cellClass(f, v) + '" data-col="' + esc(f.k) + '"' + (f.primary ? ' data-primary' : '') + '>' + esc(v || DASH) + '</td>';
+      });
+      html += '<td data-col="status"><span class="gc-chip gc-chip--off">停用</span></td>';
+      html += '<td class="gc-td-actions" data-col="actions">' + actionsHTML() + '</td>';
+      tr.innerHTML = html;
+      info.tbody.appendChild(tr);
+      setRowEnabled(tr, true);
+      if (info.single) {
+        rowsOf(info).forEach(function (o) { if (o !== tr) setRowEnabled(o, false); });
+        toast('已新增「' + label + '」并置为启用，其余' + info.name + '已自动停用，写入草稿尚未生效。');
+      } else {
+        toast('已新增「' + label + '」并置为启用，写入草稿，尚未生效。');
+      }
+    }
+    closeDrawer();
+    afterChange(info);
+  }
+
+  /* ── 行操作 ── */
+  function toggleRow(info, row) {
+    var on = rowEnabled(row);
+    var label = valueOf(row, pkOf(info)) || info.name;
+    setRowEnabled(row, !on);
+    if (!on && info.single) {
+      rowsOf(info).forEach(function (o) { if (o !== row) setRowEnabled(o, false); });
+      toast('已启用「' + label + '」，其余' + info.name + '已自动停用，写入草稿尚未生效。');
+    } else {
+      toast((on ? '已停用「' : '已启用「') + label + '」，写入草稿，尚未生效。');
+    }
+    afterChange(info);
+  }
+  function deleteRow(info, row, btn) {
+    if (btn.getAttribute('data-gc-crud-nodelete') || btn.classList.contains('gc-btn-link--disabled')) {
+      toast(btn.getAttribute('data-gc-crud-nodelete') || btn.getAttribute('title') || '该' + info.name + '当前不可删除');
+      return;
+    }
+    if (btn.getAttribute('data-gc-crud-confirm') === '1') {
+      clearTimeout(btn._t);
+      var label = valueOf(row, pkOf(info)) || info.name;
+      if (row.parentNode) row.parentNode.removeChild(row);
+      toast('已删除「' + label + '」，写入草稿，尚未生效。');
+      afterChange(info);
+      return;
+    }
+    btn.setAttribute('data-gc-crud-confirm', '1');
+    btn._text = btn.textContent;
+    btn.textContent = '确认删除';
+    btn.classList.add('gc-btn-link--danger');
+    clearTimeout(btn._t);
+    btn._t = setTimeout(function () {
+      btn.removeAttribute('data-gc-crud-confirm');
+      btn.textContent = btn._text || '删除';
+      btn.classList.remove('gc-btn-link--danger');
+    }, 3000);
+  }
+
+  /* ── 初始化 ── */
+  function init(card) {
+    var id = card.getAttribute('data-gc-crud');
+    if (!id || registry[id]) return;
+    var table = q('[data-gc-crud-table]', card);
+    if (!table) return;
+    var fields = [];
+    try { fields = JSON.parse(card.getAttribute('data-gc-crud-fields') || '[]'); } catch (e) { fields = []; }
+    if (!fields.length) return;
+    var info = {
+      id: id,
+      name: card.getAttribute('data-gc-crud-name') || '记录',
+      note: card.getAttribute('data-gc-crud-note') || '',
+      fields: fields,
+      single: card.hasAttribute('data-gc-crud-single'),
+      card: card,
+      table: table,
+      tbody: q('tbody', table)
+    };
+    registry[id] = info;
+    rowsOf(info).forEach(function (tr) { setRowEnabled(tr, rowEnabled(tr)); });
+    var input = q('[data-gc-crud-q]', card);
+    if (input) {
+      input.addEventListener('input', function () { applyFilter(info); });
+      input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); applyFilter(info); } });
+    }
+    var sbtn = q('[data-gc-crud-search]', card);
+    if (sbtn) sbtn.addEventListener('click', function () { applyFilter(info); });
+    var nbtn = q('[data-gc-crud-new]', card);
+    if (nbtn) nbtn.addEventListener('click', function () { openDrawer(info, null); });
+    lockSingle(info);
+    applyFilter(info);
+  }
+  function delegate(e) {
+    if (!e.target || !e.target.closest) return;
+    var card = e.target.closest('[data-gc-crud]');
+    if (!card) return;
+    var info = registry[card.getAttribute('data-gc-crud')];
+    if (!info) return;
+    var b = e.target.closest('[data-gc-crud-nodelete]');
+    if (b) { toast(b.getAttribute('data-gc-crud-nodelete')); return; }
+    var row = e.target.closest('tr[data-gc-row]');
+    if (!row) return;
+    if ((b = e.target.closest('[data-gc-crud-edit]'))) { openDrawer(info, row); return; }
+    if ((b = e.target.closest('[data-gc-crud-toggle]'))) { toggleRow(info, row); return; }
+    if ((b = e.target.closest('[data-gc-crud-del]'))) { deleteRow(info, row, b); return; }
+    if ((b = e.target.closest('.gc-btn-link--disabled'))) { toast(b.getAttribute('title') || '该操作当前不可用'); return; }
+  }
+  function deepLink() {
+    if (typeof location === 'undefined' || !location.search) return;
+    var qs = new URLSearchParams(location.search);
+    if (qs.get('create')) {
+      var firstCard = document.querySelector('[data-gc-crud][data-gc-crud-fields]');
+      if (firstCard) {
+        var firstInfo = registry[firstCard.getAttribute('data-gc-crud')];
+        if (firstInfo) { openDrawer(firstInfo, null); return; }
+      }
+    }
+    var want = qs.get('edit');
+    if (!want) return;
+    var hitRow = null, hitInfo = null;
+    Object.keys(registry).forEach(function (id) {
+      if (hitRow) return;
+      var info = registry[id], pk = pkOf(info);
+      rowsOf(info).forEach(function (tr) {
+        if (hitRow) return;
+        if (pk && lower(valueOf(tr, pk)) === lower(want)) { hitRow = tr; hitInfo = info; }
+      });
+    });
+    if (hitRow) openDrawer(hitInfo, hitRow);
+  }
+  function boot() {
+    shell();
+    qa('[data-gc-crud]').forEach(init);
+    document.addEventListener('click', delegate);
+    window.gcCrud = {
+      count: function (id, on) {
+        var info = registry[id];
+        if (!info) return 0;
+        return rowsOf(info).filter(function (tr) { return rowEnabled(tr) === !!on; }).length;
+      },
+      enabledNames: function (id) {
+        var info = registry[id];
+        if (!info) return [];
+        var pk = pkOf(info);
+        return rowsOf(info).filter(function (tr) { return rowEnabled(tr); }).map(function (tr) { return valueOf(tr, pk); });
+      },
+      names: function (id) {
+        var info = registry[id];
+        if (!info) return [];
+        var pk = pkOf(info);
+        return rowsOf(info).map(function (tr) { return valueOf(tr, pk); });
+      },
+      value: function (id, name, k) {
+        var info = registry[id];
+        if (!info) return '';
+        var pk = pkOf(info), hit = null;
+        rowsOf(info).forEach(function (tr) { if (lower(valueOf(tr, pk)) === lower(name)) hit = tr; });
+        return hit ? valueOf(hit, k) : '';
+      }
+    };
+    deepLink();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script>
+</body>
+</html>

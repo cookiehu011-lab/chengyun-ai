@@ -1,0 +1,677 @@
+{
+  "data": [
+    {
+      "id": "page-shell-coordinator",
+      "title": "治理配置 · 全局协调（可编辑）",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 0,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-2e4bcb0c",
+          "measuredAt": 1789731785258
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/shell-coordinator.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-shell-leader",
+      "title": "治理配置 · 领导（只读）",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 480,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-2da9bc1e",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/shell-leader.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-shell-case-officer",
+      "title": "治理配置 · 立案审核（无权限）",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 960,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-2c36f041",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/shell-case-officer.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-org-permission-live",
+      "title": "组织与权限 · 生效只读",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 0,
+        "y": 373,
+        "group": 1,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-5030b8f6",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/org-permission-live.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-org-permission-draft",
+      "title": "组织与权限 · 草稿编辑",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 480,
+        "y": 373,
+        "group": 1,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-c470359a",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/org-permission-draft.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-org-role-drawer",
+      "title": "组织与权限 · 角色模板与权限抽屉",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 960,
+        "y": 373,
+        "group": 1,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-cea7f4de",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/org-role-drawer.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-org-disable-confirm",
+      "title": "组织与权限 · 停用账号确认",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 1440,
+        "y": 373,
+        "group": 1,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-f2571b25",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/org-disable-confirm.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-space-responsibility-live",
+      "title": "空间与责任 · 生效只读",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 0,
+        "y": 746,
+        "group": 2,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-a44a30fc",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/space-responsibility-live.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-space-responsibility-draft",
+      "title": "空间与责任 · 草稿编辑",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 480,
+        "y": 746,
+        "group": 2,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-2ae36636",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/space-responsibility-draft.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-space-match-success",
+      "title": "空间与责任 · 模拟匹配成功浮层",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 960,
+        "y": 746,
+        "group": 2,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-31004dba",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/space-match-success.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-space-match-fail",
+      "title": "空间与责任 · 模拟匹配失败浮层",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 1440,
+        "y": 746,
+        "group": 2,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-1c637c85",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/space-match-fail.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-event-standard-live",
+      "title": "事件标准 · 生效只读",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 0,
+        "y": 1119,
+        "group": 3,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-f7c87ec8",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/event-standard-live.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-event-standard-draft",
+      "title": "事件标准 · 草稿编辑",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 480,
+        "y": 1119,
+        "group": 3,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-336d386e",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/event-standard-draft.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-event-standard-drawer",
+      "title": "事件标准 · 细类规则抽屉",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 960,
+        "y": 1119,
+        "group": 3,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-43168a72",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/event-standard-drawer.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-lifecycle-live",
+      "title": "生命周期 · 生效只读",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 0,
+        "y": 1492,
+        "group": 4,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-f5c21c74",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/lifecycle-live.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-lifecycle-draft",
+      "title": "生命周期 · 草稿编辑",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 480,
+        "y": 1492,
+        "group": 4,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-1e419e1f",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/lifecycle-draft.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-sla-matrix-live",
+      "title": "时限规则 · 生效只读",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 0,
+        "y": 1865,
+        "group": 5,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-b6f97a2f",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/sla-matrix-live.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-sla-matrix-draft",
+      "title": "时限规则 · 草稿编辑",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 480,
+        "y": 1865,
+        "group": 5,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-a209425d",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/sla-matrix-draft.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-dispatch-claim-live",
+      "title": "派工与认领 · 生效只读",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 0,
+        "y": 2238,
+        "group": 6,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-c35c4fac",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/dispatch-claim-live.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-dispatch-claim-draft",
+      "title": "派工与认领 · 草稿编辑",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 480,
+        "y": 2238,
+        "group": 6,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-d07e51df",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/dispatch-claim-draft.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-dedup-recurrence-live",
+      "title": "查重复发 · 生效只读",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 0,
+        "y": 2611,
+        "group": 7,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-c9f4f518",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/dedup-recurrence-live.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-dedup-recurrence-draft",
+      "title": "查重复发 · 草稿编辑",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 480,
+        "y": 2611,
+        "group": 7,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-802db4f3",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/dedup-recurrence-draft.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-metric-caliber-live",
+      "title": "评价口径 · 生效只读",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 0,
+        "y": 2984,
+        "group": 8,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-d3b93e2e",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/metric-caliber-live.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-metric-caliber-draft",
+      "title": "评价口径 · 草稿编辑",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 480,
+        "y": 2984,
+        "group": 8,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-c0543846",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/metric-caliber-draft.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-publish-draft-review",
+      "title": "发布与审计 · 草稿核对",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 0,
+        "y": 3357,
+        "group": 9,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-a9e9b45d",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/publish-draft-review.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-publish-preview",
+      "title": "发布与审计 · 发布前预览",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 480,
+        "y": 3357,
+        "group": 9,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-e90c5db9",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/publish-preview.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-publish-effective",
+      "title": "发布与审计 · 已生效版本",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 960,
+        "y": 3357,
+        "group": 9,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-5935cc14",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/publish-effective.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-publish-rollback",
+      "title": "发布与审计 · 版本回滚",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 1440,
+        "y": 3357,
+        "group": 9,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-18c8bc4a",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/publish-rollback.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-publish-restore-confirm",
+      "title": "发布与审计 · 恢复为草稿确认",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1788775736000,
+      "canvasData": {
+        "x": 1920,
+        "y": 3357,
+        "group": 9,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-9c37c701",
+          "measuredAt": 1789038302776
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/publish-restore-confirm.html",
+        "interactions": []
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": true,
+    "deviceType": "desktop",
+    "projectName": "治理配置 HiFi",
+    "designLibrary": null
+  }
+}

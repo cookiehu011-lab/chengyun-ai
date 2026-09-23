@@ -1,0 +1,176 @@
+{
+  "root": {
+    "nodeId": "gen-project-shell",
+    "kind": "project-shell",
+    "pageIds": [],
+    "output": "partials/project-shell.html",
+    "sharedRegions": [
+      "顶部全局导航（高56px：产品名 SeeTime 城运AI + 六模块tab + 当前用户身份区）",
+      "左侧模块导航栏（宽380px：模块标题+生效版本徽章+9个模块分组行）",
+      "右侧工作区框架（底色 --gc-bg，内含模块页头槽位、内容槽位、底部动作条槽位）"
+    ],
+    "privateRegions": [],
+    "mutableSlots": [
+      "SLOT:activeTopTab（顶栏当前active项，全部页面为治理配置）",
+      "SLOT:identityArea（顶栏右侧角色身份：姓名+角色徽章）",
+      "SLOT:sidebarActiveItem（左栏当前active模块行）",
+      "SLOT:sidebarBadges（左栏各模块行的草稿/已发布徽章）",
+      "SLOT:pageTitle（右工作区页头标题+说明）",
+      "SLOT:pageActions（页头动作区按钮）",
+      "SLOT:moduleContent（模块正文内容区）",
+      "SLOT:footerActions（底部动作条按钮组）"
+    ],
+    "status": "generated",
+    "children": [
+      {
+        "nodeId": "gen-sg-shell-roles",
+        "kind": "shared-branch",
+        "pageIds": ["page-shell-coordinator", "page-shell-leader", "page-shell-case-officer"],
+        "output": "pages/shell-coordinator.html",
+        "sharedRegions": ["三角色共享同一壳（顶栏+左栏+工作区框架），仅身份区/权限提示条/按钮可用性不同"],
+        "privateRegions": ["身份区姓名与角色徽章", "权限提示条", "主按钮禁用态"],
+        "mutableSlots": ["SLOT:identityArea", "SLOT:permBanner", "SLOT:footerActions"],
+        "status": "generated",
+        "children": [
+          { "nodeId": "gen-page-shell-coordinator", "kind": "page-leaf", "pageIds": ["page-shell-coordinator"], "output": "pages/shell-coordinator.html", "sharedRegions": [], "privateRegions": ["默认选中事件标准live视图的正文", "全局协调身份区"], "mutableSlots": [], "status": "generated", "children": [] },
+          { "nodeId": "gen-page-shell-leader", "kind": "page-leaf", "pageIds": ["page-shell-leader"], "output": "pages/shell-leader.html", "sharedRegions": [], "privateRegions": ["领导只读身份区", "全页只读提示"], "mutableSlots": [], "status": "generated", "children": [] },
+          { "nodeId": "gen-page-shell-case-officer", "kind": "page-leaf", "pageIds": ["page-shell-case-officer"], "output": "pages/shell-case-officer.html", "sharedRegions": [], "privateRegions": ["立案审核无权限身份区", "无权限提示与禁用导航"], "mutableSlots": [], "status": "generated", "children": [] }
+        ]
+      },
+      {
+        "nodeId": "gen-sg-org",
+        "kind": "shared-branch",
+        "pageIds": ["page-org-permission-live", "page-org-permission-draft", "page-org-role-drawer", "page-org-disable-confirm"],
+        "output": "pages/org-permission-live.html",
+        "sharedRegions": ["组织与权限页头与账号表框架", "角色权限矩阵表框架"],
+        "privateRegions": ["账号表数据行", "角色矩阵选中态", "抽屉浮层", "停用确认弹窗"],
+        "mutableSlots": ["SLOT:banner", "SLOT:tableRows", "SLOT:overlay"],
+        "status": "generated",
+        "children": [
+          { "nodeId": "gen-page-org-permission-live", "kind": "page-leaf", "pageIds": ["page-org-permission-live"], "output": "pages/org-permission-live.html", "sharedRegions": [], "privateRegions": ["生效版账号表", "角色模板矩阵只读"], "mutableSlots": [], "status": "generated", "children": [] },
+          { "nodeId": "gen-page-org-permission-draft", "kind": "page-leaf", "pageIds": ["page-org-permission-draft"], "output": "pages/org-permission-draft.html", "sharedRegions": [], "privateRegions": ["草稿编辑态表单与差异标记"], "mutableSlots": [], "status": "generated", "children": [] },
+          { "nodeId": "gen-page-org-role-drawer", "kind": "page-leaf", "pageIds": ["page-org-role-drawer"], "output": "pages/org-role-drawer.html", "sharedRegions": [], "privateRegions": ["角色模板与权限抽屉浮层"], "mutableSlots": [], "status": "generated", "children": [] },
+          { "nodeId": "gen-page-org-disable-confirm", "kind": "page-leaf", "pageIds": ["page-org-disable-confirm"], "output": "pages/org-disable-confirm.html", "sharedRegions": [], "privateRegions": ["停用账号确认弹窗"], "mutableSlots": [], "status": "generated", "children": [] }
+        ]
+      },
+      {
+        "nodeId": "gen-sg-space",
+        "kind": "shared-branch",
+        "pageIds": ["page-space-responsibility-live", "page-space-responsibility-draft", "page-space-match-success", "page-space-match-fail"],
+        "output": "pages/space-responsibility-live.html",
+        "sharedRegions": ["空间与责任页头", "网格责任表框架", "地图示意区框架"],
+        "privateRegions": ["网格表数据行", "匹配结果浮层"],
+        "mutableSlots": ["SLOT:banner", "SLOT:tableRows", "SLOT:overlay"],
+        "status": "generated",
+        "children": [
+          { "nodeId": "gen-page-space-responsibility-live", "kind": "page-leaf", "pageIds": ["page-space-responsibility-live"], "output": "pages/space-responsibility-live.html", "sharedRegions": [], "privateRegions": ["生效版网格责任表", "SVG示意底图"], "mutableSlots": [], "status": "generated", "children": [] },
+          { "nodeId": "gen-page-space-responsibility-draft", "kind": "page-leaf", "pageIds": ["page-space-responsibility-draft"], "output": "pages/space-responsibility-draft.html", "sharedRegions": [], "privateRegions": ["草稿编辑态网格表", "模拟匹配按钮区"], "mutableSlots": [], "status": "generated", "children": [] },
+          { "nodeId": "gen-page-space-match-success", "kind": "page-leaf", "pageIds": ["page-space-match-success"], "output": "pages/space-match-success.html", "sharedRegions": [], "privateRegions": ["模拟匹配成功结果浮层"], "mutableSlots": [], "status": "generated", "children": [] },
+          { "nodeId": "gen-page-space-match-fail", "kind": "page-leaf", "pageIds": ["page-space-match-fail"], "output": "pages/space-match-fail.html", "sharedRegions": [], "privateRegions": ["模拟匹配失败结果浮层"], "mutableSlots": [], "status": "generated", "children": [] }
+        ]
+      },
+      {
+        "nodeId": "gen-sg-event",
+        "kind": "shared-branch",
+        "pageIds": ["page-event-standard-live", "page-event-standard-draft", "page-event-standard-drawer"],
+        "output": "pages/event-standard-live.html",
+        "sharedRegions": ["事件标准页头", "大类/细类两级树框架", "字典摘录表框架"],
+        "privateRegions": ["树选中态", "细类规则抽屉"],
+        "mutableSlots": ["SLOT:banner", "SLOT:treeSelection", "SLOT:overlay"],
+        "status": "generated",
+        "children": [
+          { "nodeId": "gen-page-event-standard-live", "kind": "page-leaf", "pageIds": ["page-event-standard-live"], "output": "pages/event-standard-live.html", "sharedRegions": [], "privateRegions": ["生效版标准树", "字典摘录（共89项摘录）"], "mutableSlots": [], "status": "generated", "children": [] },
+          { "nodeId": "gen-page-event-standard-draft", "kind": "page-leaf", "pageIds": ["page-event-standard-draft"], "output": "pages/event-standard-draft.html", "sharedRegions": [], "privateRegions": ["草稿编辑态标准树"], "mutableSlots": [], "status": "generated", "children": [] },
+          { "nodeId": "gen-page-event-standard-drawer", "kind": "page-leaf", "pageIds": ["page-event-standard-drawer"], "output": "pages/event-standard-drawer.html", "sharedRegions": [], "privateRegions": ["细类规则抽屉浮层"], "mutableSlots": [], "status": "generated", "children": [] }
+        ]
+      },
+      {
+        "nodeId": "gen-sg-lifecycle",
+        "kind": "shared-branch",
+        "pageIds": ["page-lifecycle-live", "page-lifecycle-draft"],
+        "output": "pages/lifecycle-live.html",
+        "sharedRegions": ["生命周期页头", "阶段流程图框架（立案→处置→核查→结案）"],
+        "privateRegions": ["阶段配置卡片", "草稿差异行"],
+        "mutableSlots": ["SLOT:banner", "SLOT:stageCards"],
+        "status": "generated",
+        "children": [
+          { "nodeId": "gen-page-lifecycle-live", "kind": "page-leaf", "pageIds": ["page-lifecycle-live"], "output": "pages/lifecycle-live.html", "sharedRegions": [], "privateRegions": ["生效版阶段配置"], "mutableSlots": [], "status": "generated", "children": [] },
+          { "nodeId": "gen-page-lifecycle-draft", "kind": "page-leaf", "pageIds": ["page-lifecycle-draft"], "output": "pages/lifecycle-draft.html", "sharedRegions": [], "privateRegions": ["草稿差异（脏数据①）", "去发布前预览入口"], "mutableSlots": [], "status": "generated", "children": [] }
+        ]
+      },
+      {
+        "nodeId": "gen-sg-sla",
+        "kind": "shared-branch",
+        "pageIds": ["page-sla-matrix-live", "page-sla-matrix-draft"],
+        "output": "pages/sla-matrix-live.html",
+        "sharedRegions": ["时限规则页头", "时限矩阵表框架"],
+        "privateRegions": ["矩阵数据行", "草稿差异行"],
+        "mutableSlots": ["SLOT:banner", "SLOT:matrixRows"],
+        "status": "generated",
+        "children": [
+          { "nodeId": "gen-page-sla-matrix-live", "kind": "page-leaf", "pageIds": ["page-sla-matrix-live"], "output": "pages/sla-matrix-live.html", "sharedRegions": [], "privateRegions": ["生效版时限矩阵（批次10、回收约30分）"], "mutableSlots": [], "status": "generated", "children": [] },
+          { "nodeId": "gen-page-sla-matrix-draft", "kind": "page-leaf", "pageIds": ["page-sla-matrix-draft"], "output": "pages/sla-matrix-draft.html", "sharedRegions": [], "privateRegions": ["草稿差异（脏数据②）"], "mutableSlots": [], "status": "generated", "children": [] }
+        ]
+      },
+      {
+        "nodeId": "gen-sg-dispatch",
+        "kind": "shared-branch",
+        "pageIds": ["page-dispatch-claim-live", "page-dispatch-claim-draft"],
+        "output": "pages/dispatch-claim-live.html",
+        "sharedRegions": ["派工与认领页头", "派工规则表框架"],
+        "privateRegions": ["规则数据行", "草稿差异行"],
+        "mutableSlots": ["SLOT:banner", "SLOT:ruleRows"],
+        "status": "generated",
+        "children": [
+          { "nodeId": "gen-page-dispatch-claim-live", "kind": "page-leaf", "pageIds": ["page-dispatch-claim-live"], "output": "pages/dispatch-claim-live.html", "sharedRegions": [], "privateRegions": ["生效版派工规则（一事件一网格主责）"], "mutableSlots": [], "status": "generated", "children": [] },
+          { "nodeId": "gen-page-dispatch-claim-draft", "kind": "page-leaf", "pageIds": ["page-dispatch-claim-draft"], "output": "pages/dispatch-claim-draft.html", "sharedRegions": [], "privateRegions": ["草稿差异（脏数据③）"], "mutableSlots": [], "status": "generated", "children": [] }
+        ]
+      },
+      {
+        "nodeId": "gen-sg-dedup",
+        "kind": "shared-branch",
+        "pageIds": ["page-dedup-recurrence-live", "page-dedup-recurrence-draft"],
+        "output": "pages/dedup-recurrence-live.html",
+        "sharedRegions": ["查重复发页头", "查重规则表框架"],
+        "privateRegions": ["规则数据行", "编辑态表单"],
+        "mutableSlots": ["SLOT:banner", "SLOT:ruleRows"],
+        "status": "generated",
+        "children": [
+          { "nodeId": "gen-page-dedup-recurrence-live", "kind": "page-leaf", "pageIds": ["page-dedup-recurrence-live"], "output": "pages/dedup-recurrence-live.html", "sharedRegions": [], "privateRegions": ["生效版查重/复发规则"], "mutableSlots": [], "status": "generated", "children": [] },
+          { "nodeId": "gen-page-dedup-recurrence-draft", "kind": "page-leaf", "pageIds": ["page-dedup-recurrence-draft"], "output": "pages/dedup-recurrence-draft.html", "sharedRegions": [], "privateRegions": ["编辑中态表单"], "mutableSlots": [], "status": "generated", "children": [] }
+        ]
+      },
+      {
+        "nodeId": "gen-sg-metric",
+        "kind": "shared-branch",
+        "pageIds": ["page-metric-caliber-live", "page-metric-caliber-draft"],
+        "output": "pages/metric-caliber-live.html",
+        "sharedRegions": ["评价口径页头", "指标口径表框架"],
+        "privateRegions": ["指标数据行", "编辑态表单"],
+        "mutableSlots": ["SLOT:banner", "SLOT:metricRows"],
+        "status": "generated",
+        "children": [
+          { "nodeId": "gen-page-metric-caliber-live", "kind": "page-leaf", "pageIds": ["page-metric-caliber-live"], "output": "pages/metric-caliber-live.html", "sharedRegions": [], "privateRegions": ["生效版八指标口径"], "mutableSlots": [], "status": "generated", "children": [] },
+          { "nodeId": "gen-page-metric-caliber-draft", "kind": "page-leaf", "pageIds": ["page-metric-caliber-draft"], "output": "pages/metric-caliber-draft.html", "sharedRegions": [], "privateRegions": ["编辑中态表单（平均时长校正关红字阻断）"], "mutableSlots": [], "status": "generated", "children": [] }
+        ]
+      },
+      {
+        "nodeId": "gen-sg-publish",
+        "kind": "shared-branch",
+        "pageIds": ["page-publish-draft-review", "page-publish-preview", "page-publish-effective", "page-publish-rollback", "page-publish-restore-confirm"],
+        "output": "pages/publish-draft-review.html",
+        "sharedRegions": ["发布与审计页头", "阶段条（草稿核对→发布前预览→已生效→版本回滚）", "差异表框架（恰好3行）"],
+        "privateRegions": ["各阶段正文区", "确认弹窗"],
+        "mutableSlots": ["SLOT:stageActive", "SLOT:stageBody", "SLOT:overlay"],
+        "status": "generated",
+        "children": [
+          { "nodeId": "gen-page-publish-draft-review", "kind": "page-leaf", "pageIds": ["page-publish-draft-review"], "output": "pages/publish-draft-review.html", "sharedRegions": [], "privateRegions": ["S36a草稿核对正文（差异3行）"], "mutableSlots": [], "status": "generated", "children": [] },
+          { "nodeId": "gen-page-publish-preview", "kind": "page-leaf", "pageIds": ["page-publish-preview"], "output": "pages/publish-preview.html", "sharedRegions": [], "privateRegions": ["S36b发布前预览正文（确认发布按钮）"], "mutableSlots": [], "status": "generated", "children": [] },
+          { "nodeId": "gen-page-publish-effective", "kind": "page-leaf", "pageIds": ["page-publish-effective"], "output": "pages/publish-effective.html", "sharedRegions": [], "privateRegions": ["S36c已生效版本正文（V2026.08.19）"], "mutableSlots": [], "status": "generated", "children": [] },
+          { "nodeId": "gen-page-publish-rollback", "kind": "page-leaf", "pageIds": ["page-publish-rollback"], "output": "pages/publish-rollback.html", "sharedRegions": [], "privateRegions": ["S36d版本回滚正文（回滚先入草稿）"], "mutableSlots": [], "status": "generated", "children": [] },
+          { "nodeId": "gen-page-publish-restore-confirm", "kind": "page-leaf", "pageIds": ["page-publish-restore-confirm"], "output": "pages/publish-restore-confirm.html", "sharedRegions": [], "privateRegions": ["恢复为草稿确认弹窗"], "mutableSlots": [], "status": "generated", "children": [] }
+        ]
+      }
+    ]
+  }
+}

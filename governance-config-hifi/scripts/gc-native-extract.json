@@ -1,0 +1,2043 @@
+{
+ "pages": {
+  "org-permission-draft": {
+   "base": "org-permission-draft",
+   "h1": "组织、账号与权限",
+   "secs": [
+    "组织架构",
+    "账号",
+    "角色"
+   ],
+   "cards": [
+    {
+     "id": "org",
+     "name": "机构",
+     "title": "组织架构",
+     "note": "平台同步数据可在这里补充、修改或停用；行政区划层级决定账号与网格的归属范围。",
+     "fields": [
+      {
+       "k": "name",
+       "label": "机构名称",
+       "kind": "name",
+       "required": true,
+       "ph": "如 朝阳门街道"
+      },
+      {
+       "k": "level",
+       "label": "层级",
+       "type": "select",
+       "options": [
+        "区级",
+        "街道",
+        "社区"
+       ],
+       "def": "街道"
+      },
+      {
+       "k": "parent",
+       "label": "上级机构",
+       "ph": "如 东城区"
+      },
+      {
+       "k": "source",
+       "label": "来源",
+       "type": "select",
+       "options": [
+        "平台同步",
+        "自定义"
+       ],
+       "def": "平台同步"
+      },
+      {
+       "k": "note",
+       "label": "备注",
+       "full": true,
+       "ph": "如 仅用于挂接网格"
+      }
+     ],
+     "cols": [
+      "机构名称",
+      "层级",
+      "上级机构",
+      "来源",
+      "备注",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "东城区",
+       "区级",
+       "—",
+       "平台同步",
+       "—",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "朝阳门街道",
+       "街道",
+       "东城区",
+       "平台同步",
+       "—",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "某社区",
+       "社区",
+       "朝阳门街道",
+       "平台同步",
+       "—",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "东花市社区",
+       "社区",
+       "朝阳门街道",
+       "平台同步",
+       "—",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "东华门街道",
+       "街道",
+       "东城区",
+       "平台同步",
+       "—",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "金宝街社区",
+       "社区",
+       "东华门街道",
+       "平台同步",
+       "—",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "建国门街道",
+       "街道",
+       "东城区",
+       "平台同步",
+       "—",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "苏州社区",
+       "社区",
+       "建国门街道",
+       "平台同步",
+       "—",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "未找到匹配机构，请调整关键词"
+      ]
+     ]
+    },
+    {
+     "id": "account",
+     "name": "账号",
+     "title": "账号",
+     "note": "草稿编辑中：可新增账号、调整角色与负责范围",
+     "fields": [
+      {
+       "k": "name",
+       "label": "姓名",
+       "kind": "name",
+       "required": true
+      },
+      {
+       "k": "account",
+       "label": "账号",
+       "kind": "code",
+       "required": true,
+       "ph": "name@seetime"
+      },
+      {
+       "k": "role",
+       "label": "角色",
+       "type": "select",
+       "options": [
+        "全局协调",
+        "领导",
+        "立案审核",
+        "网格责任人",
+        "监督员"
+       ],
+       "def": "立案审核"
+      },
+      {
+       "k": "org",
+       "label": "归属组织",
+       "type": "select",
+       "options": [
+        "东城区",
+        "朝阳门街道",
+        "东华门街道",
+        "建国门街道",
+        "某社区"
+       ],
+       "def": "东城区"
+      },
+      {
+       "k": "scope",
+       "label": "负责范围",
+       "ph": "如 网格 G-0418 / 全区"
+      },
+      {
+       "k": "login",
+       "label": "最近登录",
+       "kind": "code",
+       "ph": "2026-09-05"
+      }
+     ],
+     "cols": [
+      "姓名",
+      "账号",
+      "角色",
+      "归属组织",
+      "负责范围",
+      "最近登录",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "王倩",
+       "wangqian@seetime",
+       "全局协调",
+       "东城区",
+       "全区",
+       "2026-09-05",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "李明",
+       "liming@seetime",
+       "领导",
+       "东城区",
+       "全区（只读）",
+       "2026-09-04",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "赵敏",
+       "zhaomin@seetime",
+       "立案审核",
+       "东城区",
+       "全区",
+       "2026-09-05",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "刘洋",
+       "liuyang@seetime",
+       "网格责任人",
+       "朝阳门街道 · 某社区",
+       "网格 G-0418",
+       "2026-09-05",
+       "启用",
+       "编辑停用删除停用将释放网格 G-0418 主责，需先交接"
+      ],
+      [
+       "陈督",
+       "chendu@seetime",
+       "监督员",
+       "朝阳门街道",
+       "朝阳门街道辖区",
+       "2026-09-01",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "未找到匹配账号，请调整关键词"
+      ]
+     ]
+    },
+    {
+     "id": "role",
+     "name": "角色",
+     "title": "角色",
+     "note": "平台预置模板可调整权限，自定义角色可追加",
+     "fields": [
+      {
+       "k": "name",
+       "label": "角色名称",
+       "kind": "name",
+       "required": true
+      },
+      {
+       "k": "members",
+       "label": "成员数",
+       "type": "number"
+      },
+      {
+       "k": "summary",
+       "label": "权限摘要",
+       "full": true
+      },
+      {
+       "k": "source",
+       "label": "来源",
+       "type": "select",
+       "options": [
+        "平台预置",
+        "自定义"
+       ],
+       "def": "平台预置"
+      }
+     ],
+     "cols": [
+      "角色",
+      "成员数",
+      "权限摘要",
+      "来源",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "全局协调",
+       "1",
+       "配置查看、配置编辑、发布、档案查看",
+       "平台预置",
+       "启用",
+       "查看权限权限编辑停用删除"
+      ],
+      [
+       "领导",
+       "1",
+       "配置查看、档案查看",
+       "平台预置",
+       "启用",
+       "查看权限权限编辑停用删除"
+      ],
+      [
+       "立案审核",
+       "1",
+       "配置查看、事件办理、档案查看",
+       "平台预置",
+       "启用",
+       "查看权限权限编辑停用删除"
+      ],
+      [
+       "网格责任人",
+       "1",
+       "配置查看、事件办理、档案查看",
+       "平台预置",
+       "启用",
+       "查看权限权限编辑停用删除"
+      ],
+      [
+       "监督员",
+       "1",
+       "配置查看、核查、档案查看",
+       "平台预置",
+       "启用",
+       "查看权限权限编辑停用删除"
+      ],
+      [
+       "未找到匹配角色，请调整关键词"
+      ]
+     ]
+    }
+   ],
+   "footer": "\n(function () {\n  var footerNote = document.querySelector('[data-gc-op-footer-note]');\n  var previewBtn = document.getElementById('gc-op-go-preview');\n  var reasonEl = document.getElementById('gc-op-footer-reason');\n  var toastEl = document.querySelector('[data-gc-draft-toast]');\n  var READY_NOTE = '本页只写入草稿；「确认发布」在「规则版本」页，须经「发布前预览」做冲突校验后确认。';\n\n  // 角色权限全为空 → 该角色名下的账号登录后什么也做不了，立案 / 核查终局决定无人可执行\n  function emptyRoles() {\n    var out = [];\n    [].slice.call(document.querySelectorAll('[data-gc-crud=\"role\"] tr[data-gc-row]')).forEach(function (tr) {\n      var raw = tr.getAttribute('data-perms') || '';\n      if (!raw) return;\n      var perms = raw.split(',').map(Number);\n      var granted = perms.filter(function (n) { return n === 1; }).length;\n      if (granted === 0) {\n        var nameCell = tr.querySelector('td[data-col=\"name\"]');\n        out.push(nameCell ? (nameCell.textContent || '').replace(/\\s+/g, ' ').trim() : '未命名角色');\n      }\n    });\n    return out;\n  }\n\n  function scanConflicts() {\n    var voids = emptyRoles();\n    var blocked = voids.length > 0;\n    if (footerNote) {\n      footerNote.textContent = blocked\n        ? '不能进入发布前预览：角色「' + voids.join('、') + '」没有任何权限，名下账号登录后无法办理事件，立案 / 核查终局决定无人可执行。'\n        : READY_NOTE;\n      footerNote.classList.toggle('gc-shell-footer-note--block', blocked);\n    }\n    if (previewBtn) {\n      previewBtn.disabled = blocked;\n      var tip = blocked ? '角色「' + voids.join('、') + '」权限为空，不能进入发布前预览' : '带着本草稿进入发布前预览';\n      previewBtn.title = tip;\n      if (reasonEl) reasonEl.textContent = tip;\n    }\n    document.body.setAttribute('data-gc-draft-state', blocked ? 'blocked' : 'ready');\n    return voids;\n  }\n\n  // ── 底部动作条：只写入草稿 / 进入发布前预览（发布不在模块页） ──\n  var saveDraft = document.querySelector('[data-gc-op-save-draft]');\n  if (saveDraft) saveDraft.addEventListener('click', function () {\n    toast('已写入草稿，尚未生效。发布需在「规则版本」页经「发布前预览」做冲突校验后确认。');\n  });\n  if (previewBtn) previewBtn.addEventListener('click', function () {\n    if (previewBtn.disabled) return;\n    location.href = 'publish-preview.html?scene=ok';\n  });\n  function toast(msg) {\n    if (!toastEl) return;\n    toastEl.textContent = msg;\n    toastEl.classList.add('gc-draft-toast--show');\n    clearTimeout(toast._t);\n    toast._t = setTimeout(function () { toastEl.classList.remove('gc-draft-toast--show'); }, 3200);\n  }\n\n  // ── 角色保存后复检（本脚本的委托监听晚于 org-tabs-js 的行内监听） ──\n  document.addEventListener('click', function () { scanConflicts(); });\n  scanConflicts();\n})();\n"
+  },
+  "space-responsibility-draft": {
+   "base": "space-responsibility-draft",
+   "h1": "空间与责任关系",
+   "secs": [],
+   "cards": [],
+   "footer": "\n(function () {\n  var footerNote = document.querySelector('[data-gc-sp-footer-note]');\n  var previewBtn = document.getElementById('gc-sp-go-preview');\n  var reasonEl = document.getElementById('gc-sp-footer-reason');\n  var toastEl = document.querySelector('[data-gc-draft-toast]');\n  var READY_NOTE = '本页只写入草稿；「确认发布」在「规则版本」页，须经「发布前预览」做冲突校验后确认。';\n\n  // 一个事件同一时刻只对应一个网格责任人：责任人空缺的网格（如 G-0421）会让匹配失败无从派发\n  function unassignedGrids() {\n    var out = [];\n    [].slice.call(document.querySelectorAll('td[data-cell=\"owner\"][data-grid]')).forEach(function (td) {\n      var stChip = td.closest('tr').querySelector('.gc-chip');\n      if (stChip && stChip.classList.contains('gc-chip--off')) return; // 停用网格不参与派发，不阻断\n      var v = (td.textContent || '').replace(/\\s/g, '');\n      if (!v || v === '—' || v.indexOf('（空）') >= 0 || v.indexOf('(空)') >= 0) {\n        out.push(td.getAttribute('data-grid'));\n      }\n    });\n    return out;\n  }\n\n  // 责任人补齐后，把该行状态从「待定责」同步为「启用」，避免状态与责任人自相矛盾\n  function syncStatusChips() {\n    [].slice.call(document.querySelectorAll('td[data-cell=\"owner\"][data-grid]')).forEach(function (td) {\n      var v = (td.textContent || '').replace(/\\s/g, '');\n      var filled = !!v && v !== '—' && v.indexOf('（空）') < 0 && v.indexOf('(空)') < 0;\n      if (!filled) return;\n      var tr = td.closest('tr');\n      var chip = tr && tr.querySelector('.gc-chip--muted');\n      if (chip && (chip.textContent || '').indexOf('待定责') >= 0) {\n        chip.className = 'gc-chip gc-chip--green';\n        chip.textContent = '启用';\n        var tbtn = tr.querySelector('[data-gc-toggle]');\n        if (tbtn) tbtn.textContent = '停用';\n      }\n    });\n  }\n\n  function scanConflicts() {\n    syncStatusChips();\n    var voids = unassignedGrids();\n    var blocked = voids.length > 0;\n    if (footerNote) {\n      footerNote.textContent = blocked\n        ? '不能进入发布前预览：仍有网格没有责任人（' + voids.join('、') + '），事件匹配到这些网格后无法派发。'\n        : READY_NOTE;\n      footerNote.classList.toggle('gc-shell-footer-note--block', blocked);\n    }\n    if (previewBtn) {\n      previewBtn.disabled = blocked;\n      var tip = blocked ? '仍有网格未定责（' + voids.join('、') + '），不能进入发布前预览' : '带着本草稿进入发布前预览';\n      previewBtn.title = tip;\n      if (reasonEl) reasonEl.textContent = tip;\n    }\n    document.body.setAttribute('data-gc-draft-state', blocked ? 'blocked' : 'ready');\n    return voids;\n  }\n\n  // ── 底部动作条：只写入草稿 / 进入发布前预览（发布不在模块页） ──\n  var saveDraft = document.querySelector('[data-gc-sp-save-draft]');\n  if (saveDraft) saveDraft.addEventListener('click', function () {\n    toast('已写入草稿，尚未生效。发布需在「规则版本」页经「发布前预览」做冲突校验后确认。');\n  });\n  if (previewBtn) previewBtn.addEventListener('click', function () {\n    if (previewBtn.disabled) return;\n    location.href = 'publish-preview.html?scene=ok';\n  });\n  function toast(msg) {\n    if (!toastEl) return;\n    toastEl.textContent = msg;\n    toastEl.classList.add('gc-draft-toast--show');\n    clearTimeout(toast._t);\n    toast._t = setTimeout(function () { toastEl.classList.remove('gc-draft-toast--show'); }, 3200);\n  }\n\n  // ── 责任人或新增网格保存后复检（本脚本的委托监听晚于 space-edit-js 的行内监听） ──\n  document.addEventListener('click', function () { scanConflicts(); });\n  scanConflicts();\n})();\n"
+  },
+  "event-standard-draft": {
+   "base": "event-standard-draft",
+   "h1": "事件标准",
+   "secs": [
+    "分类字典",
+    "事件等级",
+    "成立规则",
+    "字段与证据",
+    "原因字典"
+   ],
+   "cards": [
+    {
+     "id": "dict",
+     "name": "细类",
+     "title": "字典摘录",
+     "note": "「自动结案候选」与「必须人工核查」互斥：同一细类不能同时为「开」，存在冲突的草稿不能发布。",
+     "fields": [
+      {
+       "k": "name",
+       "label": "细类",
+       "kind": "name",
+       "required": true,
+       "ph": "如 机动车违停"
+      },
+      {
+       "k": "code",
+       "label": "编码",
+       "kind": "code",
+       "required": true,
+       "primary": true,
+       "ph": "如 DM-0105"
+      },
+      {
+       "k": "standard",
+       "label": "立案标准摘录",
+       "full": true,
+       "ph": "如 占用机动车道停放超 5 分钟"
+      },
+      {
+       "k": "evidence",
+       "label": "证据要求",
+       "full": true,
+       "ph": "如 需含车牌与全景照"
+      },
+      {
+       "k": "cand",
+       "label": "自动结案候选",
+       "type": "select",
+       "options": [
+        "开",
+        "关"
+       ],
+       "def": "关"
+      },
+      {
+       "k": "mc",
+       "label": "必须人工核查",
+       "type": "select",
+       "options": [
+        "开",
+        "关"
+       ],
+       "def": "开"
+      }
+     ],
+     "cols": [
+      "细类",
+      "编码",
+      "立案标准摘录",
+      "证据要求",
+      "自动结案候选",
+      "必须人工核查",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "机动车违停",
+       "DM-0101",
+       "占用机动车道停放超 5 分钟",
+       "需含车牌与全景照",
+       "关",
+       "开",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "共享单车乱停放",
+       "DM-0102",
+       "未入栏或占用盲道",
+       "需含单车品牌与位置",
+       "开",
+       "开",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "占道经营",
+       "DM-0103",
+       "占用城市道路经营",
+       "含摊位与道路全景",
+       "关",
+       "开",
+       "启用",
+       "编辑停用删除与施工占道互斥"
+      ],
+      [
+       "施工占道",
+       "DM-0104",
+       "占道施工未设围挡",
+       "需含审批编号",
+       "关",
+       "开",
+       "启用",
+       "编辑停用删除与占道经营互斥"
+      ],
+      [
+       "暴露垃圾",
+       "HJ-0201",
+       "生活垃圾暴露未清运",
+       "含位置与范围照",
+       "关",
+       "开",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "杂物堆放",
+       "HJ-0202",
+       "公共区域堆放杂物",
+       "含堆放物与占道情况",
+       "关",
+       "开",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "非法倾倒",
+       "HJ-0203",
+       "建筑垃圾非法倾倒",
+       "含倾倒过程或痕迹",
+       "关",
+       "开",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "建材乱堆",
+       "HJ-0204",
+       "建材占用公共空间",
+       "含占道情况",
+       "关",
+       "开",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "无证户外广告",
+       "GG-0301",
+       "未经审批设置户外广告",
+       "含广告牌全景",
+       "关",
+       "开",
+       "停用",
+       "编辑启用删除"
+      ],
+      [
+       "超规格招牌",
+       "GG-0302",
+       "招牌超出台账规格",
+       "含尺寸对比",
+       "关",
+       "开",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "违规灯箱",
+       "GG-0303",
+       "灯箱破损或违规设置",
+       "含近景照",
+       "关",
+       "关",
+       "启用",
+       "编辑停用删除必须人工核查已关闭"
+      ]
+     ]
+    },
+    {
+     "id": "nl",
+     "name": "不予立案原因",
+     "title": "不予立案原因",
+     "note": "停用原因不影响历史事件；历史事件保留立案时的原因文案。",
+     "fields": [
+      {
+       "k": "name",
+       "label": "原因",
+       "kind": "name",
+       "required": true,
+       "ph": "如 证据不足以成立"
+      },
+      {
+       "k": "code",
+       "label": "编码",
+       "kind": "code",
+       "required": true,
+       "primary": true,
+       "ph": "如 NL-04"
+      }
+     ],
+     "cols": [
+      "原因",
+      "编码",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "不属于事件范围",
+       "NL-01",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "重复上报（已存在主事件）",
+       "NL-02",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "证据不足以成立",
+       "NL-03",
+       "停用",
+       "编辑启用删除"
+      ]
+     ]
+    },
+    {
+     "id": "tc",
+     "name": "退回处置原因",
+     "title": "退回处置原因",
+     "note": "停用原因不影响历史事件；历史事件保留立案时的原因文案。",
+     "fields": [
+      {
+       "k": "name",
+       "label": "原因",
+       "kind": "name",
+       "required": true,
+       "ph": "如 证据不足以成立"
+      },
+      {
+       "k": "code",
+       "label": "编码",
+       "kind": "code",
+       "required": true,
+       "primary": true,
+       "ph": "如 NL-04"
+      }
+     ],
+     "cols": [
+      "原因",
+      "编码",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "处置结果与现场不符",
+       "TC-01",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "证据图不清晰",
+       "TC-02",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "处置未闭环（问题仍存在）",
+       "TC-03",
+       "启用",
+       "编辑停用删除"
+      ]
+     ]
+    },
+    {
+     "id": "zf",
+     "name": "作废申请原因",
+     "title": "作废申请原因",
+     "note": "停用原因不影响历史事件；历史事件保留立案时的原因文案。",
+     "fields": [
+      {
+       "k": "name",
+       "label": "原因",
+       "kind": "name",
+       "required": true,
+       "ph": "如 证据不足以成立"
+      },
+      {
+       "k": "code",
+       "label": "编码",
+       "kind": "code",
+       "required": true,
+       "primary": true,
+       "ph": "如 NL-04"
+      }
+     ],
+     "cols": [
+      "原因",
+      "编码",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "责任主体判定错误",
+       "ZF-01",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "重复立案（已有主事件）",
+       "ZF-02",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "现场已自行处置",
+       "ZF-03",
+       "停用",
+       "编辑启用删除"
+      ]
+     ]
+    }
+   ],
+   "footer": "\n(function () {\n  var DICT = '[data-gc-crud=\"dict\"]';\n  var tabs = [].slice.call(document.querySelectorAll('[data-gc-pane-btn]'));\n  var panes = [].slice.call(document.querySelectorAll('[data-gc-pane]'));\n  var blockBanner = document.querySelector('[data-gc-es-block]');\n  var blockMain = document.querySelector('[data-gc-es-block-main]');\n  var footerNote = document.querySelector('[data-gc-es-footer-note]');\n  var previewBtn = document.getElementById('gc-es-go-preview');\n  var reasonEl = document.getElementById('gc-es-footer-reason');\n  var toastEl = document.querySelector('[data-gc-es-toast]');\n  var READY_NOTE = '本页只写入草稿；「确认发布」在「规则版本」页，须经「发布前预览」做冲突校验后确认。';\n  var blockedState = false;\n\n  /* ── 页内分区切换：分类字典 | 事件等级 | 成立规则 | 字段与证据 | 原因字典 ── */\n  function showPane(key) {\n    tabs.forEach(function (t) {\n      var on = t.getAttribute('data-gc-pane-btn') === key;\n      t.classList.toggle('gc-part-tab--active', on);\n      t.setAttribute('aria-selected', on ? 'true' : 'false');\n    });\n    panes.forEach(function (p) {\n      var on = p.getAttribute('data-gc-pane') === key;\n      p.classList.toggle('gc-part-pane--active', on);\n      if (on) { p.removeAttribute('hidden'); } else { p.setAttribute('hidden', ''); }\n    });\n  }\n  tabs.forEach(function (t) {\n    t.addEventListener('click', function () { showPane(t.getAttribute('data-gc-pane-btn')); });\n  });\n\n  /* ── 互斥真源 = 字典表每行的「自动结案候选 / 必须人工核查」两列（引擎读写同一处 DOM） ── */\n  function dictCard() { return document.querySelector(DICT); }\n  function dictRows() {\n    var c = dictCard();\n    return c ? [].slice.call(c.querySelectorAll('tr[data-gc-row]')) : [];\n  }\n  function cellOf(tr, k) { return tr.querySelector('td[data-col=\"' + k + '\"]'); }\n  function textOf(tr, k) { var td = cellOf(tr, k); return td ? td.textContent.replace(/\\s+/g, ' ').trim() : ''; }\n  function isOn(tr, k) { return textOf(tr, k) === '开'; }\n  function isEnabled(tr) { return textOf(tr, 'status').indexOf('启用') > -1; }\n  function isConflict(tr) { return isEnabled(tr) && isOn(tr, 'cand') && isOn(tr, 'mc'); }\n\n  // 行内冲突标记：只维护「互斥冲突」这一条，保留其它业务行注\n  function markRow(tr, on) {\n    var act = cellOf(tr, 'actions');\n    if (!act) return;\n    var note = null;\n    [].slice.call(act.querySelectorAll('.gc-row-note')).forEach(function (s) {\n      if (s.textContent.indexOf('互斥冲突') === 0) note = s;\n    });\n    if (on) {\n      if (!note) {\n        note = document.createElement('span');\n        note.className = 'gc-row-note';\n        act.appendChild(note);\n      }\n      var want = '互斥冲突：不能发布';\n      if (note.textContent !== want) note.textContent = want;\n      if (!tr.classList.contains('gc-row--conflict')) tr.classList.add('gc-row--conflict');\n    } else {\n      if (note && note.parentNode) note.parentNode.removeChild(note);\n      if (tr.classList.contains('gc-row--conflict')) tr.classList.remove('gc-row--conflict');\n    }\n  }\n\n  function syncFooter(blocked, names) {\n    if (footerNote) {\n      footerNote.textContent = blocked\n        ? '不能进入发布前预览：先解除「' + names.join('」「') + '」的互斥（启用中的细类不能同时开启「允许自动结案候选」与「必须人工核查」）。'\n        : READY_NOTE;\n      footerNote.classList.toggle('gc-shell-footer-note--block', blocked);\n    }\n    if (previewBtn) {\n      previewBtn.disabled = blocked;\n      var tip = blocked ? '当前草稿存在互斥冲突，不能进入发布前预览' : '带着本草稿进入发布前预览';\n      previewBtn.title = tip;\n      if (reasonEl) reasonEl.textContent = tip;\n    }\n    document.body.setAttribute('data-gc-es-state', blocked ? 'blocked' : 'ready');\n  }\n\n  function scanConflicts() {\n    var hits = [];\n    dictRows().forEach(function (tr) {\n      var bad = isConflict(tr);\n      markRow(tr, bad);\n      if (bad) hits.push(textOf(tr, 'name') || textOf(tr, 'code'));\n    });\n    blockedState = hits.length > 0;\n    if (blockBanner) {\n      if (hits.length) {\n        if (blockMain) {\n          var msg = '冲突：细类「' + hits.join('」「') + '」同时开启「允许自动结案候选」与「必须人工核查」。';\n          if (blockMain.textContent !== msg) blockMain.textContent = msg;\n        }\n        blockBanner.removeAttribute('hidden');\n      } else {\n        blockBanner.setAttribute('hidden', '');\n      }\n    }\n    syncFooter(blockedState, hits);\n    return hits;\n  }\n\n  // 一键修复：关闭冲突细类的「允许自动结案候选」，保留「必须人工核查」\n  var fixBtn = document.querySelector('[data-gc-es-fix]');\n  if (fixBtn) fixBtn.addEventListener('click', function () {\n    dictRows().forEach(function (tr) {\n      if (!isConflict(tr)) return;\n      var td = cellOf(tr, 'cand');\n      if (td) td.textContent = '关';\n    });\n    scanConflicts();\n    toast('已关闭冲突细类的「允许自动结案候选」，写入草稿，尚未生效。');\n  });\n\n  /* ── 页头「＋ 新增细类」：切到分类字典并打开新增抽屉（引擎负责抽屉） ── */\n  var headNew = document.querySelector('[data-gc-es-new]');\n  if (headNew) headNew.addEventListener('click', function () {\n    showPane('dict');\n    var b = document.querySelector(DICT + ' [data-gc-crud-new]');\n    if (b) b.click();\n  });\n\n  /* ── 底部动作条：只写入草稿 / 进入发布前预览（发布不在模块页） ── */\n  var saveDraft = document.querySelector('[data-gc-es-save-draft]');\n  if (saveDraft) saveDraft.addEventListener('click', function () {\n    toast('已写入草稿，尚未生效。发布需在「规则版本」页经「发布前预览」做冲突校验后确认。');\n  });\n  if (previewBtn) previewBtn.addEventListener('click', function () {\n    if (previewBtn.disabled) return;\n    location.href = 'publish-preview.html?scene=' + (blockedState ? 'conflict' : 'ok');\n  });\n  function toast(msg) {\n    if (!toastEl) return;\n    toastEl.textContent = msg;\n    toastEl.classList.add('gc-draft-toast--show');\n    clearTimeout(toast._t);\n    toast._t = setTimeout(function () { toastEl.classList.remove('gc-draft-toast--show'); }, 3200);\n  }\n\n  /* ── 复检：引擎对本表的所有写操作都由点击发起，点击后复检（引擎监听为冒泡阶段，晚于捕获） ── */\n  document.addEventListener('click', function () { setTimeout(scanConflicts, 0); }, true);\n  setTimeout(scanConflicts, 0);\n  if (document.readyState === 'loading') {\n    document.addEventListener('DOMContentLoaded', function () { setTimeout(scanConflicts, 0); });\n  }\n})();\n"
+  },
+  "lifecycle-draft": {
+   "base": "lifecycle-draft",
+   "h1": "生命周期与处置规则",
+   "secs": [],
+   "cards": [
+    {
+     "id": "lc-stage",
+     "name": "生命周期阶段",
+     "title": "事件生命周期（骨架可维护）",
+     "note": "一行一个阶段，顺序决定流程走向；骨架不再冻结为只读图，改动写入草稿，发布前须经平台口径校验。",
+     "fields": [
+      {
+       "k": "stage",
+       "label": "阶段名称",
+       "kind": "name",
+       "required": true,
+       "primary": true,
+       "ph": "如 立案"
+      },
+      {
+       "k": "order",
+       "label": "顺序",
+       "type": "number",
+       "ph": "整数，如 1"
+      },
+      {
+       "k": "owner",
+       "label": "责任角色",
+       "ph": "如 网格责任人"
+      },
+      {
+       "k": "desc",
+       "label": "阶段说明",
+       "full": true,
+       "ph": "如 Agent 预填类型 + 空间匹配"
+      }
+     ],
+     "cols": [
+      "阶段",
+      "顺序",
+      "责任角色",
+      "阶段说明",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "立案",
+       "1",
+       "立案审核",
+       "Agent 预填类型 + 空间匹配；空间匹配失败转人工定点 / 定责，不等于不予立案。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "处置",
+       "2",
+       "网格责任人",
+       "按网格自动派工 + 认领；可批量处置，逐件留痕。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "核查",
+       "3",
+       "监督员 / 立案审核",
+       "核查角色复核，退回最多 2 次；核查角色与处置角色分离。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "结案",
+       "4",
+       "核查角色",
+       "核查角色或自动结案规则结案；网格责任人不能自己结案。",
+       "启用",
+       "编辑停用删除"
+      ]
+     ]
+    },
+    {
+     "id": "lc-rule",
+     "name": "阶段规则",
+     "title": "阶段规则",
+     "note": "原「立案 / 处置 / 核查 / 结案」四张只读规则卡，改为按行维护；新增规则须归属到一个阶段。",
+     "fields": [
+      {
+       "k": "stage",
+       "label": "所属阶段",
+       "type": "select",
+       "options": [
+        "立案",
+        "处置",
+        "核查",
+        "结案"
+       ],
+       "def": "立案"
+      },
+      {
+       "k": "item",
+       "label": "规则项",
+       "kind": "name",
+       "required": true,
+       "primary": true,
+       "ph": "如 空间匹配失败"
+      },
+      {
+       "k": "value",
+       "label": "取值",
+       "ph": "如 转人工定点 / 定责"
+      },
+      {
+       "k": "note",
+       "label": "说明",
+       "full": true,
+       "ph": "可留空"
+      }
+     ],
+     "cols": [
+      "阶段",
+      "规则项",
+      "取值",
+      "说明",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "立案",
+       "事件来源",
+       "多渠道上报",
+       "不做来源删减，全部进入发现池。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "立案",
+       "Agent 预填类型",
+       "需人工确认",
+       "Agent 只给候选，人确认后才生效。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "立案",
+       "空间匹配失败",
+       "转人工定点 / 定责",
+       "匹配失败不等于不予立案。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "处置",
+       "派工方式",
+       "按网格自动派工 + 认领",
+       "抄告部门不改变主责。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "处置",
+       "批次默认",
+       "10 件",
+       "可批量处置，逐件留痕。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "处置",
+       "回收周期",
+       "约 30 分钟",
+       "超期进入提醒。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "核查",
+       "核查角色",
+       "监督员 / 立案审核",
+       "与处置角色分离。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "核查",
+       "退回次数",
+       "最多 2 次",
+       "二次退回转人工复核。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "结案",
+       "结案权限",
+       "核查角色或自动结案规则",
+       "网格责任人不能自己结案。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "结案",
+       "结案后复发",
+       "创建新事件并关联原事件",
+       "判重不建新主事件。",
+       "启用",
+       "编辑停用删除"
+      ]
+     ]
+    },
+    {
+     "id": "lc-autoclose",
+     "name": "自动结案适用细类",
+     "title": "自动结案规则",
+     "note": "一行一个细类；把某行「状态」置为启用，即把该细类纳入自动结案清单。命中「必须人工核查 = 是」的细类与自动结案互斥，草稿可保存，但发布前校验会拒绝。",
+     "fields": [
+      {
+       "k": "name",
+       "label": "细类名称",
+       "kind": "name",
+       "required": true,
+       "primary": true,
+       "ph": "如 共享单车乱停放"
+      },
+      {
+       "k": "code",
+       "label": "细类编码",
+       "kind": "code",
+       "ph": "如 DM-0102"
+      },
+      {
+       "k": "source",
+       "label": "允许自动结案候选",
+       "type": "select",
+       "options": [
+        "开",
+        "未开启"
+       ],
+       "def": "未开启"
+      },
+      {
+       "k": "mc",
+       "label": "必须人工核查",
+       "type": "select",
+       "options": [
+        "是",
+        "否"
+       ],
+       "def": "否"
+      },
+      {
+       "k": "note",
+       "label": "说明",
+       "full": true,
+       "ph": "可留空"
+      }
+     ],
+     "cols": [
+      "细类名称",
+      "细类编码",
+      "允许自动结案候选",
+      "必须人工核查",
+      "说明",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "共享单车乱停放",
+       "DM-0102",
+       "开",
+       "是",
+       "该细类同时开启「允许自动结案候选」与「必须人工核查」，与自动结案互斥；发布前校验会拒绝。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "暴露垃圾",
+       "HJ-0201",
+       "未开启",
+       "是",
+       "该细类的「允许自动结案候选」未开启，需先在「事件标准 · 细类」开启后，才能被自动结案规则引用。",
+       "停用",
+       "编辑启用删除"
+      ],
+      [
+       "违规灯箱",
+       "GG-0303",
+       "未开启",
+       "否",
+       "「必须人工核查」已关闭，但「允许自动结案候选」仍未开启，本页不能直接选用。",
+       "停用",
+       "编辑启用删除"
+      ]
+     ]
+    }
+   ],
+   "footer": ""
+  },
+  "sla-matrix-draft": {
+   "base": "sla-matrix-draft",
+   "h1": "时限与异常监控",
+   "secs": [
+    "时限筛选",
+    "全局计时口径",
+    "时限矩阵",
+    "超时异常链路"
+   ],
+   "cards": [
+    {
+     "id": "sla-caliber",
+     "name": "计时口径项",
+     "title": "全局计时口径",
+     "note": "计时口径不再是一条全局单例，按行维护；改动写入草稿，发布前须经平台口径校验。",
+     "fields": [
+      {
+       "k": "item",
+       "label": "口径项",
+       "kind": "name",
+       "required": true,
+       "primary": true,
+       "ph": "如 计时起点"
+      },
+      {
+       "k": "value",
+       "label": "取值",
+       "ph": "如 派发成功时刻"
+      },
+      {
+       "k": "scope",
+       "label": "适用范围",
+       "type": "select",
+       "options": [
+        "全平台",
+        "时限矩阵",
+        "事件页"
+       ],
+       "def": "全平台"
+      },
+      {
+       "k": "note",
+       "label": "说明",
+       "full": true,
+       "ph": "可留空"
+      }
+     ],
+     "cols": [
+      "口径项",
+      "取值",
+      "适用范围",
+      "说明",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "计时起点",
+       "派发成功时刻",
+       "全平台",
+       "不是事件发现时间，也不是点击立案的时刻。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "外部等待（部门回退、外场核查等待）",
+       "冻结计时",
+       "时限矩阵",
+       "冻结时，等待时长不计入处置时限。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "工作日口径",
+       "自然小时（连续计）",
+       "全平台",
+       "不写死 8×7；按平台工作日历口径执行。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "暂停规则",
+       "需在事件上记录原因与起止",
+       "事件页",
+       "本版本不提供自动暂停，人工暂停动作由事件页记录。",
+       "启用",
+       "编辑停用删除"
+      ]
+     ]
+    }
+   ],
+   "footer": ""
+  },
+  "dispatch-claim-draft": {
+   "base": "dispatch-claim-draft",
+   "h1": "Agent 派工与认领",
+   "secs": [],
+   "cards": [
+    {
+     "id": "dc-batch",
+     "name": "领取批次",
+     "title": "领取批次",
+     "note": "一行一类领取批次；把某行「状态」置为停用，即关闭该类批次的领取入口。三类批次全部停用时，办理页没有任何领取入口，派发闭环会断在「待立案 / 待核查」，不能进入发布前预览。",
+     "fields": [
+      {
+       "k": "batch",
+       "label": "批次名称",
+       "kind": "name",
+       "required": true,
+       "primary": true,
+       "ph": "如 待立案批次"
+      },
+      {
+       "k": "role",
+       "label": "面向角色",
+       "ph": "如 立案审核 / 监督员"
+      },
+      {
+       "k": "quota",
+       "label": "默认领取量（件）",
+       "type": "number",
+       "def": "10",
+       "ph": "整数，如 10"
+      },
+      {
+       "k": "basis",
+       "label": "软分配依据",
+       "full": true,
+       "ph": "如 按角色 / 优先级 / 时限 / 负荷分配"
+      }
+     ],
+     "cols": [
+      "批次名称",
+      "面向角色",
+      "默认领取量（件）",
+      "软分配依据",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "待立案批次",
+       "立案审核",
+       "5",
+       "按角色 / 优先级 / 时限 / 负荷软分配；普通用户不能挑单件、不能抢他人批次。草稿：默认领取量 10 → 5。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "待核查批次",
+       "监督员 / 立案审核",
+       "10",
+       "三类批次不可混合领取；核查角色与处置角色分离。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "待作废审核批次",
+       "监督员 / 立案审核",
+       "10",
+       "关掉后办理页无入口（10 月能力，配置可先在）。",
+       "启用",
+       "编辑停用删除"
+      ]
+     ]
+    },
+    {
+     "id": "dc-recycle",
+     "name": "回收环节",
+     "title": "回收与提醒",
+     "note": "一行一个回收环节，顺序即先后。原「回收与提醒」四步流程与「账号停用立即释放」只读开关，统一改为按行维护；停用某行即从回收链路中移除该环节。",
+     "fields": [
+      {
+       "k": "order",
+       "label": "顺序",
+       "type": "number",
+       "ph": "整数，如 1"
+      },
+      {
+       "k": "item",
+       "label": "环节名称",
+       "kind": "name",
+       "required": true,
+       "primary": true,
+       "ph": "如 回收预告"
+      },
+      {
+       "k": "trigger",
+       "label": "触发条件",
+       "ph": "如 回收前 / 账号被停用"
+      },
+      {
+       "k": "param",
+       "label": "取值",
+       "ph": "如 60 分钟 / 立即"
+      },
+      {
+       "k": "note",
+       "label": "说明",
+       "full": true,
+       "ph": "可留空"
+      }
+     ],
+     "cols": [
+      "顺序",
+      "环节名称",
+      "触发条件",
+      "取值",
+      "说明",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "1",
+       "无有效操作",
+       "领取后开始计时",
+       "领取后",
+       "有效操作 = 看核心证据、切帧、改字段、调地图、填意见、提交判断；纯停留、鼠标移动不算有效操作。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "2",
+       "提前提醒",
+       "回收前",
+       "5 分钟",
+       "站内提醒，不打断当前操作。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "3",
+       "回收预告",
+       "回收前",
+       "60 分钟",
+       "草稿：由生效版 30 分钟改为 60 分钟。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "4",
+       "回收",
+       "预告期满仍无有效操作",
+       "回到共享池",
+       "保留草稿、原优先级、累计等待时长，可被重新领取。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "5",
+       "账号停用立即释放",
+       "账号被停用",
+       "立即",
+       "与「组织与权限」停用联动，建议不要停用该行。",
+       "启用",
+       "编辑停用删除"
+      ]
+     ]
+    },
+    {
+     "id": "dc-urgent",
+     "name": "置顶条件",
+     "title": "紧急置顶条件",
+     "note": "一行一个置顶条件；满足任一启用中的条件即在个人批次内置顶。原「可突破个人分类顺序（只读）」已改为普通可配置行，停用即不再强制置顶。",
+     "fields": [
+      {
+       "k": "condition",
+       "label": "条件名称",
+       "kind": "name",
+       "required": true,
+       "primary": true,
+       "ph": "如 已超时置顶"
+      },
+      {
+       "k": "source",
+       "label": "数据来源",
+       "ph": "如 时限规则 · 超时标记"
+      },
+      {
+       "k": "note",
+       "label": "说明",
+       "full": true,
+       "ph": "可留空"
+      }
+     ],
+     "cols": [
+      "条件名称",
+      "数据来源",
+      "说明",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "严重事件置顶",
+       "事件标准 · 等级",
+       "等级来自「事件标准」，严重及以上在个人批次内置顶。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "临近超时置顶",
+       "时限规则 · 提醒点",
+       "阈值读「时限规则」提醒点。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "已超时置顶",
+       "时限规则 · 超时标记",
+       "事件超出处置时限后置顶。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "已升级置顶",
+       "事件升级标记",
+       "读事件上的升级标记。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "证据风险置顶",
+       "证据 / 风险标签",
+       "证据不足 / 图不清。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "可突破个人分类顺序",
+       "平台固定",
+       "命中严重事件时强制置顶，用户排的「先核查后立案」对其无效。",
+       "启用",
+       "编辑停用删除"
+      ]
+     ]
+    }
+   ],
+   "footer": "\n(function () {\n  var footerNote = document.querySelector('[data-gc-dc-footer-note]');\n  var previewBtn = document.getElementById('gc-dc-go-preview');\n  var reasonEl = document.getElementById('gc-dc-footer-reason');\n  var toastEl = document.querySelector('[data-gc-draft-toast]');\n  var card = document.getElementById('gc-batch-card');\n  var READY_NOTE = '本页只写入草稿；「确认发布」在「规则版本」页，须经「发布前预览」做冲突校验后确认。';\n  var BLOCK_NOTE = '不能进入发布前预览：领取批次列表里没有任何启用行，办理页没有领取入口，事件会堆在「待立案 / 待核查」无法派发。';\n\n  function rows() {\n    return card ? Array.prototype.slice.call(card.querySelectorAll('tbody tr[data-gc-row]')) : [];\n  }\n  function isOn(tr) {\n    var td = tr.querySelector('td[data-col=\"status\"]');\n    return !!td && td.textContent.indexOf('启用') > -1;\n  }\n\n  /* 阻断条件：领取批次全部停用（或一行不剩）→ 办理页无入口，闭环断在「待立案 / 待核查」 */\n  function scanConflicts() {\n    var all = rows();\n    var on = all.filter(isOn).length;\n    var blocked = on === 0;\n    if (footerNote) {\n      footerNote.textContent = blocked ? BLOCK_NOTE : READY_NOTE;\n      footerNote.classList.toggle('gc-shell-footer-note--block', blocked);\n    }\n    if (previewBtn) {\n      previewBtn.disabled = blocked;\n      var tip = blocked ? '领取批次全部停用，派发闭环没有入口，不能进入发布前预览' : '带着本草稿进入发布前预览';\n      previewBtn.title = tip;\n      if (reasonEl) reasonEl.textContent = tip;\n    }\n    document.body.setAttribute('data-gc-draft-state', blocked ? 'blocked' : 'ready');\n    return on;\n  }\n\n  /* ── 底部动作条：只写入草稿 / 进入发布前预览（发布不在模块页） ── */\n  var saveDraft = document.querySelector('[data-gc-dc-save-draft]');\n  if (saveDraft) saveDraft.addEventListener('click', function () {\n    toast('已写入草稿，尚未生效。发布需在「规则版本」页经「发布前预览」做冲突校验后确认。');\n  });\n  if (previewBtn) previewBtn.addEventListener('click', function () {\n    if (previewBtn.disabled) return;\n    location.href = 'publish-preview.html?scene=ok';\n  });\n  function toast(msg) {\n    if (!toastEl) return;\n    toastEl.textContent = msg;\n    toastEl.classList.add('gc-draft-toast--show');\n    clearTimeout(toast._t);\n    toast._t = setTimeout(function () { toastEl.classList.remove('gc-draft-toast--show'); }, 3200);\n  }\n\n  /* ── 列表变化后复检：新增 / 删除 / 启停都会改动 tbody（引擎在更晚的脚本里 boot） ── */\n  document.addEventListener('click', function () { scanConflicts(); });\n  if (card && window.MutationObserver) {\n    new MutationObserver(function () { scanConflicts(); }).observe(card, {\n      subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'class']\n    });\n  }\n  scanConflicts();\n})();\n"
+  },
+  "dedup-recurrence-draft": {
+   "base": "dedup-recurrence-draft",
+   "h1": "查重与复发治理",
+   "secs": [],
+   "cards": [
+    {
+     "id": "dr-dup",
+     "name": "判重条件",
+     "title": "重复上报规则 · 存续事件判重",
+     "note": "一行一个判重条件。命中后系统不建新主事件，只追加「AI重复识别」或「人工重复上报」；已结案的事件不走判重，走「结案后复发」。判重必须有空间条件：列表里必须至少留一条启用中的「空间条件」（同相机或同位置），否则会被阻断。",
+     "fields": [
+      {
+       "k": "cond",
+       "label": "条件",
+       "kind": "name",
+       "required": true,
+       "primary": true,
+       "ph": "如 同相机 / 同位置 / 同细类"
+      },
+      {
+       "k": "kind",
+       "label": "条件类型",
+       "type": "select",
+       "options": [
+        "空间条件",
+        "细类条件",
+        "时间条件",
+        "兜底处理"
+       ],
+       "def": "空间条件"
+      },
+      {
+       "k": "param",
+       "label": "取值 / 参数",
+       "ph": "如 半径 50 米 / 24 小时"
+      },
+      {
+       "k": "note",
+       "label": "说明",
+       "full": true,
+       "ph": "可留空"
+      }
+     ],
+     "cols": [
+      "条件",
+      "条件类型",
+      "取值 / 参数",
+      "说明",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "同相机",
+       "空间条件",
+       "—",
+       "同一相机的再次上报优先判为重复。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "同位置",
+       "空间条件",
+       "半径 50 米",
+       "与「同相机」至少保留一条，作为判重的空间条件。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "同细类",
+       "细类条件",
+       "细类来自「事件标准」",
+       "建议启用；停用后不同细类也会被并成重复。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "时间窗",
+       "时间条件",
+       "24 小时",
+       "相对已有存续事件的发现 / 创建时间。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "启用细类范围",
+       "细类条件",
+       "—",
+       "空 = 全部启用细类。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "无法确认时",
+       "兜底处理",
+       "标「疑似重复」交人工",
+       "不确定时不自动并单，交人工判断。",
+       "启用",
+       "编辑停用删除"
+      ]
+     ]
+    },
+    {
+     "id": "dr-recur",
+     "name": "复发判定项",
+     "title": "结案后复发规则",
+     "note": "一行一个复发判定项。原事件必须已闭环才走复发；命中后创建新事件并与历史事件建复发关联（不是追加记录）。停用某行即该条件不参与复发判定。",
+     "fields": [
+      {
+       "k": "cond",
+       "label": "判定项",
+       "kind": "name",
+       "required": true,
+       "primary": true,
+       "ph": "如 同相机 / 时间窗"
+      },
+      {
+       "k": "value",
+       "label": "取值",
+       "ph": "如 开 / 30 天 / 1 次"
+      },
+      {
+       "k": "note",
+       "label": "说明",
+       "full": true,
+       "ph": "可留空"
+      }
+     ],
+     "cols": [
+      "判定项",
+      "取值",
+      "说明",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "原事件必须已闭环",
+       "开 · 已结案 / 已中止",
+       "平台判定项，不可关闭；已无效默认不参与复发，见下一行。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "已无效是否计入",
+       "关",
+       "开启后已无效事件也参与复发判定。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "同相机",
+       "开",
+       "与原事件同一相机。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "同位置 + 半径",
+       "开 · 50 米",
+       "与原事件位置的直线距离。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "同细类",
+       "开",
+       "细类取自「事件标准」。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "时间窗",
+       "30 天",
+       "相对原事件终态时间。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "次数",
+       "1",
+       "次数=1 表示只要结案后再次出现即建新事件。专题候选的「几次才进专题」在下一段，不要和这里配成同一个数字。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "命中动作",
+       "创建新事件 + 复发关联",
+       "不是追加记录，新事件需重新立案。",
+       "启用",
+       "编辑停用删除"
+      ]
+     ]
+    },
+    {
+     "id": "dr-topic",
+     "name": "专题候选口径项",
+     "title": "候选专题与观察期",
+     "note": "一行一个候选专题口径项。示例配置值，由管理方按行修改；评价口径中的复发率读取「观察期」。",
+     "fields": [
+      {
+       "k": "item",
+       "label": "口径项",
+       "kind": "name",
+       "required": true,
+       "primary": true,
+       "ph": "如 观察期"
+      },
+      {
+       "k": "value",
+       "label": "取值",
+       "ph": "如 3 次 / 7 天 / 30 天"
+      },
+      {
+       "k": "note",
+       "label": "说明",
+       "full": true,
+       "ph": "可留空"
+      }
+     ],
+     "cols": [
+      "口径项",
+      "取值",
+      "说明",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "候选成立：复发次数",
+       "3 次",
+       "关联新事件次数。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "候选成立：间隔",
+       "7 天",
+       "相邻两次间隔上限。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "观察期",
+       "30 天",
+       "措施后继续监控多久；评价口径中的复发率读这个值。",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "专题成立方式",
+       "仅进入候选，人工确认",
+       "未冻结：不排除后续支持自动成立。",
+       "启用",
+       "编辑停用删除"
+      ]
+     ]
+    }
+   ],
+   "footer": "\n(function () {\n  var footerNote = document.querySelector('[data-gc-dr-footer-note]');\n  var previewBtn = document.getElementById('gc-dr-go-preview');\n  var reasonEl = document.getElementById('gc-dr-footer-reason');\n  var toastEl = document.querySelector('[data-gc-draft-toast]');\n  var dupCard = document.getElementById('gc-duprule-card');\n  var READY_NOTE = '本页只写入草稿；「确认发布」在「规则版本」页，须经「发布前预览」做冲突校验后确认。';\n\n  // 阻断条件取自本页规则原文：判重必须有空间条件。\n  // 判定 = 「判重条件」列表里至少存在一条「条件类型 = 空间条件」且状态为「启用」的行。\n  function spaceRuleCount() {\n    if (!dupCard) return 0;\n    var rows = dupCard.querySelectorAll('tbody tr[data-gc-row]');\n    var n = 0;\n    for (var i = 0; i < rows.length; i++) {\n      var kind = rows[i].querySelector('[data-col=\"kind\"]');\n      var st = rows[i].querySelector('[data-col=\"status\"]');\n      if (!kind || !st) continue;\n      if (kind.textContent.replace(/\\s+/g, '') !== '空间条件') continue;\n      if (st.textContent.indexOf('启用') === -1) continue;\n      n++;\n    }\n    return n;\n  }\n\n  function scanConflicts() {\n    var blocked = spaceRuleCount() === 0;\n    if (footerNote) {\n      footerNote.textContent = blocked\n        ? '不能进入发布前预览：判重必须有空间条件，列表里必须至少保留一条「条件类型 = 空间条件」且状态为「启用」的行，否则会把不同类型全区事件误判为重复。'\n        : READY_NOTE;\n      footerNote.classList.toggle('gc-shell-footer-note--block', blocked);\n    }\n    if (previewBtn) {\n      previewBtn.disabled = blocked;\n      var tip = blocked\n        ? '当前判重条件里没有启用中的空间条件，不能进入发布前预览'\n        : '带着本草稿进入发布前预览';\n      previewBtn.title = tip;\n      if (reasonEl) reasonEl.textContent = tip;\n    }\n    document.body.setAttribute('data-gc-draft-state', blocked ? 'blocked' : 'ready');\n    return blocked;\n  }\n\n  // ── 底部动作条：只写入草稿 / 进入发布前预览（发布不在模块页） ──\n  var saveDraft = document.querySelector('[data-gc-dr-save-draft]');\n  if (saveDraft) saveDraft.addEventListener('click', function () {\n    scanConflicts();\n    toast(previewBtn && previewBtn.disabled\n      ? '已写入草稿，尚未生效。当前仍被阻断：判重条件里没有启用中的空间条件。'\n      : '已写入草稿，尚未生效。发布需在「规则版本」页经「发布前预览」做冲突校验后确认。');\n  });\n  if (previewBtn) previewBtn.addEventListener('click', function () {\n    if (previewBtn.disabled) return;\n    location.href = 'publish-preview.html?scene=ok';\n  });\n  function toast(msg) {\n    if (!toastEl) return;\n    toastEl.textContent = msg;\n    toastEl.classList.add('gc-draft-toast--show');\n    clearTimeout(toast._t);\n    toast._t = setTimeout(function () { toastEl.classList.remove('gc-draft-toast--show'); }, 3200);\n  }\n\n  // ── 列表行变化（启停 / 新增 / 删除 / 编辑）后复检 ──\n  document.addEventListener('click', function () { setTimeout(scanConflicts, 0); });\n  if (dupCard && window.MutationObserver) {\n    new MutationObserver(function () { scanConflicts(); })\n      .observe(dupCard, { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'class'] });\n  }\n  scanConflicts();\n  setTimeout(scanConflicts, 0);\n})();\n"
+  },
+  "metric-caliber-draft": {
+   "base": "metric-caliber-draft",
+   "h1": "治理评价标准",
+   "secs": [],
+   "cards": [
+    {
+     "id": "ver",
+     "name": "口径版本",
+     "title": "口径版本",
+     "note": "版本清单可维护；同一时刻只应有一个版本处于「启用」。",
+     "fields": [
+      {
+       "k": "no",
+       "label": "口径版本号",
+       "kind": "code",
+       "required": true,
+       "primary": true,
+       "ph": "如 V2026.09.01"
+      },
+      {
+       "k": "at",
+       "label": "生效时间",
+       "kind": "code",
+       "type": "date"
+      },
+      {
+       "k": "diff",
+       "label": "草稿差异",
+       "ph": "无差异可留空"
+      }
+     ],
+     "cols": [
+      "版本号",
+      "生效时间",
+      "草稿差异",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "V2026.08.18",
+       "2026-08-18",
+       "无",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "V2026.05.12",
+       "2026-05-12",
+       "—",
+       "停用",
+       "编辑启用删除"
+      ],
+      [
+       "V2026.02.03",
+       "2026-02-03",
+       "—",
+       "停用",
+       "编辑启用删除"
+      ]
+     ]
+    },
+    {
+     "id": "base",
+     "name": "管理基线",
+     "title": "管理基线",
+     "note": "目标值为空表示只统计、不考核。纳入考核的目标会出现在考核报表与排名中。",
+     "fields": [
+      {
+       "k": "goal",
+       "label": "目标名称",
+       "kind": "name",
+       "required": true,
+       "primary": true,
+       "ph": "如 超时率"
+      },
+      {
+       "k": "value",
+       "label": "目标值",
+       "ph": "留空 = 只统计不考核"
+      },
+      {
+       "k": "engage",
+       "label": "纳入考核",
+       "type": "select",
+       "options": [
+        "开",
+        "关"
+       ],
+       "def": "关"
+      },
+      {
+       "k": "scope",
+       "label": "适用范围",
+       "ph": "如 全区在办事件"
+      }
+     ],
+     "cols": [
+      "目标名称",
+      "目标值",
+      "纳入考核",
+      "适用范围",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "超时率",
+       "空 = 只统计不考核",
+       "关",
+       "全区在办事件",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "一次核查通过率",
+       "≥ 85%",
+       "开",
+       "全区在办事件",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "结案后复发率",
+       "≤ 3%",
+       "关",
+       "已结案事件",
+       "停用",
+       "编辑启用删除"
+      ]
+     ]
+    },
+    {
+     "id": "metric",
+     "name": "指标",
+     "title": "质量 / 效能指标",
+     "note": "公式分子分母由平台冻结口径模板约束，新增指标须写清分子与分母定义；保存后写入草稿。",
+     "fields": [
+      {
+       "k": "name",
+       "label": "指标",
+       "kind": "name",
+       "required": true,
+       "primary": true,
+       "ph": "如 二次核查退回率"
+      },
+      {
+       "k": "formula",
+       "label": "公式摘要（分子 / 分母）",
+       "full": true,
+       "ph": "如 二次退回事件数 / 已核查数"
+      },
+      {
+       "k": "join",
+       "label": "参与人员 / 网格比较",
+       "type": "select",
+       "options": [
+        "可",
+        "不参与"
+       ],
+       "def": "不参与"
+      },
+      {
+       "k": "nature",
+       "label": "性质",
+       "type": "select",
+       "options": [
+        "事实",
+        "判断",
+        "推断"
+       ],
+       "def": "事实"
+      },
+      {
+       "k": "note",
+       "label": "备注",
+       "full": true,
+       "ph": "可留空"
+      }
+     ],
+     "cols": [
+      "指标",
+      "公式摘要",
+      "参与比较",
+      "性质",
+      "备注",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "事件有效率",
+       "立案确认有效数 / 待立案候选数",
+       "—",
+       "事实",
+       "—",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "证据完整率",
+       "满足该类型证据规则的事件数 / 纳入统计数",
+       "可",
+       "事实",
+       "证据规则读「事件标准」",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "一次核查通过率",
+       "首次待核查即结案数 / 首次核查数",
+       "可",
+       "判断",
+       "—",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "退回率",
+       "核查退回事件数 / 已核查数",
+       "可",
+       "判断",
+       "分子口径：按事件",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "超时率",
+       "适用时限内未完成数 / 应纳入时限计算数",
+       "可",
+       "事实",
+       "时限读「时限规则」",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "结案后复发率",
+       "观察期内满足复发规则的已结案事件数 / 已结案数",
+       "可",
+       "推断",
+       "观察期 30 天（来自查重与复发治理）",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "档案更正率",
+       "被更正档案数 / 终态档案数",
+       "—",
+       "事实",
+       "—",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "平均处置时长",
+       "派发成功到终态的有效时长",
+       "可",
+       "事实",
+       "必须同时开难度校正才能用于人员排名",
+       "启用",
+       "编辑停用删除"
+      ]
+     ]
+    },
+    {
+     "id": "factor",
+     "name": "校正因子",
+     "title": "难度校正",
+     "note": "权重和不必强制为 100，发布时提示将归一化。产品禁止只按平均时长排名。",
+     "fields": [
+      {
+       "k": "name",
+       "label": "因子名称",
+       "kind": "name",
+       "required": true,
+       "primary": true,
+       "ph": "如 天气因子"
+      },
+      {
+       "k": "weight",
+       "label": "权重",
+       "type": "number",
+       "ph": "整数，如 15"
+      },
+      {
+       "k": "basis",
+       "label": "取值说明",
+       "full": true,
+       "ph": "如 按网格历史积压量分档"
+      }
+     ],
+     "cols": [
+      "因子",
+      "权重",
+      "取值说明",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "事件类型因子",
+       "40",
+       "按事件大类难度分档",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "严重程度 / 等级因子",
+       "30",
+       "按事件等级系数",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "发生时段因子",
+       "15",
+       "高峰 / 平峰时段加权",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "区域因子",
+       "15",
+       "按网格历史积压量分档",
+       "启用",
+       "编辑停用删除"
+      ]
+     ]
+    },
+    {
+     "id": "sup",
+     "name": "监督员工作量口径",
+     "title": "监督员工作量口径",
+     "note": "监督员工作量与网格处置工作量分开统计，做成一行一个口径项，避免口径藏在开关里。",
+     "fields": [
+      {
+       "k": "item",
+       "label": "口径项",
+       "kind": "name",
+       "required": true,
+       "primary": true,
+       "ph": "如 跨街道核查件数"
+      },
+      {
+       "k": "value",
+       "label": "取值",
+       "type": "select",
+       "options": [
+        "开",
+        "关"
+       ],
+       "def": "关"
+      },
+      {
+       "k": "effect",
+       "label": "说明",
+       "full": true,
+       "ph": "写明该项对统计范围的影响"
+      }
+     ],
+     "cols": [
+      "口径项",
+      "取值",
+      "说明",
+      "状态",
+      "操作"
+     ],
+     "rows": [
+      [
+       "统计外场核查件数",
+       "开",
+       "外场核查件数计入监督员工作量",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "含无效跑动",
+       "关",
+       "未处置 / 空跑不计入",
+       "启用",
+       "编辑停用删除"
+      ],
+      [
+       "与网格处置合并排名",
+       "关",
+       "开启后监督员与网格处置将合并排名，与「两类工作量分列」原则冲突，发布前预览会提示",
+       "停用",
+       "编辑启用删除"
+      ]
+     ]
+    }
+   ],
+   "footer": "\n(function () {\n  var footerNote = document.querySelector('[data-gc-mt-footer-note]');\n  var previewBtn = document.getElementById('gc-mt-go-preview');\n  var reasonEl = document.getElementById('gc-mt-footer-reason');\n  var toastEl = document.querySelector('[data-gc-draft-toast]');\n  var adjust = document.querySelector('[data-gc-mt-adjust]');\n  var READY_NOTE = '本页只写入草稿；「确认发布」在「规则版本」页，须经「发布前预览」做冲突校验后确认。';\n\n  function isOn(el) { return !!el && el.getAttribute('aria-checked') === 'true'; }\n\n  // 阻断条件取自本页规则原文：平均处置时长参与比较，必须同时开难度校正才能用于人员排名\n  function scanConflicts() {\n    var blocked = !isOn(adjust);\n    if (footerNote) {\n      footerNote.textContent = blocked\n        ? '不能进入发布前预览：平均处置时长参与了人员 / 网格比较，难度校正却关闭，会变成只按平均时长排名。'\n        : READY_NOTE;\n      footerNote.classList.toggle('gc-shell-footer-note--block', blocked);\n    }\n    if (previewBtn) {\n      previewBtn.disabled = blocked;\n      var tip = blocked ? '难度校正关闭时，参与比较的平均处置时长会误导排名，不能进入发布前预览' : '带着本草稿进入发布前预览';\n      previewBtn.title = tip;\n      if (reasonEl) reasonEl.textContent = tip;\n    }\n    document.body.setAttribute('data-gc-draft-state', blocked ? 'blocked' : 'ready');\n    return blocked;\n  }\n\n  // ── 底部动作条：只写入草稿 / 进入发布前预览（发布不在模块页） ──\n  var saveDraft = document.querySelector('[data-gc-mt-save-draft]');\n  if (saveDraft) saveDraft.addEventListener('click', function () {\n    toast('已写入草稿，尚未生效。发布需在「规则版本」页经「发布前预览」做冲突校验后确认。');\n  });\n  if (previewBtn) previewBtn.addEventListener('click', function () {\n    if (previewBtn.disabled) return;\n    location.href = 'publish-preview.html?scene=ok';\n  });\n  function toast(msg) {\n    if (!toastEl) return;\n    toastEl.textContent = msg;\n    toastEl.classList.add('gc-draft-toast--show');\n    clearTimeout(toast._t);\n    toast._t = setTimeout(function () { toastEl.classList.remove('gc-draft-toast--show'); }, 3200);\n  }\n\n  // ── 开关变化后复检（开关由 gc-switch-js 处理，其监听先于本脚本注册） ──\n  document.addEventListener('click', function () { scanConflicts(); });\n  scanConflicts();\n})();\n"
+  }
+ },
+ "shell": {
+  "navItems": [
+   {
+    "href": "org-permission-live.html",
+    "text": "组织与权限 已发布"
+   },
+   {
+    "href": "space-responsibility-live.html",
+    "text": "空间与责任 已发布"
+   },
+   {
+    "href": "event-standard-live.html",
+    "text": "事件标准 已发布"
+   },
+   {
+    "href": "lifecycle-live.html",
+    "text": "生命周期 草稿"
+   },
+   {
+    "href": "sla-matrix-live.html",
+    "text": "时限规则 草稿"
+   },
+   {
+    "href": "dispatch-claim-live.html",
+    "text": "派工与认领 草稿"
+   },
+   {
+    "href": "dedup-recurrence-live.html",
+    "text": "查重复发 已发布"
+   },
+   {
+    "href": "metric-caliber-live.html",
+    "text": "评价口径 已发布"
+   },
+   {
+    "href": "publish-draft-review.html",
+    "text": "发布与审计 已发布"
+   },
+   {
+    "href": "event-standard-draft.html",
+    "text": "编辑"
+   }
+  ],
+  "roleBtn": "切换角色 王倩 全局协调 </di"
+ }
+}

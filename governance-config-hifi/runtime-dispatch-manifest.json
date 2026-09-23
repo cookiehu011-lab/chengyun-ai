@@ -1,0 +1,3150 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-09-07T11:22:37.998Z",
+  "source": "build-page-dispatch-manifest.mjs",
+  "mode": "complex",
+  "summary_path": "runtime-orchestration-summary.json",
+  "skillProvenance": {
+    "name": "solo-design",
+    "version": "2026.08.06.19.15.08",
+    "release": "prompt-base-cloud-ssot-migration",
+    "version_source": "skill-release-manifest.json",
+    "read_status": "ok"
+  },
+  "dispatchPreflightManifest": [
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-shell-coordinator",
+      "htmlSrc": "pages/shell-coordinator.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/shell-coordinator.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/shell-coordinator.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-shell-coordinator' --html-src='pages/shell-coordinator.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/shell-coordinator.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/shell-coordinator.html' --title='治理配置 · 全局协调（可编辑）' --lang='zh-CN' --prefix='gc'",
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-shell-leader",
+      "htmlSrc": "pages/shell-leader.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/shell-leader.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/shell-leader.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-shell-leader' --html-src='pages/shell-leader.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/shell-leader.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": null,
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-shell-case-officer",
+      "htmlSrc": "pages/shell-case-officer.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/shell-case-officer.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/shell-case-officer.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-shell-case-officer' --html-src='pages/shell-case-officer.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/shell-case-officer.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": null,
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-org-permission-live",
+      "htmlSrc": "pages/org-permission-live.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/org-permission-live.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/org-permission-live.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-org-permission-live' --html-src='pages/org-permission-live.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/org-permission-live.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/org-permission-live.html' --title='组织与权限 · 生效只读' --lang='zh-CN' --prefix='gc'",
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-org-permission-draft",
+      "htmlSrc": "pages/org-permission-draft.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/org-permission-draft.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/org-permission-draft.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-org-permission-draft' --html-src='pages/org-permission-draft.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/org-permission-draft.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": null,
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-org-role-drawer",
+      "htmlSrc": "pages/org-role-drawer.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/org-role-drawer.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/org-role-drawer.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-org-role-drawer' --html-src='pages/org-role-drawer.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/org-role-drawer.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": null,
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-org-disable-confirm",
+      "htmlSrc": "pages/org-disable-confirm.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/org-disable-confirm.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/org-disable-confirm.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-org-disable-confirm' --html-src='pages/org-disable-confirm.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/org-disable-confirm.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": null,
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-space-responsibility-live",
+      "htmlSrc": "pages/space-responsibility-live.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/space-responsibility-live.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/space-responsibility-live.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-space-responsibility-live' --html-src='pages/space-responsibility-live.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/space-responsibility-live.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/space-responsibility-live.html' --title='空间与责任 · 生效只读' --lang='zh-CN' --prefix='gc'",
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-space-responsibility-draft",
+      "htmlSrc": "pages/space-responsibility-draft.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/space-responsibility-draft.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/space-responsibility-draft.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-space-responsibility-draft' --html-src='pages/space-responsibility-draft.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/space-responsibility-draft.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": null,
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-space-match-success",
+      "htmlSrc": "pages/space-match-success.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/space-match-success.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/space-match-success.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-space-match-success' --html-src='pages/space-match-success.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/space-match-success.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": null,
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-space-match-fail",
+      "htmlSrc": "pages/space-match-fail.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/space-match-fail.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/space-match-fail.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-space-match-fail' --html-src='pages/space-match-fail.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/space-match-fail.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": null,
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-event-standard-live",
+      "htmlSrc": "pages/event-standard-live.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/event-standard-live.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/event-standard-live.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-event-standard-live' --html-src='pages/event-standard-live.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/event-standard-live.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/event-standard-live.html' --title='事件标准 · 生效只读' --lang='zh-CN' --prefix='gc'",
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-event-standard-draft",
+      "htmlSrc": "pages/event-standard-draft.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/event-standard-draft.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/event-standard-draft.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-event-standard-draft' --html-src='pages/event-standard-draft.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/event-standard-draft.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": null,
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-event-standard-drawer",
+      "htmlSrc": "pages/event-standard-drawer.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/event-standard-drawer.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/event-standard-drawer.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-event-standard-drawer' --html-src='pages/event-standard-drawer.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/event-standard-drawer.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": null,
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-lifecycle-live",
+      "htmlSrc": "pages/lifecycle-live.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/lifecycle-live.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/lifecycle-live.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-lifecycle-live' --html-src='pages/lifecycle-live.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/lifecycle-live.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/lifecycle-live.html' --title='生命周期 · 生效只读' --lang='zh-CN' --prefix='gc'",
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-lifecycle-draft",
+      "htmlSrc": "pages/lifecycle-draft.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/lifecycle-draft.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/lifecycle-draft.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-lifecycle-draft' --html-src='pages/lifecycle-draft.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/lifecycle-draft.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": null,
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-sla-matrix-live",
+      "htmlSrc": "pages/sla-matrix-live.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/sla-matrix-live.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/sla-matrix-live.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-sla-matrix-live' --html-src='pages/sla-matrix-live.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/sla-matrix-live.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/sla-matrix-live.html' --title='时限规则 · 生效只读' --lang='zh-CN' --prefix='gc'",
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-sla-matrix-draft",
+      "htmlSrc": "pages/sla-matrix-draft.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/sla-matrix-draft.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/sla-matrix-draft.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-sla-matrix-draft' --html-src='pages/sla-matrix-draft.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/sla-matrix-draft.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": null,
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-dispatch-claim-live",
+      "htmlSrc": "pages/dispatch-claim-live.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/dispatch-claim-live.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/dispatch-claim-live.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-dispatch-claim-live' --html-src='pages/dispatch-claim-live.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/dispatch-claim-live.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/dispatch-claim-live.html' --title='派工与认领 · 生效只读' --lang='zh-CN' --prefix='gc'",
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-dispatch-claim-draft",
+      "htmlSrc": "pages/dispatch-claim-draft.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/dispatch-claim-draft.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/dispatch-claim-draft.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-dispatch-claim-draft' --html-src='pages/dispatch-claim-draft.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/dispatch-claim-draft.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": null,
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-dedup-recurrence-live",
+      "htmlSrc": "pages/dedup-recurrence-live.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/dedup-recurrence-live.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/dedup-recurrence-live.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-dedup-recurrence-live' --html-src='pages/dedup-recurrence-live.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/dedup-recurrence-live.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/dedup-recurrence-live.html' --title='查重复发 · 生效只读' --lang='zh-CN' --prefix='gc'",
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-dedup-recurrence-draft",
+      "htmlSrc": "pages/dedup-recurrence-draft.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/dedup-recurrence-draft.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/dedup-recurrence-draft.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-dedup-recurrence-draft' --html-src='pages/dedup-recurrence-draft.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/dedup-recurrence-draft.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": null,
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-metric-caliber-live",
+      "htmlSrc": "pages/metric-caliber-live.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/metric-caliber-live.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/metric-caliber-live.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-metric-caliber-live' --html-src='pages/metric-caliber-live.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/metric-caliber-live.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/metric-caliber-live.html' --title='评价口径 · 生效只读' --lang='zh-CN' --prefix='gc'",
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-metric-caliber-draft",
+      "htmlSrc": "pages/metric-caliber-draft.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/metric-caliber-draft.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/metric-caliber-draft.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-metric-caliber-draft' --html-src='pages/metric-caliber-draft.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/metric-caliber-draft.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": null,
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-publish-draft-review",
+      "htmlSrc": "pages/publish-draft-review.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/publish-draft-review.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/publish-draft-review.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-publish-draft-review' --html-src='pages/publish-draft-review.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/publish-draft-review.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/publish-draft-review.html' --title='发布与审计 · 草稿核对' --lang='zh-CN' --prefix='gc'",
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-publish-preview",
+      "htmlSrc": "pages/publish-preview.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/publish-preview.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/publish-preview.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-publish-preview' --html-src='pages/publish-preview.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/publish-preview.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": null,
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-publish-effective",
+      "htmlSrc": "pages/publish-effective.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/publish-effective.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/publish-effective.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-publish-effective' --html-src='pages/publish-effective.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/publish-effective.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": null,
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-publish-rollback",
+      "htmlSrc": "pages/publish-rollback.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/publish-rollback.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/publish-rollback.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-publish-rollback' --html-src='pages/publish-rollback.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/publish-rollback.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": null,
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    },
+    {
+      "recorded_at": "2026-09-07T11:22:37.992Z",
+      "generatedBy": "build-page-dispatch-manifest.mjs",
+      "packetType": "ComplexPagePacket",
+      "laneContract": {
+        "resolvedLane": "complex_html_page",
+        "packetType": "ComplexPagePacket",
+        "pageRuntimeGuide": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+        "dispatchContract": "intent-workflows/intent-project-complex-build/complex-page-dispatch-contract.md"
+      },
+      "taskLinePresent": true,
+      "outputPathPresent": true,
+      "sharedTemplate": "intent-workflows/intent-project-complex-build/complex-page-runtime.md",
+      "nodeId": "page-publish-restore-confirm",
+      "htmlSrc": "pages/publish-restore-confirm.html",
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/publish-restore-confirm.html",
+        "assets/"
+      ],
+      "forbiddenWriteRoots": [
+        "*.design",
+        "runtime-orchestration-summary.json",
+        "validation-report.json",
+        "finish-readiness-report.json",
+        "restore-contract-report.json",
+        "page-generation-summary.json"
+      ],
+      "toolPolicy": {
+        "todoWriteAllowed": false,
+        "validationScriptsAllowed": false,
+        "previewAllowed": false,
+        "helperScriptsAllowed": false,
+        "designFileWriteAllowed": false,
+        "allowedWritePaths": [
+          "pages/publish-restore-confirm.html",
+          "assets/"
+        ]
+      },
+      "skillRuntime": {
+        "skillDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design",
+        "deterministicToolDir": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling",
+        "toolPaths": {
+          "applyHtmlHeadContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs",
+          "recordDispatchCompletion": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs",
+          "buildPageDispatchManifest": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs",
+          "validateDesignWorkspace": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-design-workspace.mjs",
+          "validateFinishReadiness": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-finish-readiness.mjs",
+          "validateRestoreContract": "/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/validate-restore-contract.mjs"
+        },
+        "requiredForPageSubAgent": [
+          "applyHtmlHeadContract",
+          "recordDispatchCompletion"
+        ],
+        "pathInjection": "absolute",
+        "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+        "commandTemplates": {
+          "recordDispatchCompletion": "node '/Users/cookieqi/.trae-cn/builtin/design/default/skills/solo-design/shared-runtime/deterministic-tooling/record-dispatch-completion.mjs' '/Users/cookieqi/Downloads/Untitled/governance-config-hifi' --node-id='page-publish-restore-confirm' --html-src='pages/publish-restore-confirm.html' --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+        }
+      },
+      "cssFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/colors_and_type.css",
+      "htmlFilePath": "/Users/cookieqi/Downloads/Untitled/governance-config-hifi/pages/publish-restore-confirm.html",
+      "brandPrefix": "gc",
+      "aestheticsMode": "free-explore",
+      "toolDisciplineBlockPresent": true,
+      "fillHtmlHeadCommand": null,
+      "headFillMode": "skeleton-first",
+      "viewportMode": null,
+      "completionSchemaExpected": "full",
+      "restoreFields": null,
+      "restoreContractStatus": null,
+      "restoreCompactPacket": null,
+      "deterministicCommands": null,
+      "sourceAuthorityLock": null,
+      "preDispatchFileHashes": {
+        "governance-config-hifi.design": "9d2033bdf5f68757f7c63c27acb212668a5168064504bf278f79094e734338bf"
+      },
+      "contextPreflight": {
+        "workflowPath": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "requiredContextFiles": [
+          "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+          "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+          "shared-runtime/agent-dispatch-runtime/shared-page-rendering-kernel.md",
+          "delivery-quality/page-rendering-quality-gate.md",
+          "delivery-quality/design-artifact-validation.md",
+          "delivery-quality/delivery-evidence-contract.md",
+          "visual-experience/visual-experience-guidelines.md",
+          "visual-experience/visual-checkpoint-protocol.md"
+        ],
+        "optionalContextFiles": [],
+        "passed": true
+      },
+      "pageSliceOnly": true,
+      "requiredFieldsPresent": true,
+      "missingFields": [],
+      "fillHtmlHeadCommandValid": true,
+      "mobileNavigation": {
+        "required": false,
+        "appliesToThisPage": false,
+        "canonicalHtmlIncluded": false,
+        "missingFields": []
+      },
+      "persistedToSummary": true,
+      "taskQueryAudited": false,
+      "proofSource": "summary-only",
+      "largeWorkflowFilesInTaskQuery": null
+    }
+  ],
+  "deterministicCommandsByPage": {
+    "pages/shell-coordinator.html": {},
+    "pages/shell-leader.html": {},
+    "pages/shell-case-officer.html": {},
+    "pages/org-permission-live.html": {},
+    "pages/org-permission-draft.html": {},
+    "pages/org-role-drawer.html": {},
+    "pages/org-disable-confirm.html": {},
+    "pages/space-responsibility-live.html": {},
+    "pages/space-responsibility-draft.html": {},
+    "pages/space-match-success.html": {},
+    "pages/space-match-fail.html": {},
+    "pages/event-standard-live.html": {},
+    "pages/event-standard-draft.html": {},
+    "pages/event-standard-drawer.html": {},
+    "pages/lifecycle-live.html": {},
+    "pages/lifecycle-draft.html": {},
+    "pages/sla-matrix-live.html": {},
+    "pages/sla-matrix-draft.html": {},
+    "pages/dispatch-claim-live.html": {},
+    "pages/dispatch-claim-draft.html": {},
+    "pages/dedup-recurrence-live.html": {},
+    "pages/dedup-recurrence-draft.html": {},
+    "pages/metric-caliber-live.html": {},
+    "pages/metric-caliber-draft.html": {},
+    "pages/publish-draft-review.html": {},
+    "pages/publish-preview.html": {},
+    "pages/publish-effective.html": {},
+    "pages/publish-rollback.html": {},
+    "pages/publish-restore-confirm.html": {}
+  }
+}

@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时限规则 · 生效只读</title>
+    <style id="theme-vars">
+/* ============================================================
+   治理配置 Hi-Fi — 项目品牌 CSS（用户锁定 token，light-only）
+   城运 AI · 东城二期 · 治理配置模块
+   ============================================================ */
+
+:root {
+  /* ---- 基础色板（用户锁定） ---- */
+  --gc-bg: #F6F8FB;            /* 页面底色 */
+  --gc-panel: #FFFFFF;         /* 面板/卡片 */
+  --gc-text: #0F172A;          /* 主文本 */
+  --gc-muted: #64748B;         /* 次级文本 */
+  --gc-line: #E2E8F0;          /* 分隔线/描边 */
+  --gc-accent: #2F6BFF;        /* 品牌主蓝 */
+  --gc-accent-soft: #DCEBFF;   /* 主蓝浅底 */
+  --gc-func-green: #2E9B68;    /* 功能绿（生效/成功/治理基础蓝组补充） */
+  --gc-func-orange: #D98A20;   /* 功能橙（草稿/流程运行） */
+  --gc-func-red: #D94C4C;      /* 功能红（阻断/错误） */
+  --gc-func-purple: #7967D8;   /* 功能紫（配置管理组） */
+
+  /* ---- 衍生层级（保持同色系） ---- */
+  --gc-accent-hover: #1F5AE6;
+  --gc-accent-active: #174CBF;
+  --gc-bg-hover: #EEF2F8;
+  --gc-bg-active: #E2E9F5;
+  --gc-line-strong: #CBD5E1;
+  --gc-func-green-soft: #E6F4EC;
+  --gc-func-orange-soft: #FBF0DF;
+  --gc-func-red-soft: #FBE7E7;
+  --gc-func-purple-soft: #EEEBFA;
+  --gc-disabled-bg: #F1F5F9;
+  --gc-disabled-text: #94A3B8;
+
+  /* ---- 语义别名（apply-html-head-contract 必需） ---- */
+  --gc-background: var(--gc-bg);
+  --gc-foreground: var(--gc-text);
+  --gc-card: var(--gc-panel);
+  --gc-card-foreground: var(--gc-text);
+  --gc-popover: var(--gc-panel);
+  --gc-popover-foreground: var(--gc-text);
+  --gc-primary: var(--gc-accent);
+  --gc-primary-foreground: #FFFFFF;
+  --gc-muted: var(--gc-muted);
+  --gc-muted-foreground: var(--gc-muted);
+  --gc-border: var(--gc-line);
+  --gc-input: var(--gc-line);
+  --gc-ring: var(--gc-accent);
+
+  /* ---- 半径（用户锁定 8/10/14，上限 14 ≤16） ---- */
+  --gc-radius-small: 8px;
+  --gc-radius-medium: 10px;
+  --gc-radius-large: 14px;
+  --gc-radius-sm: var(--gc-radius-small);
+  --gc-radius-md: var(--gc-radius-medium);
+  --gc-radius-lg: var(--gc-radius-large);
+  --gc-radius-full: 9999px;
+
+  /* ---- 状态色语义 ---- */
+  --gc-state-success: var(--gc-func-green);
+  --gc-state-warning: var(--gc-func-orange);
+  --gc-state-error: var(--gc-func-red);
+  --gc-state-info: var(--gc-accent);
+
+  /* ---- 字体（系统 CJK 栈，不引外部字体） ---- */
+  --gc-font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Helvetica Neue", Arial, sans-serif;
+  --gc-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* ---- 排版体系 ---- */
+html.light body {
+  font-family: var(--gc-font-sans);
+  background: var(--gc-background);
+  color: var(--gc-foreground);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.gc-h1 { font-size: 20px; line-height: 1.3; font-weight: 600; color: var(--gc-foreground); letter-spacing: -0.01em; }
+.gc-h2 { font-size: 16px; line-height: 1.4; font-weight: 600; color: var(--gc-foreground); }
+.gc-h3 { font-size: 14px; line-height: 1.45; font-weight: 600; color: var(--gc-foreground); }
+.gc-body { font-size: 14px; line-height: 1.5; color: var(--gc-foreground); }
+.gc-body-sm { font-size: 13px; line-height: 1.5; color: var(--gc-foreground); }
+.gc-caption { font-size: 12px; line-height: 1.5; color: var(--gc-muted-foreground); }
+.gc-num { font-variant-numeric: tabular-nums; }
+
+    </style>
+
+
+    <style id="gc-static-tailwind">
+/* Precompiled Tailwind v4 base + used utilities (no runtime CDN).
+   Generated from @tailwindcss/node@4.3.3; candidates: antialiased,
+   font-sans, min-h-screen. Supersedes the former browser build block. */
+/*! tailwindcss v4.3.3 | MIT License | https://tailwindcss.com */
+@layer theme, base, components, utilities;
+@layer theme {
+  :root, :host {
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+      "Segoe UI Symbol", "Noto Color Emoji";
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      "Courier New", monospace;
+    --default-font-family: var(--font-sans);
+    --default-mono-font-family: var(--font-mono);
+  }
+}
+@layer base {
+  *, ::after, ::before, ::backdrop, ::file-selector-button {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid;
+  }
+  html, :host {
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    tab-size: 4;
+    font-family: var(--default-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji");
+    font-feature-settings: var(--default-font-feature-settings, normal);
+    font-variation-settings: var(--default-font-variation-settings, normal);
+    -webkit-tap-highlight-color: transparent;
+  }
+  hr {
+    height: 0;
+    color: inherit;
+    border-top-width: 1px;
+  }
+  abbr:where([title]) {
+    -webkit-text-decoration: underline dotted;
+    text-decoration: underline dotted;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+  a {
+    color: inherit;
+    -webkit-text-decoration: inherit;
+    text-decoration: inherit;
+  }
+  b, strong {
+    font-weight: bolder;
+  }
+  code, kbd, samp, pre {
+    font-family: var(--default-mono-font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+    font-feature-settings: var(--default-mono-font-feature-settings, normal);
+    font-variation-settings: var(--default-mono-font-variation-settings, normal);
+    font-size: 1em;
+  }
+  small {
+    font-size: 80%;
+  }
+  sub, sup {
+    font-size: 75%;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+  }
+  sub {
+    bottom: -0.25em;
+  }
+  sup {
+    top: -0.5em;
+  }
+  table {
+    text-indent: 0;
+    border-color: inherit;
+    border-collapse: collapse;
+  }
+  :-moz-focusring:where(:not(iframe)) {
+    outline: auto;
+  }
+  progress {
+    vertical-align: baseline;
+  }
+  summary {
+    display: list-item;
+  }
+  ol, ul, menu {
+    list-style: none;
+  }
+  img, svg, video, canvas, audio, iframe, embed, object {
+    display: block;
+    vertical-align: middle;
+  }
+  img, video {
+    max-width: 100%;
+    height: auto;
+  }
+  button, input, select, optgroup, textarea, ::file-selector-button {
+    font: inherit;
+    font-feature-settings: inherit;
+    font-variation-settings: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    border-radius: 0;
+    background-color: transparent;
+    opacity: 1;
+  }
+  :where(select:is([multiple], [size])) optgroup {
+    font-weight: bolder;
+  }
+  :where(select:is([multiple], [size])) optgroup option {
+    padding-inline-start: 20px;
+  }
+  ::file-selector-button {
+    margin-inline-end: 4px;
+  }
+  ::placeholder {
+    opacity: 1;
+  }
+  @supports (not (-webkit-appearance: -apple-pay-button))  or (contain-intrinsic-size: 1px) {
+    ::placeholder {
+      color: currentcolor;
+      @supports (color: color-mix(in lab, red, red)) {
+        color: color-mix(in oklab, currentcolor 50%, transparent);
+      }
+    }
+  }
+  textarea {
+    resize: vertical;
+  }
+  ::-webkit-search-decoration {
+    -webkit-appearance: none;
+  }
+  ::-webkit-date-and-time-value {
+    min-height: 1lh;
+    text-align: inherit;
+  }
+  ::-webkit-datetime-edit {
+    display: inline-flex;
+  }
+  ::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+  }
+  ::-webkit-datetime-edit, ::-webkit-datetime-edit-year-field, ::-webkit-datetime-edit-month-field, ::-webkit-datetime-edit-day-field, ::-webkit-datetime-edit-hour-field, ::-webkit-datetime-edit-minute-field, ::-webkit-datetime-edit-second-field, ::-webkit-datetime-edit-millisecond-field, ::-webkit-datetime-edit-meridiem-field {
+    padding-block: 0;
+  }
+  ::-webkit-calendar-picker-indicator {
+    line-height: 1;
+  }
+  :-moz-ui-invalid {
+    box-shadow: none;
+  }
+  button, input:where([type="button"], [type="reset"], [type="submit"]), ::file-selector-button {
+    appearance: button;
+  }
+  ::-webkit-inner-spin-button, ::-webkit-outer-spin-button {
+    height: auto;
+  }
+  [hidden]:where(:not([hidden="until-found"])) {
+    display: none !important;
+  }
+}
+@layer utilities {
+  .min-h-screen {
+    min-height: 100vh;
+  }
+  .font-sans {
+    font-family: var(--font-sans);
+  }
+  .antialiased {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+@layer base {
+  body {
+    background: var(--gc-background);
+    color: var(--gc-foreground);
+  }
+  td, th {
+    overflow-wrap: break-word;
+    word-break: break-all;
+    word-break: auto-phrase;
+  }
+  th {
+    white-space: nowrap;
+  }
+}
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--gc-background); }
+      .text-background { color: var(--gc-background); }
+      .border-background { border-color: var(--gc-background); }
+      .ring-background { --tw-ring-color: var(--gc-background); }
+      .bg-foreground { background-color: var(--gc-foreground); }
+      .text-foreground { color: var(--gc-foreground); }
+      .border-foreground { border-color: var(--gc-foreground); }
+      .ring-foreground { --tw-ring-color: var(--gc-foreground); }
+      .bg-card { background-color: var(--gc-card); }
+      .text-card { color: var(--gc-card); }
+      .border-card { border-color: var(--gc-card); }
+      .ring-card { --tw-ring-color: var(--gc-card); }
+      .bg-card-foreground { background-color: var(--gc-card-foreground); }
+      .text-card-foreground { color: var(--gc-card-foreground); }
+      .border-card-foreground { border-color: var(--gc-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--gc-card-foreground); }
+      .bg-popover { background-color: var(--gc-popover); }
+      .text-popover { color: var(--gc-popover); }
+      .border-popover { border-color: var(--gc-popover); }
+      .ring-popover { --tw-ring-color: var(--gc-popover); }
+      .bg-popover-foreground { background-color: var(--gc-popover-foreground); }
+      .text-popover-foreground { color: var(--gc-popover-foreground); }
+      .border-popover-foreground { border-color: var(--gc-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--gc-popover-foreground); }
+      .bg-primary { background-color: var(--gc-primary); }
+      .text-primary { color: var(--gc-primary); }
+      .border-primary { border-color: var(--gc-primary); }
+      .ring-primary { --tw-ring-color: var(--gc-primary); }
+      .bg-primary-foreground { background-color: var(--gc-primary-foreground); }
+      .text-primary-foreground { color: var(--gc-primary-foreground); }
+      .border-primary-foreground { border-color: var(--gc-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--gc-primary-foreground); }
+      .bg-muted { background-color: var(--gc-muted); }
+      .text-muted { color: var(--gc-muted); }
+      .border-muted { border-color: var(--gc-muted); }
+      .ring-muted { --tw-ring-color: var(--gc-muted); }
+      .bg-muted-foreground { background-color: var(--gc-muted-foreground); }
+      .text-muted-foreground { color: var(--gc-muted-foreground); }
+      .border-muted-foreground { border-color: var(--gc-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--gc-muted-foreground); }
+      .bg-accent { background-color: var(--gc-accent); }
+      .text-accent { color: var(--gc-accent); }
+      .border-accent { border-color: var(--gc-accent); }
+      .ring-accent { --tw-ring-color: var(--gc-accent); }
+      .bg-border { background-color: var(--gc-border); }
+      .text-border { color: var(--gc-border); }
+      .border-border { border-color: var(--gc-border); }
+      .ring-border { --tw-ring-color: var(--gc-border); }
+      .bg-input { background-color: var(--gc-input); }
+      .text-input { color: var(--gc-input); }
+      .border-input { border-color: var(--gc-input); }
+      .ring-input { --tw-ring-color: var(--gc-input); }
+      .bg-ring { background-color: var(--gc-ring); }
+      .text-ring { color: var(--gc-ring); }
+      .border-ring { border-color: var(--gc-ring); }
+      .ring-ring { --tw-ring-color: var(--gc-ring); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+<style id="critical-layout">
+/* ============================================================
+   治理配置 Hi-Fi — Shared Project Shell (Critical Layout CSS)
+   Static CSS — no Tailwind runtime dependency.
+   All tokens reference project-local colors_and_type.css (--gc-* prefix).
+   Viewport: 1920×1080 desktop, app-shell mode.
+   ============================================================ */
+
+/* ---- Shell grid ---- */
+.gc-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--gc-bg);
+  font-family: var(--gc-font-sans);
+  color: var(--gc-text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Topbar (56px fixed) ---- */
+.gc-shell-topbar {
+  height: 56px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: var(--gc-panel);
+  border-bottom: 1px solid var(--gc-line);
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+}
+
+.gc-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.gc-topbar-brand {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gc-text);
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
+.gc-topbar-center {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.gc-top-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--gc-muted);
+  text-decoration: none;
+  border-radius: var(--gc-radius-small);
+  transition: color 0.15s cubic-bezier(.2,.8,.2,1), background-color 0.15s cubic-bezier(.2,.8,.2,1);
+  white-space: nowrap;
+}
+.gc-top-tab:hover {
+  color: var(--gc-text);
+  background: var(--gc-bg-hover);
+}
+.gc-top-tab:focus-visible {
+  outline: 2px solid var(--gc-accent);
+  outline-offset: -2px;
+}
+.gc-top-tab--active {
+  background: var(--gc-accent-soft);
+  color: var(--gc-accent);
+  font-weight: 600;
+}
+.gc-top-tab--active:hover {
+  background: var(--gc-accent-soft);
+  color: var(--gc-accent);
+}
+
+.gc-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.gc-role-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--gc-muted);
+  background: transparent;
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius-small);
+  cursor: pointer;
+  transition: color 0.15s cubic-bezier(.2,.8,.2,1), border-color 0.15s cubic-bezier(.2,.8,.2,1);
+  font-family: inherit;
+}
+.gc-role-switch:hover {
+  color: var(--gc-text);
+  border-color: var(--gc-line-strong);
+}
+.gc-role-switch:focus-visible {
+  outline: 2px solid var(--gc-accent);
+  outline-offset: -1px;
+}
+.gc-role-switch .gc-caret {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.gc-identity-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  background: var(--gc-accent-soft);
+  color: var(--gc-accent);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 10px;
+  white-space: nowrap;
+}
+
+/* ---- Shell body (sidebar + workspace) ---- */
+.gc-shell-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ---- Sidebar (380px fixed) ---- */
+.gc-shell-sidebar {
+  width: 300px;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  background: var(--gc-panel);
+  border-right: 1px solid var(--gc-line);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.gc-sidebar-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--gc-line);
+  flex-shrink: 0;
+}
+.gc-sidebar-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.gc-sidebar-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gc-text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.gc-version-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--gc-func-green);
+  background: var(--gc-func-green-soft);
+  border-radius: 9999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.gc-shell-sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0 8px;
+}
+
+.gc-nav-group {
+  margin-bottom: 2px;
+}
+.gc-nav-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 20px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.gc-nav-group-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.gc-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px 10px 16px;
+  min-height: 40px;
+  text-decoration: none;
+  color: var(--gc-text);
+  position: relative;
+  transition: background-color 0.15s cubic-bezier(.2,.8,.2,1);
+}
+.gc-nav-item:hover {
+  background: var(--gc-bg-hover);
+}
+.gc-nav-item:focus-visible {
+  outline: 2px solid var(--gc-accent);
+  outline-offset: -2px;
+}
+.gc-nav-bar {
+  width: 4px;
+  height: 16px;
+  border-radius: 2px;
+  background: transparent;
+  flex-shrink: 0;
+  transition: background-color 0.15s cubic-bezier(.2,.8,.2,1);
+}
+.gc-nav-item--active {
+  background: var(--gc-bg-active);
+  font-weight: 600;
+}
+.gc-nav-item--active .gc-nav-bar {
+  background: var(--gc-accent);
+}
+.gc-nav-label {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.gc-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 9999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.gc-badge-published {
+  color: var(--gc-func-green);
+  background: var(--gc-func-green-soft);
+}
+.gc-badge-draft {
+  color: var(--gc-func-orange);
+  background: var(--gc-func-orange-soft);
+}
+
+/* ---- Workspace (flex-1) ---- */
+.gc-shell-workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--gc-bg);
+  min-width: 0;
+}
+
+.gc-workspace-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 24px 16px;
+  background: var(--gc-panel);
+  border-bottom: 1px solid var(--gc-line);
+  flex-shrink: 0;
+}
+.gc-workspace-header-main {
+  flex: 1;
+  min-width: 0;
+}
+.gc-workspace-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.gc-workspace-banner-slot {
+  flex-shrink: 0;
+}
+
+.gc-shell-workspace-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px;
+}
+
+.gc-shell-footer {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 24px;
+  background: var(--gc-panel);
+  border-top: 1px solid var(--gc-line);
+  flex-shrink: 0;
+}
+
+/* ---- Scrollbar styling (sidebar + workspace) ---- */
+.gc-shell-sidebar-nav::-webkit-scrollbar,
+.gc-shell-workspace-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.gc-shell-sidebar-nav::-webkit-scrollbar-thumb,
+.gc-shell-workspace-scroll::-webkit-scrollbar-thumb {
+  background: var(--gc-line-strong);
+  border-radius: 3px;
+}
+.gc-shell-sidebar-nav::-webkit-scrollbar-track,
+.gc-shell-workspace-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .gc-top-tab,
+  .gc-nav-item,
+  .gc-nav-bar,
+  .gc-role-switch {
+    transition: none;
+  }
+}
+</style>
+
+<style id="page-css">
+/* ============================================================
+   P32 时限规则 · 生效只读 — 页面自有样式
+   只用 --gc-* 令牌；静态 CSS，无运行时依赖。
+   ============================================================ */
+
+/* ---- 顶栏身份区 ---- */
+.gc-identity-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gc-text);
+  white-space: nowrap;
+}
+
+/* ---- 页头 ---- */
+.gc-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--gc-muted);
+  margin: 0 0 8px;
+}
+.gc-breadcrumb-sep { color: var(--gc-line-strong); }
+.gc-page-impact {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--gc-muted);
+}
+.gc-page-meta {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--gc-muted);
+}
+.gc-meta-draft {
+  color: var(--gc-func-orange);
+  font-weight: 500;
+}
+
+/* ---- 未发布草稿横幅（橙色细条） ---- */
+.gc-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px;
+  background: var(--gc-func-orange-soft);
+  border-bottom: 1px solid var(--gc-line);
+}
+.gc-banner-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--gc-func-orange);
+}
+.gc-banner-text {
+  font-size: 13px;
+  color: var(--gc-text);
+  min-width: 0;
+}
+.gc-banner-link {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gc-func-orange);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.gc-banner-link:hover { text-decoration: underline; }
+.gc-banner-link:focus-visible {
+  outline: 2px solid var(--gc-func-orange);
+  outline-offset: 2px;
+}
+
+/* ---- 正文区块 ---- */
+.gc-section + .gc-section { margin-top: 16px; }
+.gc-card {
+  background: var(--gc-panel);
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius-large);
+}
+
+/* ---- 1. 筛选条（生效只读，禁用示意） ---- */
+.gc-filter-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+}
+.gc-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gc-filter-label {
+  font-size: 13px;
+  color: var(--gc-muted);
+  white-space: nowrap;
+}
+.gc-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: not-allowed;
+}
+.gc-select select {
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--gc-muted);
+  background: var(--gc-disabled-bg);
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius-small);
+  padding: 6px 32px 6px 12px;
+  cursor: not-allowed;
+}
+.gc-select-caret {
+  position: absolute;
+  right: 10px;
+  width: 12px;
+  height: 12px;
+  color: var(--gc-disabled-text);
+  pointer-events: none;
+}
+.gc-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--gc-bg);
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius-medium);
+}
+.gc-tab {
+  appearance: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--gc-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--gc-radius-small);
+  padding: 5px 14px;
+  cursor: not-allowed;
+  white-space: nowrap;
+}
+.gc-tab--active {
+  background: var(--gc-accent-soft);
+  color: var(--gc-accent);
+  font-weight: 600;
+}
+.gc-filter-hint {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--gc-muted);
+  white-space: nowrap;
+}
+.gc-filter-hint-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+/* ---- 2. 时限矩阵表 ---- */
+.gc-table-card { overflow: hidden; }
+.gc-table-wrap { overflow-x: auto; }
+.gc-sla-table {
+  width: 100%;
+  min-width: 880px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.gc-sla-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gc-muted);
+  background: var(--gc-bg);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--gc-line);
+  white-space: nowrap;
+}
+.gc-sla-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--gc-line);
+  color: var(--gc-text);
+  vertical-align: middle;
+}
+.gc-cell-type { font-weight: 500; }
+.gc-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: var(--gc-radius-full);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.gc-tag--normal {
+  color: var(--gc-muted);
+  background: var(--gc-bg-hover);
+}
+.gc-tag--urgent {
+  color: var(--gc-func-red);
+  background: var(--gc-func-red-soft);
+}
+.gc-tag--supervise {
+  color: var(--gc-func-orange);
+  background: var(--gc-func-orange-soft);
+}
+.gc-act-plain { color: var(--gc-muted); }
+.gc-table-footnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 20px;
+}
+.gc-footnote-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--gc-muted);
+  margin-top: 2px;
+}
+.gc-footnote-main {
+  margin: 0;
+  font-size: 13px;
+  color: var(--gc-text);
+}
+.gc-footnote-sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--gc-muted);
+}
+
+/* ---- 3. 异常监控说明卡 ---- */
+.gc-chain-card { padding: 16px 20px; }
+.gc-chain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.gc-chain-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--gc-bg);
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius-medium);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gc-text);
+  white-space: nowrap;
+}
+.gc-chain-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.gc-chain-arrow {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--gc-muted);
+}
+.gc-chain-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--gc-muted);
+}
+
+/* ---- 底部动作条 ---- */
+.gc-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  background: var(--gc-accent);
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--gc-radius-small);
+  text-decoration: none;
+  transition: background-color 0.15s cubic-bezier(.2,.8,.2,1);
+}
+.gc-btn-primary:hover { background: var(--gc-accent-hover); }
+.gc-btn-primary:focus-visible {
+  outline: 2px solid var(--gc-accent);
+  outline-offset: 2px;
+}
+.gc-btn-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gc-btn-primary { transition: none; }
+}
+</style>
+
+<!-- ============================================================
+     SeeTime 城运AI · 治理配置 — Shared Project Shell
+     Fragment only: no <html>/<head>/<body>. All leaf pages inherit this.
+     Shared regions: topbar, sidebar, workspace frame.
+     ============================================================ -->
+<style id="shell-collapse-css">
+.gc-collapse-btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: none; background: transparent; color: var(--gc-muted); cursor: pointer; padding: 0; border-radius: 6px; flex-shrink: 0; }
+.gc-collapse-btn:hover { color: var(--gc-text); background: var(--gc-bg-hover); }
+.gc-collapse-btn:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-collapse-btn svg { width: 15px; height: 15px; }
+.gc-shell-sidebar { transition: width 0.18s cubic-bezier(.2,.8,.2,1), min-width 0.18s cubic-bezier(.2,.8,.2,1); }
+
+/* 收起态：64px 图标栏（名称悬浮提示） */
+.gc-shell-body.gc-rail .gc-shell-sidebar { width: 64px; min-width: 64px; }
+.gc-shell-body.gc-rail .gc-sidebar-header { padding: 12px 0 10px; }
+.gc-shell-body.gc-rail .gc-sidebar-header-row { flex-direction: column; gap: 6px; }
+.gc-shell-body.gc-rail .gc-sidebar-title, .gc-shell-body.gc-rail .gc-version-badge { display: none; }
+.gc-shell-body.gc-rail .gc-nav-group-title { justify-content: center; padding: 10px 0 4px; }
+.gc-shell-body.gc-rail .gc-nav-group-name { display: none; }
+.gc-shell-body.gc-rail .gc-nav-item { justify-content: center; padding: 10px 0; margin: 2px 14px; }
+.gc-shell-body.gc-rail .gc-nav-bar, .gc-shell-body.gc-rail .gc-nav-label, .gc-shell-body.gc-rail .gc-nav-badge { display: none; }
+
+/* 模块图标 */
+.gc-nav-ico { width: 16px; height: 16px; color: var(--gc-muted); flex-shrink: 0; display: inline-flex; }
+.gc-nav-ico svg { width: 16px; height: 16px; }
+.gc-nav-item--active .gc-nav-ico { color: var(--gc-accent); }
+
+/* SaaS 视觉打磨 */
+.gc-shell-sidebar { width: 300px; min-width: 300px; background: #F7F9FC; }
+.gc-nav-item { margin: 2px 10px; padding: 9px 12px; border-radius: 8px; }
+.gc-nav-item--active { background: var(--gc-accent-soft); }
+.gc-nav-item--active .gc-nav-label { color: var(--gc-accent); }
+.gc-card { border-radius: 12px; box-shadow: 0 1px 2px rgba(15,23,42,0.04); }
+.gc-page-title { font-size: 18px; }
+.gc-table thead th { background: #F7F9FC; }
+.gc-table tbody tr:hover td { background: rgba(50,109,255,0.04); }
+.gc-topbar-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
+.gc-brand-mark { width: 20px; height: 20px; border-radius: 6px; background: linear-gradient(135deg, var(--gc-accent), #5B8CFF); display: inline-flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+@media (prefers-reduced-motion: reduce) { .gc-shell-sidebar { transition: none; } }
+</style>
+<div class="gc-shell">
+
+  <!-- ======== 1. 顶部全局导航 (height 56px) ======== -->
+  <header class="gc-shell-topbar">
+
+    <!-- 左：品牌名 -->
+    <div class="gc-topbar-left">
+      <span class="gc-topbar-brand"><span class="gc-brand-mark" aria-hidden="true">城</span>SeeTime 城运AI</span>
+    </div>
+
+    <!-- 中：六模块tab水平排列 -->
+    <nav class="gc-topbar-center" aria-label="全局模块导航">
+      <a href="#" class="gc-top-tab">治理大屏</a>
+      <a href="#" class="gc-top-tab">AI实时治理</a>
+      <a href="#" class="gc-top-tab">事件档案</a>
+      <a href="#" class="gc-top-tab">AI统计</a>
+      <a href="#" class="gc-top-tab">AI工作台</a>
+      <a href="#" class="gc-top-tab gc-top-tab--active" aria-current="page">治理配置</a>
+    </nav>
+
+    <!-- 右：角色身份区 -->
+    <div class="gc-topbar-right">
+      <button type="button" class="gc-role-switch" data-dom-id="role-switch" aria-haspopup="listbox" aria-expanded="false">
+        <span>切换角色</span>
+        <svg class="gc-caret" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="gc-identity-name">王倩</span>
+      <span class="gc-identity-badge">全局协调</span>
+    </div>
+
+  </header>
+
+  <!-- ======== Shell body: sidebar + workspace ======== -->
+  <div class="gc-shell-body">
+
+    <!-- ======== 2. 左侧模块导航栏 (width 380px) ======== -->
+    <aside class="gc-shell-sidebar">
+
+      <!-- 顶部标题区 -->
+      <div class="gc-sidebar-header">
+        <div class="gc-sidebar-header-row">
+          <div class="gc-sidebar-title">治理配置</div>
+          <button type="button" class="gc-collapse-btn" data-dom-id="sidebar-toggle" aria-expanded="true" aria-label="收起左侧导航" title="收起左侧导航"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/></svg></button>
+          <span class="gc-version-badge">V2026.08.18</span>
+        </div>
+      </div>
+
+      <!-- 分组筛选 + 模块列表 (flex-1 overflow-y-auto) -->
+      <nav class="gc-shell-sidebar-nav" aria-label="治理配置模块导航">
+
+        <!-- Group 1: 治理基础 (蓝 var(--gc-accent)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-accent);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-accent);"></span><span class="gc-nav-group-name">治理基础</span>
+          </div>
+          <a href="org-permission-live.html" data-dom-id="nav-org-permission-live" title="组织与权限" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+            <span class="gc-nav-label">组织与权限</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+          <a href="space-responsibility-live.html" data-dom-id="nav-space-responsibility-live" title="空间与责任" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span>
+            <span class="gc-nav-label">空间与责任</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+          <a href="event-standard-live.html" data-dom-id="nav-event-standard-live" title="事件标准" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg></span>
+            <span class="gc-nav-label">事件标准</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+        </div>
+
+        <!-- Group 2: 流程运行 (橙 var(--gc-func-orange)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-func-orange);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-func-orange);"></span><span class="gc-nav-group-name">流程运行</span>
+          </div>
+          <a href="lifecycle-live.html" data-dom-id="nav-lifecycle" title="生命周期" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span>
+            <span class="gc-nav-label">生命周期</span>
+            <span class="gc-nav-badge gc-badge-draft">草稿</span>
+          </a>
+          <a href="sla-matrix-live.html" data-dom-id="nav-sla-matrix-live" title="时限规则" class="gc-nav-item gc-nav-item--active" aria-current="page">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
+            <span class="gc-nav-label">时限规则</span>
+            <span class="gc-nav-badge gc-badge-draft">草稿</span>
+          </a>
+          <a href="dispatch-claim-live.html" data-dom-id="nav-dispatch-claim-live" title="派工与认领" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>
+            <span class="gc-nav-label">派工与认领</span>
+            <span class="gc-nav-badge gc-badge-draft">草稿</span>
+          </a>
+        </div>
+
+        <!-- Group 3: 持续治理 (绿 var(--gc-func-green)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-func-green);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-func-green);"></span><span class="gc-nav-group-name">持续治理</span>
+          </div>
+          <a href="dedup-recurrence-live.html" data-dom-id="nav-dedup-recurrence-live" title="查重复发" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span>
+            <span class="gc-nav-label">查重复发</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+          <a href="metric-caliber-live.html" data-dom-id="nav-metric-caliber-live" title="评价口径" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></span>
+            <span class="gc-nav-label">评价口径</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+        </div>
+
+        <!-- Group 4: 配置管理 (紫 var(--gc-func-purple)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-func-purple);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-func-purple);"></span><span class="gc-nav-group-name">配置管理</span>
+          </div>
+          <a href="publish-draft-review.html" data-dom-id="nav-publish-draft-review" title="发布与审计" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></span>
+            <span class="gc-nav-label">发布与审计</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+        </div>
+
+      </nav>
+
+    </aside>
+
+    <!-- ======== 3. 右侧工作区框架 (flex-1, flex-col) ======== -->
+    <main class="gc-shell-workspace">
+
+      <!-- 页头: 标题 + 动作区 (fixed, 不滚动) -->
+      <div class="gc-workspace-header">
+        <div class="gc-workspace-header-main">
+          <nav class="gc-breadcrumb" aria-label="面包屑">
+            <span>治理配置</span>
+            <span class="gc-breadcrumb-sep" aria-hidden="true">/</span>
+            <span>时限规则</span>
+          </nav>
+          <h1 class="gc-h1 gc-page-title">时限与异常监控</h1>
+          <p class="gc-page-impact">时限矩阵约束每类事件的立案、处置、核查、结案节奏。</p>
+          <p class="gc-page-meta">生效版本 V2026.08.18 · 发布人 全局协调 · 王倩 · 2026-08-18 · <span class="gc-meta-draft">有未发布草稿</span></p>
+        </div>
+        <div class="gc-workspace-header-actions">
+        </div>
+      </div>
+
+      <!-- 横幅区 (fixed, 不滚动) -->
+      <div class="gc-workspace-banner-slot">
+        <div class="gc-banner" role="status">
+          <svg class="gc-banner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span class="gc-banner-text">时限规则有未发布草稿：共享单车乱停放 × 一般 处置时限 120 → 90 分钟</span>
+          <a class="gc-banner-link" href="sla-matrix-draft.html" data-dom-id="cta-open-draft">查看草稿</a>
+        </div>
+      </div>
+
+      <!-- 正文内容区 (可滚动) -->
+      <div class="gc-shell-workspace-scroll">
+
+        <!-- 1. 筛选条（生效只读，禁用视觉示意） -->
+        <section class="gc-section" aria-label="时限筛选">
+          <div class="gc-card gc-filter-card">
+            <div class="gc-filter-group">
+              <label class="gc-filter-label" for="sla-filter-type">事件类型</label>
+              <span class="gc-select">
+                <select id="sla-filter-type" disabled aria-label="事件类型筛选（生效版只读）">
+                  <option selected>全部类型</option>
+                  <option>道路秩序</option>
+                  <option>环境卫生</option>
+                  <option>广告标识</option>
+                </select>
+                <svg class="gc-select-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </span>
+            </div>
+            <div class="gc-filter-group">
+              <label class="gc-filter-label" for="sla-filter-level">等级</label>
+              <span class="gc-select">
+                <select id="sla-filter-level" disabled aria-label="等级筛选（生效版只读）">
+                  <option selected>全部</option>
+                  <option>紧急</option>
+                  <option>一般</option>
+                </select>
+                <svg class="gc-select-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </span>
+            </div>
+            <div class="gc-filter-group">
+              <span class="gc-filter-label" id="sla-region-label">区域维度</span>
+              <div class="gc-tabs" role="group" aria-labelledby="sla-region-label">
+                <button type="button" class="gc-tab gc-tab--active" disabled aria-pressed="true">全区</button>
+                <button type="button" class="gc-tab" disabled>街道</button>
+                <button type="button" class="gc-tab" disabled>网格</button>
+              </div>
+            </div>
+            <span class="gc-filter-hint">
+              <svg class="gc-filter-hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              先筛类型，再看等级
+            </span>
+          </div>
+        </section>
+
+        <!-- 2. 时限矩阵表（生效版 8 行） -->
+        <section class="gc-section" aria-label="时限矩阵">
+          <div class="gc-card gc-table-card">
+            <div class="gc-table-wrap">
+              <table class="gc-sla-table">
+                <thead>
+                  <tr>
+                    <th scope="col">事件类型</th>
+                    <th scope="col">细类</th>
+                    <th scope="col">等级</th>
+                    <th scope="col">区域</th>
+                    <th scope="col">立案时限</th>
+                    <th scope="col">处置时限</th>
+                    <th scope="col">核查时限</th>
+                    <th scope="col">结案时限</th>
+                    <th scope="col">超时动作</th><th scope="col" class="gc-th-actions">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td rowspan="4" class="gc-cell-type">道路秩序</td>
+                    <td>共享单车乱停放</td>
+                    <td><span class="gc-tag gc-tag--normal">一般</span></td>
+                    <td>全区</td>
+                    <td class="gc-num">15 分</td>
+                    <td class="gc-num">120 分</td>
+                    <td class="gc-num">30 分</td>
+                    <td class="gc-num">24 小时</td>
+                    <td class="gc-act-plain">升级提醒</td>
+                  <td class="gc-td-actions"><a class="gc-btn-link" href="sla-matrix-draft.html?edit=%E5%85%B1%E4%BA%AB%E5%8D%95%E8%BD%A6%E4%B9%B1%E5%81%9C%E6%94%BE%C3%97%E4%B8%80%E8%88%AC" title="进入草稿，编辑该行时限">编辑</a></td></tr>
+                  <tr>
+                    <td>机动车违停</td>
+                    <td><span class="gc-tag gc-tag--normal">一般</span></td>
+                    <td>全区</td>
+                    <td class="gc-num">15 分</td>
+                    <td class="gc-num">60 分</td>
+                    <td class="gc-num">30 分</td>
+                    <td class="gc-num">24 小时</td>
+                    <td class="gc-act-plain">升级提醒</td>
+                  <td class="gc-td-actions"><a class="gc-btn-link" href="sla-matrix-draft.html?edit=%E6%9C%BA%E5%8A%A8%E8%BD%A6%E8%BF%9D%E5%81%9C%C3%97%E4%B8%80%E8%88%AC" title="进入草稿，编辑该行时限">编辑</a></td></tr>
+                  <tr>
+                    <td>占道经营</td>
+                    <td><span class="gc-tag gc-tag--normal">一般</span></td>
+                    <td>全区</td>
+                    <td class="gc-num">15 分</td>
+                    <td class="gc-num">90 分</td>
+                    <td class="gc-num">30 分</td>
+                    <td class="gc-num">24 小时</td>
+                    <td class="gc-act-plain">升级提醒</td>
+                  <td class="gc-td-actions"><a class="gc-btn-link" href="sla-matrix-draft.html?edit=%E5%8D%A0%E9%81%93%E7%BB%8F%E8%90%A5%C3%97%E4%B8%80%E8%88%AC" title="进入草稿，编辑该行时限">编辑</a></td></tr>
+                  <tr>
+                    <td>施工占道</td>
+                    <td><span class="gc-tag gc-tag--urgent">紧急</span></td>
+                    <td>全区</td>
+                    <td class="gc-num">10 分</td>
+                    <td class="gc-num">45 分</td>
+                    <td class="gc-num">20 分</td>
+                    <td class="gc-num">12 小时</td>
+                    <td><span class="gc-tag gc-tag--supervise">升级 + 挂督办</span></td>
+                  <td class="gc-td-actions"><a class="gc-btn-link" href="sla-matrix-draft.html?edit=%E6%96%BD%E5%B7%A5%E5%8D%A0%E9%81%93%C3%97%E7%B4%A7%E6%80%A5" title="进入草稿，编辑该行时限">编辑</a></td></tr>
+                  <tr>
+                    <td rowspan="2" class="gc-cell-type">环境卫生</td>
+                    <td>暴露垃圾</td>
+                    <td><span class="gc-tag gc-tag--urgent">紧急</span></td>
+                    <td>全区</td>
+                    <td class="gc-num">10 分</td>
+                    <td class="gc-num">30 分</td>
+                    <td class="gc-num">20 分</td>
+                    <td class="gc-num">12 小时</td>
+                    <td><span class="gc-tag gc-tag--supervise">升级 + 挂督办</span></td>
+                  <td class="gc-td-actions"><a class="gc-btn-link" href="sla-matrix-draft.html?edit=%E6%9A%B4%E9%9C%B2%E5%9E%83%E5%9C%BE%C3%97%E7%B4%A7%E6%80%A5" title="进入草稿，编辑该行时限">编辑</a></td></tr>
+                  <tr>
+                    <td>非法倾倒</td>
+                    <td><span class="gc-tag gc-tag--normal">一般</span></td>
+                    <td>街道</td>
+                    <td class="gc-num">15 分</td>
+                    <td class="gc-num">120 分</td>
+                    <td class="gc-num">30 分</td>
+                    <td class="gc-num">48 小时</td>
+                    <td class="gc-act-plain">升级提醒</td>
+                  <td class="gc-td-actions"><a class="gc-btn-link" href="sla-matrix-draft.html?edit=%E9%9D%9E%E6%B3%95%E5%80%BE%E5%80%92%C3%97%E4%B8%80%E8%88%AC" title="进入草稿，编辑该行时限">编辑</a></td></tr>
+                  <tr>
+                    <td rowspan="2" class="gc-cell-type">广告标识</td>
+                    <td>无证户外广告</td>
+                    <td><span class="gc-tag gc-tag--normal">一般</span></td>
+                    <td>街道</td>
+                    <td class="gc-num">15 分</td>
+                    <td class="gc-num">24 小时</td>
+                    <td class="gc-num">30 分</td>
+                    <td class="gc-num">72 小时</td>
+                    <td class="gc-act-plain">升级提醒</td>
+                  <td class="gc-td-actions"><a class="gc-btn-link" href="sla-matrix-draft.html?edit=%E6%97%A0%E8%AF%81%E6%88%B7%E5%A4%96%E5%B9%BF%E5%91%8A%C3%97%E4%B8%80%E8%88%AC" title="进入草稿，编辑该行时限">编辑</a></td></tr>
+                  <tr>
+                    <td>违规灯箱</td>
+                    <td><span class="gc-tag gc-tag--normal">一般</span></td>
+                    <td>网格</td>
+                    <td class="gc-num">15 分</td>
+                    <td class="gc-num">48 小时</td>
+                    <td class="gc-num">30 分</td>
+                    <td class="gc-num">72 小时</td>
+                    <td class="gc-act-plain">升级提醒</td>
+                  <td class="gc-td-actions"><a class="gc-btn-link" href="sla-matrix-draft.html?edit=%E8%BF%9D%E8%A7%84%E7%81%AF%E7%AE%B1%C3%97%E4%B8%80%E8%88%AC" title="进入草稿，编辑该行时限">编辑</a></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="gc-table-footnote">
+              <svg class="gc-footnote-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              <div>
+                <p class="gc-footnote-main">发布后只作用于新事件，不改写历史结论。</p>
+                <p class="gc-footnote-sub">历史事件按立案当时版本计时。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. 异常监控说明卡（简短，无图表） -->
+        <section class="gc-section" aria-label="超时异常链路">
+          <div class="gc-card gc-chain-card">
+            <h2 class="gc-h3">超时异常链路</h2>
+            <div class="gc-chain">
+              <span class="gc-chain-step">
+                <svg class="gc-chain-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--gc-accent);">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                临近提醒
+              </span>
+              <svg class="gc-chain-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+              <span class="gc-chain-step">
+                <svg class="gc-chain-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--gc-func-orange);">
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+                  <polyline points="16 7 22 7 22 13"/>
+                </svg>
+                超时升级
+              </span>
+              <svg class="gc-chain-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+              <span class="gc-chain-step">
+                <svg class="gc-chain-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--gc-func-red);">
+                  <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                  <line x1="4" y1="22" x2="4" y2="15"/>
+                </svg>
+                挂督办
+              </span>
+            </div>
+            <p class="gc-chain-note">超时升级按矩阵行配置触发，不做额外统计图表。</p>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- 底部动作条 (fixed, 不滚动) -->
+      <div class="gc-shell-footer">
+        <a class="gc-btn-primary" href="sla-matrix-draft.html" data-dom-id="cta-edit">
+          <svg class="gc-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20h9"/>
+            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+          </svg>
+          编辑
+        </a>
+      </div>
+
+    </main>
+
+  </div><!-- /.gc-shell-body -->
+
+</div><!-- /.gc-shell -->
+<script id="shell-collapse-js">
+(function () {
+  var btn = document.querySelector('.gc-collapse-btn');
+  var body = document.querySelector('.gc-shell-body');
+  if (!btn || !body) return;
+  function setRail(on) {
+    body.classList.toggle('gc-rail', on);
+    btn.setAttribute('aria-expanded', on ? 'false' : 'true');
+    btn.setAttribute('aria-label', on ? '展开左侧导航' : '收起左侧导航');
+  }
+  btn.addEventListener('click', function () { setRail(!body.classList.contains('gc-rail')); });
+})();
+</script>
+<style id="gc-rev17-css">
+.gc-btn-link { display: inline-flex; align-items: center; justify-content: center; padding: 4px 12px; font-size: 12px; font-weight: 500; font-family: inherit; color: var(--gc-accent); background: transparent; border: 1px solid var(--gc-line); border-radius: var(--gc-radius-small, 7px); text-decoration: none; cursor: pointer; }
+.gc-btn-link:hover { color: var(--gc-accent); background: var(--gc-accent-soft); border-color: var(--gc-accent-soft); }
+.gc-btn-link:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 1px; }
+.gc-chip { display: inline-flex; align-items: center; font-size: 11px; font-weight: 500; line-height: 1.5; border-radius: 9999px; padding: 1px 8px; white-space: nowrap; }
+.gc-chip--on { color: var(--gc-func-green); background: var(--gc-func-green-soft); }
+.gc-chip--off { color: var(--gc-disabled-text); background: var(--gc-disabled-bg); }
+.gc-th-actions { text-align: right; }
+.gc-td-actions { white-space: nowrap; }
+.gc-td-actions > * + * { margin-left: 8px; }
+</style>
+</body>
+</html>

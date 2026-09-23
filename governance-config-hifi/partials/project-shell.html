@@ -1,0 +1,529 @@
+<style id="critical-layout">
+/* ============================================================
+   治理配置 Hi-Fi — Shared Project Shell (Critical Layout CSS)
+   Static CSS — no Tailwind runtime dependency.
+   All tokens reference project-local colors_and_type.css (--gc-* prefix).
+   Viewport: 1920×1080 desktop, app-shell mode.
+   ============================================================ */
+
+/* ---- Shell grid ---- */
+.gc-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--gc-bg);
+  font-family: var(--gc-font-sans);
+  color: var(--gc-text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Topbar (56px fixed) ---- */
+.gc-shell-topbar {
+  height: 56px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: var(--gc-panel);
+  border-bottom: 1px solid var(--gc-line);
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+}
+
+.gc-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.gc-topbar-brand {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gc-text);
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
+.gc-topbar-center {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.gc-top-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--gc-muted);
+  text-decoration: none;
+  border-radius: var(--gc-radius-small);
+  transition: color 0.15s cubic-bezier(.2,.8,.2,1), background-color 0.15s cubic-bezier(.2,.8,.2,1);
+  white-space: nowrap;
+}
+.gc-top-tab:hover {
+  color: var(--gc-text);
+  background: var(--gc-bg-hover);
+}
+.gc-top-tab:focus-visible {
+  outline: 2px solid var(--gc-accent);
+  outline-offset: -2px;
+}
+.gc-top-tab--active {
+  background: var(--gc-accent-soft);
+  color: var(--gc-accent);
+  font-weight: 600;
+}
+.gc-top-tab--active:hover {
+  background: var(--gc-accent-soft);
+  color: var(--gc-accent);
+}
+
+.gc-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.gc-role-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--gc-muted);
+  background: transparent;
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius-small);
+  cursor: pointer;
+  transition: color 0.15s cubic-bezier(.2,.8,.2,1), border-color 0.15s cubic-bezier(.2,.8,.2,1);
+  font-family: inherit;
+}
+.gc-role-switch:hover {
+  color: var(--gc-text);
+  border-color: var(--gc-line-strong);
+}
+.gc-role-switch:focus-visible {
+  outline: 2px solid var(--gc-accent);
+  outline-offset: -1px;
+}
+.gc-role-switch .gc-caret {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.gc-identity-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  background: var(--gc-accent-soft);
+  color: var(--gc-accent);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 10px;
+  white-space: nowrap;
+}
+
+/* ---- Shell body (sidebar + workspace) ---- */
+.gc-shell-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ---- Sidebar (380px fixed) ---- */
+.gc-shell-sidebar {
+  width: 300px;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  background: var(--gc-panel);
+  border-right: 1px solid var(--gc-line);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.gc-sidebar-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--gc-line);
+  flex-shrink: 0;
+}
+.gc-sidebar-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.gc-sidebar-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gc-text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.gc-version-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--gc-func-green);
+  background: var(--gc-func-green-soft);
+  border-radius: 9999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.gc-shell-sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0 8px;
+}
+
+.gc-nav-group {
+  margin-bottom: 2px;
+}
+.gc-nav-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 20px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.gc-nav-group-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.gc-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px 10px 16px;
+  min-height: 40px;
+  text-decoration: none;
+  color: var(--gc-text);
+  position: relative;
+  transition: background-color 0.15s cubic-bezier(.2,.8,.2,1);
+}
+.gc-nav-item:hover {
+  background: var(--gc-bg-hover);
+}
+.gc-nav-item:focus-visible {
+  outline: 2px solid var(--gc-accent);
+  outline-offset: -2px;
+}
+.gc-nav-bar {
+  width: 4px;
+  height: 16px;
+  border-radius: 2px;
+  background: transparent;
+  flex-shrink: 0;
+  transition: background-color 0.15s cubic-bezier(.2,.8,.2,1);
+}
+.gc-nav-item--active {
+  background: var(--gc-bg-active);
+  font-weight: 600;
+}
+.gc-nav-item--active .gc-nav-bar {
+  background: var(--gc-accent);
+}
+.gc-nav-label {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.gc-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 9999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.gc-badge-published {
+  color: var(--gc-func-green);
+  background: var(--gc-func-green-soft);
+}
+.gc-badge-draft {
+  color: var(--gc-func-orange);
+  background: var(--gc-func-orange-soft);
+}
+
+/* ---- Workspace (flex-1) ---- */
+.gc-shell-workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--gc-bg);
+  min-width: 0;
+}
+
+.gc-workspace-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 24px 16px;
+  background: var(--gc-panel);
+  border-bottom: 1px solid var(--gc-line);
+  flex-shrink: 0;
+}
+.gc-workspace-header-main {
+  flex: 1;
+  min-width: 0;
+}
+.gc-workspace-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.gc-workspace-banner-slot {
+  flex-shrink: 0;
+}
+
+.gc-shell-workspace-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px;
+}
+
+.gc-shell-footer {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 24px;
+  background: var(--gc-panel);
+  border-top: 1px solid var(--gc-line);
+  flex-shrink: 0;
+}
+
+/* ---- Scrollbar styling (sidebar + workspace) ---- */
+.gc-shell-sidebar-nav::-webkit-scrollbar,
+.gc-shell-workspace-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.gc-shell-sidebar-nav::-webkit-scrollbar-thumb,
+.gc-shell-workspace-scroll::-webkit-scrollbar-thumb {
+  background: var(--gc-line-strong);
+  border-radius: 3px;
+}
+.gc-shell-sidebar-nav::-webkit-scrollbar-track,
+.gc-shell-workspace-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .gc-top-tab,
+  .gc-nav-item,
+  .gc-nav-bar,
+  .gc-role-switch {
+    transition: none;
+  }
+}
+</style>
+
+<!-- ============================================================
+     SeeTime 城运AI · 治理配置 — Shared Project Shell
+     Fragment only: no <html>/<head>/<body>. All leaf pages inherit this.
+     Shared regions: topbar, sidebar, workspace frame.
+     Leaf pages fill: SLOT:identityArea, SLOT:sidebarActiveItem,
+       SLOT:sidebarBadges, SLOT:activeTopTab, SLOT:pageTitle,
+       SLOT:pageActions, SLOT:banner, SLOT:moduleContent, SLOT:footerActions.
+     ============================================================ -->
+<div class="gc-shell">
+
+  <!-- ======== 1. 顶部全局导航 (height 56px) ======== -->
+  <header class="gc-shell-topbar">
+
+    <!-- 左：品牌名 -->
+    <div class="gc-topbar-left">
+      <span class="gc-topbar-brand">SeeTime 城运AI</span>
+    </div>
+
+    <!-- 中：六模块tab水平排列 -->
+    <nav class="gc-topbar-center" aria-label="全局模块导航">
+      <a href="#" class="gc-top-tab">治理大屏</a>
+      <a href="#" class="gc-top-tab">AI实时治理</a>
+      <a href="#" class="gc-top-tab">事件档案</a>
+      <a href="#" class="gc-top-tab">AI统计</a>
+      <a href="#" class="gc-top-tab">AI工作台</a>
+      <!-- SLOT:activeTopTab — 全部页面为治理配置active -->
+      <a href="#" class="gc-top-tab gc-top-tab--active" aria-current="page">治理配置</a>
+    </nav>
+
+    <!-- 右：角色身份区 -->
+    <div class="gc-topbar-right">
+      <button type="button" class="gc-role-switch" data-dom-id="role-switch" aria-haspopup="listbox" aria-expanded="false">
+        <span>切换角色</span>
+        <svg class="gc-caret" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <!-- SLOT:identityArea — 叶子页替换为具体姓名角色徽章 -->
+      <!-- SLOT:identityArea -->
+    </div>
+
+  </header>
+
+  <!-- ======== Shell body: sidebar + workspace ======== -->
+  <div class="gc-shell-body">
+
+    <!-- ======== 2. 左侧模块导航栏 (width 380px) ======== -->
+    <aside class="gc-shell-sidebar">
+
+      <!-- 顶部标题区 -->
+      <div class="gc-sidebar-header">
+        <div class="gc-sidebar-header-row">
+          <div class="gc-sidebar-title">治理配置</div>
+          <span class="gc-version-badge">V2026.08.18</span>
+        </div>
+      </div>
+
+      <!-- 分组筛选 + 模块列表 (flex-1 overflow-y-auto) -->
+      <nav class="gc-shell-sidebar-nav" aria-label="治理配置模块导航">
+
+        <!-- SLOT:sidebarActiveItem — 叶子页替换active行 -->
+
+        <!-- Group 1: 治理基础 (蓝 var(--gc-accent)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-accent);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-accent);"></span>
+            治理基础
+          </div>
+          <a href="org-permission-live.html" data-dom-id="nav-org-permission-live" class="gc-nav-item">
+            <span class="gc-nav-bar"></span>
+            <span class="gc-nav-label">组织与权限</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+          <a href="space-responsibility-live.html" data-dom-id="nav-space-responsibility-live" class="gc-nav-item">
+            <span class="gc-nav-bar"></span>
+            <span class="gc-nav-label">空间与责任</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+          <a href="event-standard-live.html" data-dom-id="nav-event-standard-live" class="gc-nav-item">
+            <span class="gc-nav-bar"></span>
+            <span class="gc-nav-label">事件标准</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+        </div>
+
+        <!-- Group 2: 流程运行 (橙 var(--gc-func-orange)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-func-orange);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-func-orange);"></span>
+            流程运行
+          </div>
+          <a href="lifecycle-live.html" data-dom-id="nav-lifecycle-live" class="gc-nav-item">
+            <span class="gc-nav-bar"></span>
+            <span class="gc-nav-label">生命周期</span>
+            <span class="gc-nav-badge gc-badge-draft">草稿</span>
+          </a>
+          <a href="sla-matrix-live.html" data-dom-id="nav-sla-matrix-live" class="gc-nav-item">
+            <span class="gc-nav-bar"></span>
+            <span class="gc-nav-label">时限规则</span>
+            <span class="gc-nav-badge gc-badge-draft">草稿</span>
+          </a>
+          <a href="dispatch-claim-live.html" data-dom-id="nav-dispatch-claim-live" class="gc-nav-item">
+            <span class="gc-nav-bar"></span>
+            <span class="gc-nav-label">派工与认领</span>
+            <span class="gc-nav-badge gc-badge-draft">草稿</span>
+          </a>
+        </div>
+
+        <!-- Group 3: 持续治理 (绿 var(--gc-func-green)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-func-green);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-func-green);"></span>
+            持续治理
+          </div>
+          <a href="dedup-recurrence-live.html" data-dom-id="nav-dedup-recurrence-live" class="gc-nav-item">
+            <span class="gc-nav-bar"></span>
+            <span class="gc-nav-label">查重复发</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+          <a href="metric-caliber-live.html" data-dom-id="nav-metric-caliber-live" class="gc-nav-item">
+            <span class="gc-nav-bar"></span>
+            <span class="gc-nav-label">评价口径</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+        </div>
+
+        <!-- Group 4: 配置管理 (紫 var(--gc-func-purple)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-func-purple);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-func-purple);"></span>
+            配置管理
+          </div>
+          <a href="publish-draft-review.html" data-dom-id="nav-publish-draft-review" class="gc-nav-item">
+            <span class="gc-nav-bar"></span>
+            <span class="gc-nav-label">发布与审计</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+        </div>
+
+        <!-- SLOT:sidebarBadges — 叶子页可追加/覆盖徽章状态 -->
+        <!-- SLOT:sidebarBadges -->
+      </nav>
+
+    </aside>
+
+    <!-- ======== 3. 右侧工作区框架 (flex-1, flex-col) ======== -->
+    <main class="gc-shell-workspace">
+
+      <!-- 页头: 标题 + 动作区 (fixed, 不滚动) -->
+      <div class="gc-workspace-header">
+        <div class="gc-workspace-header-main">
+          <!-- SLOT:pageTitle — 页头(标题+一句话影响+元信息) -->
+          <!-- SLOT:pageTitle -->
+        </div>
+        <div class="gc-workspace-header-actions">
+          <!-- SLOT:pageActions — 页头动作区按钮 -->
+          <!-- SLOT:pageActions -->
+        </div>
+      </div>
+
+      <!-- 横幅区 (fixed, 不滚动; 为空时0高度) -->
+      <div class="gc-workspace-banner-slot">
+        <!-- SLOT:banner — 横幅(差异提示/编辑提示/无权限提示) -->
+        <!-- SLOT:banner -->
+      </div>
+
+      <!-- 正文内容区 (可滚动) -->
+      <div class="gc-shell-workspace-scroll">
+        <!-- SLOT:moduleContent — 正文内容区 -->
+        <!-- SLOT:moduleContent -->
+      </div>
+
+      <!-- 底部动作条 (fixed, 不滚动) -->
+      <div class="gc-shell-footer">
+        <!-- SLOT:footerActions — 底部动作条按钮组 -->
+        <!-- SLOT:footerActions -->
+      </div>
+
+    </main>
+
+  </div><!-- /.gc-shell-body -->
+
+</div><!-- /.gc-shell -->

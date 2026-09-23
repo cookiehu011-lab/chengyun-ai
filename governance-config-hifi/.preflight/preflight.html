@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preflight</title>
+    <style id="theme-vars">
+/* ============================================================
+   治理配置 Hi-Fi — 项目品牌 CSS（用户锁定 token，light-only）
+   城运 AI · 东城二期 · 治理配置模块
+   ============================================================ */
+
+:root {
+  /* ---- 基础色板（用户锁定） ---- */
+  --gc-bg: #F6F8FB;            /* 页面底色 */
+  --gc-panel: #FFFFFF;         /* 面板/卡片 */
+  --gc-text: #0F172A;          /* 主文本 */
+  --gc-muted: #64748B;         /* 次级文本 */
+  --gc-line: #E2E8F0;          /* 分隔线/描边 */
+  --gc-accent: #2F6BFF;        /* 品牌主蓝 */
+  --gc-accent-soft: #DCEBFF;   /* 主蓝浅底 */
+  --gc-func-green: #2E9B68;    /* 功能绿（生效/成功/治理基础蓝组补充） */
+  --gc-func-orange: #D98A20;   /* 功能橙（草稿/流程运行） */
+  --gc-func-red: #D94C4C;      /* 功能红（阻断/错误） */
+  --gc-func-purple: #7967D8;   /* 功能紫（配置管理组） */
+
+  /* ---- 衍生层级（保持同色系） ---- */
+  --gc-accent-hover: #1F5AE6;
+  --gc-accent-active: #174CBF;
+  --gc-bg-hover: #EEF2F8;
+  --gc-bg-active: #E2E9F5;
+  --gc-line-strong: #CBD5E1;
+  --gc-func-green-soft: #E6F4EC;
+  --gc-func-orange-soft: #FBF0DF;
+  --gc-func-red-soft: #FBE7E7;
+  --gc-func-purple-soft: #EEEBFA;
+  --gc-disabled-bg: #F1F5F9;
+  --gc-disabled-text: #94A3B8;
+
+  /* ---- 语义别名（apply-html-head-contract 必需） ---- */
+  --gc-background: var(--gc-bg);
+  --gc-foreground: var(--gc-text);
+  --gc-card: var(--gc-panel);
+  --gc-card-foreground: var(--gc-text);
+  --gc-popover: var(--gc-panel);
+  --gc-popover-foreground: var(--gc-text);
+  --gc-primary: var(--gc-accent);
+  --gc-primary-foreground: #FFFFFF;
+  --gc-muted: var(--gc-muted);
+  --gc-muted-foreground: var(--gc-muted);
+  --gc-border: var(--gc-line);
+  --gc-input: var(--gc-line);
+  --gc-ring: var(--gc-accent);
+
+  /* ---- 半径（用户锁定 8/10/14，上限 14 ≤16） ---- */
+  --gc-radius-small: 8px;
+  --gc-radius-medium: 10px;
+  --gc-radius-large: 14px;
+  --gc-radius-sm: var(--gc-radius-small);
+  --gc-radius-md: var(--gc-radius-medium);
+  --gc-radius-lg: var(--gc-radius-large);
+  --gc-radius-full: 9999px;
+
+  /* ---- 状态色语义 ---- */
+  --gc-state-success: var(--gc-func-green);
+  --gc-state-warning: var(--gc-func-orange);
+  --gc-state-error: var(--gc-func-red);
+  --gc-state-info: var(--gc-accent);
+
+  /* ---- 字体（系统 CJK 栈，不引外部字体） ---- */
+  --gc-font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Helvetica Neue", Arial, sans-serif;
+  --gc-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* ---- 排版体系 ---- */
+html.light body {
+  font-family: var(--gc-font-sans);
+  background: var(--gc-background);
+  color: var(--gc-foreground);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.gc-h1 { font-size: 20px; line-height: 1.3; font-weight: 600; color: var(--gc-foreground); letter-spacing: -0.01em; }
+.gc-h2 { font-size: 16px; line-height: 1.4; font-weight: 600; color: var(--gc-foreground); }
+.gc-h3 { font-size: 14px; line-height: 1.45; font-weight: 600; color: var(--gc-foreground); }
+.gc-body { font-size: 14px; line-height: 1.5; color: var(--gc-foreground); }
+.gc-body-sm { font-size: 13px; line-height: 1.5; color: var(--gc-foreground); }
+.gc-caption { font-size: 12px; line-height: 1.5; color: var(--gc-muted-foreground); }
+.gc-num { font-variant-numeric: tabular-nums; }
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--gc-background);
+    --color-foreground: var(--gc-foreground);
+    --color-card: var(--gc-card);
+    --color-card-foreground: var(--gc-card-foreground);
+    --color-popover: var(--gc-popover);
+    --color-popover-foreground: var(--gc-popover-foreground);
+    --color-primary: var(--gc-primary);
+    --color-primary-foreground: var(--gc-primary-foreground);
+    --color-muted: var(--gc-muted);
+    --color-muted-foreground: var(--gc-muted-foreground);
+    --color-accent: var(--gc-accent);
+    --color-border: var(--gc-border);
+    --color-input: var(--gc-input);
+    --color-ring: var(--gc-ring);
+    --radius-sm: var(--gc-radius-sm);
+    --radius-md: var(--gc-radius-md);
+    --radius-lg: var(--gc-radius-lg);
+  }
+  @layer base {
+    body { background: var(--gc-background); color: var(--gc-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--gc-background); }
+      .text-background { color: var(--gc-background); }
+      .border-background { border-color: var(--gc-background); }
+      .ring-background { --tw-ring-color: var(--gc-background); }
+      .bg-foreground { background-color: var(--gc-foreground); }
+      .text-foreground { color: var(--gc-foreground); }
+      .border-foreground { border-color: var(--gc-foreground); }
+      .ring-foreground { --tw-ring-color: var(--gc-foreground); }
+      .bg-card { background-color: var(--gc-card); }
+      .text-card { color: var(--gc-card); }
+      .border-card { border-color: var(--gc-card); }
+      .ring-card { --tw-ring-color: var(--gc-card); }
+      .bg-card-foreground { background-color: var(--gc-card-foreground); }
+      .text-card-foreground { color: var(--gc-card-foreground); }
+      .border-card-foreground { border-color: var(--gc-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--gc-card-foreground); }
+      .bg-popover { background-color: var(--gc-popover); }
+      .text-popover { color: var(--gc-popover); }
+      .border-popover { border-color: var(--gc-popover); }
+      .ring-popover { --tw-ring-color: var(--gc-popover); }
+      .bg-popover-foreground { background-color: var(--gc-popover-foreground); }
+      .text-popover-foreground { color: var(--gc-popover-foreground); }
+      .border-popover-foreground { border-color: var(--gc-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--gc-popover-foreground); }
+      .bg-primary { background-color: var(--gc-primary); }
+      .text-primary { color: var(--gc-primary); }
+      .border-primary { border-color: var(--gc-primary); }
+      .ring-primary { --tw-ring-color: var(--gc-primary); }
+      .bg-primary-foreground { background-color: var(--gc-primary-foreground); }
+      .text-primary-foreground { color: var(--gc-primary-foreground); }
+      .border-primary-foreground { border-color: var(--gc-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--gc-primary-foreground); }
+      .bg-muted { background-color: var(--gc-muted); }
+      .text-muted { color: var(--gc-muted); }
+      .border-muted { border-color: var(--gc-muted); }
+      .ring-muted { --tw-ring-color: var(--gc-muted); }
+      .bg-muted-foreground { background-color: var(--gc-muted-foreground); }
+      .text-muted-foreground { color: var(--gc-muted-foreground); }
+      .border-muted-foreground { border-color: var(--gc-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--gc-muted-foreground); }
+      .bg-accent { background-color: var(--gc-accent); }
+      .text-accent { color: var(--gc-accent); }
+      .border-accent { border-color: var(--gc-accent); }
+      .ring-accent { --tw-ring-color: var(--gc-accent); }
+      .bg-border { background-color: var(--gc-border); }
+      .text-border { color: var(--gc-border); }
+      .border-border { border-color: var(--gc-border); }
+      .ring-border { --tw-ring-color: var(--gc-border); }
+      .bg-input { background-color: var(--gc-input); }
+      .text-input { color: var(--gc-input); }
+      .border-input { border-color: var(--gc-input); }
+      .ring-input { --tw-ring-color: var(--gc-input); }
+      .bg-ring { background-color: var(--gc-ring); }
+      .text-ring { color: var(--gc-ring); }
+      .border-ring { border-color: var(--gc-ring); }
+      .ring-ring { --tw-ring-color: var(--gc-ring); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <main>
+    </main>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

@@ -1,0 +1,2628 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时限规则 · 草稿编辑中</title>
+    <style id="theme-vars">
+/* ============================================================
+   治理配置 Hi-Fi — 项目品牌 CSS（用户锁定 token，light-only）
+   城运 AI · 东城二期 · 治理配置模块
+   ============================================================ */
+
+:root {
+  /* ---- 基础色板（用户锁定） ---- */
+  --gc-bg: #F6F8FB;            /* 页面底色 */
+  --gc-panel: #FFFFFF;         /* 面板/卡片 */
+  --gc-text: #0F172A;          /* 主文本 */
+  --gc-muted: #64748B;         /* 次级文本 */
+  --gc-line: #E2E8F0;          /* 分隔线/描边 */
+  --gc-accent: #2F6BFF;        /* 品牌主蓝 */
+  --gc-accent-soft: #DCEBFF;   /* 主蓝浅底 */
+  --gc-func-green: #2E9B68;    /* 功能绿（生效/成功/治理基础蓝组补充） */
+  --gc-func-orange: #D98A20;   /* 功能橙（草稿/流程运行） */
+  --gc-func-red: #D94C4C;      /* 功能红（阻断/错误） */
+  --gc-func-purple: #7967D8;   /* 功能紫（配置管理组） */
+
+  /* ---- 衍生层级（保持同色系） ---- */
+  --gc-accent-hover: #1F5AE6;
+  --gc-accent-active: #174CBF;
+  --gc-bg-hover: #EEF2F8;
+  --gc-bg-active: #E2E9F5;
+  --gc-line-strong: #CBD5E1;
+  --gc-func-green-soft: #E6F4EC;
+  --gc-func-orange-soft: #FBF0DF;
+  --gc-func-red-soft: #FBE7E7;
+  --gc-func-purple-soft: #EEEBFA;
+  --gc-disabled-bg: #F1F5F9;
+  --gc-disabled-text: #94A3B8;
+
+  /* ---- 语义别名（apply-html-head-contract 必需） ---- */
+  --gc-background: var(--gc-bg);
+  --gc-foreground: var(--gc-text);
+  --gc-card: var(--gc-panel);
+  --gc-card-foreground: var(--gc-text);
+  --gc-popover: var(--gc-panel);
+  --gc-popover-foreground: var(--gc-text);
+  --gc-primary: var(--gc-accent);
+  --gc-primary-foreground: #FFFFFF;
+  --gc-muted: var(--gc-muted);
+  --gc-muted-foreground: var(--gc-muted);
+  --gc-border: var(--gc-line);
+  --gc-input: var(--gc-line);
+  --gc-ring: var(--gc-accent);
+
+  /* ---- 半径（用户锁定 8/10/14，上限 14 ≤16） ---- */
+  --gc-radius-small: 8px;
+  --gc-radius-medium: 10px;
+  --gc-radius-large: 14px;
+  --gc-radius-sm: var(--gc-radius-small);
+  --gc-radius-md: var(--gc-radius-medium);
+  --gc-radius-lg: var(--gc-radius-large);
+  --gc-radius-full: 9999px;
+
+  /* ---- 状态色语义 ---- */
+  --gc-state-success: var(--gc-func-green);
+  --gc-state-warning: var(--gc-func-orange);
+  --gc-state-error: var(--gc-func-red);
+  --gc-state-info: var(--gc-accent);
+
+  /* ---- 字体（系统 CJK 栈，不引外部字体） ---- */
+  --gc-font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Helvetica Neue", Arial, sans-serif;
+  --gc-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* ---- 排版体系 ---- */
+html.light body {
+  font-family: var(--gc-font-sans);
+  background: var(--gc-background);
+  color: var(--gc-foreground);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.gc-h1 { font-size: 20px; line-height: 1.3; font-weight: 600; color: var(--gc-foreground); letter-spacing: -0.01em; }
+.gc-h2 { font-size: 16px; line-height: 1.4; font-weight: 600; color: var(--gc-foreground); }
+.gc-h3 { font-size: 14px; line-height: 1.45; font-weight: 600; color: var(--gc-foreground); }
+.gc-body { font-size: 14px; line-height: 1.5; color: var(--gc-foreground); }
+.gc-body-sm { font-size: 13px; line-height: 1.5; color: var(--gc-foreground); }
+.gc-caption { font-size: 12px; line-height: 1.5; color: var(--gc-muted-foreground); }
+.gc-num { font-variant-numeric: tabular-nums; }
+
+    </style>
+
+
+    <style id="gc-static-tailwind">
+/* Precompiled Tailwind v4 base + used utilities (no runtime CDN).
+   Generated from @tailwindcss/node@4.3.3; candidates: antialiased,
+   font-sans, min-h-screen. Supersedes the former browser build block. */
+/*! tailwindcss v4.3.3 | MIT License | https://tailwindcss.com */
+@layer theme, base, components, utilities;
+@layer theme {
+  :root, :host {
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+      "Segoe UI Symbol", "Noto Color Emoji";
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      "Courier New", monospace;
+    --default-font-family: var(--font-sans);
+    --default-mono-font-family: var(--font-mono);
+  }
+}
+@layer base {
+  *, ::after, ::before, ::backdrop, ::file-selector-button {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid;
+  }
+  html, :host {
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    tab-size: 4;
+    font-family: var(--default-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji");
+    font-feature-settings: var(--default-font-feature-settings, normal);
+    font-variation-settings: var(--default-font-variation-settings, normal);
+    -webkit-tap-highlight-color: transparent;
+  }
+  hr {
+    height: 0;
+    color: inherit;
+    border-top-width: 1px;
+  }
+  abbr:where([title]) {
+    -webkit-text-decoration: underline dotted;
+    text-decoration: underline dotted;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+  a {
+    color: inherit;
+    -webkit-text-decoration: inherit;
+    text-decoration: inherit;
+  }
+  b, strong {
+    font-weight: bolder;
+  }
+  code, kbd, samp, pre {
+    font-family: var(--default-mono-font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+    font-feature-settings: var(--default-mono-font-feature-settings, normal);
+    font-variation-settings: var(--default-mono-font-variation-settings, normal);
+    font-size: 1em;
+  }
+  small {
+    font-size: 80%;
+  }
+  sub, sup {
+    font-size: 75%;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+  }
+  sub {
+    bottom: -0.25em;
+  }
+  sup {
+    top: -0.5em;
+  }
+  table {
+    text-indent: 0;
+    border-color: inherit;
+    border-collapse: collapse;
+  }
+  :-moz-focusring:where(:not(iframe)) {
+    outline: auto;
+  }
+  progress {
+    vertical-align: baseline;
+  }
+  summary {
+    display: list-item;
+  }
+  ol, ul, menu {
+    list-style: none;
+  }
+  img, svg, video, canvas, audio, iframe, embed, object {
+    display: block;
+    vertical-align: middle;
+  }
+  img, video {
+    max-width: 100%;
+    height: auto;
+  }
+  button, input, select, optgroup, textarea, ::file-selector-button {
+    font: inherit;
+    font-feature-settings: inherit;
+    font-variation-settings: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    border-radius: 0;
+    background-color: transparent;
+    opacity: 1;
+  }
+  :where(select:is([multiple], [size])) optgroup {
+    font-weight: bolder;
+  }
+  :where(select:is([multiple], [size])) optgroup option {
+    padding-inline-start: 20px;
+  }
+  ::file-selector-button {
+    margin-inline-end: 4px;
+  }
+  ::placeholder {
+    opacity: 1;
+  }
+  @supports (not (-webkit-appearance: -apple-pay-button))  or (contain-intrinsic-size: 1px) {
+    ::placeholder {
+      color: currentcolor;
+      @supports (color: color-mix(in lab, red, red)) {
+        color: color-mix(in oklab, currentcolor 50%, transparent);
+      }
+    }
+  }
+  textarea {
+    resize: vertical;
+  }
+  ::-webkit-search-decoration {
+    -webkit-appearance: none;
+  }
+  ::-webkit-date-and-time-value {
+    min-height: 1lh;
+    text-align: inherit;
+  }
+  ::-webkit-datetime-edit {
+    display: inline-flex;
+  }
+  ::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+  }
+  ::-webkit-datetime-edit, ::-webkit-datetime-edit-year-field, ::-webkit-datetime-edit-month-field, ::-webkit-datetime-edit-day-field, ::-webkit-datetime-edit-hour-field, ::-webkit-datetime-edit-minute-field, ::-webkit-datetime-edit-second-field, ::-webkit-datetime-edit-millisecond-field, ::-webkit-datetime-edit-meridiem-field {
+    padding-block: 0;
+  }
+  ::-webkit-calendar-picker-indicator {
+    line-height: 1;
+  }
+  :-moz-ui-invalid {
+    box-shadow: none;
+  }
+  button, input:where([type="button"], [type="reset"], [type="submit"]), ::file-selector-button {
+    appearance: button;
+  }
+  ::-webkit-inner-spin-button, ::-webkit-outer-spin-button {
+    height: auto;
+  }
+  [hidden]:where(:not([hidden="until-found"])) {
+    display: none !important;
+  }
+}
+@layer utilities {
+  .min-h-screen {
+    min-height: 100vh;
+  }
+  .font-sans {
+    font-family: var(--font-sans);
+  }
+  .antialiased {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+@layer base {
+  body {
+    background: var(--gc-background);
+    color: var(--gc-foreground);
+  }
+  td, th {
+    overflow-wrap: break-word;
+    word-break: break-all;
+    word-break: auto-phrase;
+  }
+  th {
+    white-space: nowrap;
+  }
+}
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--gc-background); }
+      .text-background { color: var(--gc-background); }
+      .border-background { border-color: var(--gc-background); }
+      .ring-background { --tw-ring-color: var(--gc-background); }
+      .bg-foreground { background-color: var(--gc-foreground); }
+      .text-foreground { color: var(--gc-foreground); }
+      .border-foreground { border-color: var(--gc-foreground); }
+      .ring-foreground { --tw-ring-color: var(--gc-foreground); }
+      .bg-card { background-color: var(--gc-card); }
+      .text-card { color: var(--gc-card); }
+      .border-card { border-color: var(--gc-card); }
+      .ring-card { --tw-ring-color: var(--gc-card); }
+      .bg-card-foreground { background-color: var(--gc-card-foreground); }
+      .text-card-foreground { color: var(--gc-card-foreground); }
+      .border-card-foreground { border-color: var(--gc-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--gc-card-foreground); }
+      .bg-popover { background-color: var(--gc-popover); }
+      .text-popover { color: var(--gc-popover); }
+      .border-popover { border-color: var(--gc-popover); }
+      .ring-popover { --tw-ring-color: var(--gc-popover); }
+      .bg-popover-foreground { background-color: var(--gc-popover-foreground); }
+      .text-popover-foreground { color: var(--gc-popover-foreground); }
+      .border-popover-foreground { border-color: var(--gc-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--gc-popover-foreground); }
+      .bg-primary { background-color: var(--gc-primary); }
+      .text-primary { color: var(--gc-primary); }
+      .border-primary { border-color: var(--gc-primary); }
+      .ring-primary { --tw-ring-color: var(--gc-primary); }
+      .bg-primary-foreground { background-color: var(--gc-primary-foreground); }
+      .text-primary-foreground { color: var(--gc-primary-foreground); }
+      .border-primary-foreground { border-color: var(--gc-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--gc-primary-foreground); }
+      .bg-muted { background-color: var(--gc-muted); }
+      .text-muted { color: var(--gc-muted); }
+      .border-muted { border-color: var(--gc-muted); }
+      .ring-muted { --tw-ring-color: var(--gc-muted); }
+      .bg-muted-foreground { background-color: var(--gc-muted-foreground); }
+      .text-muted-foreground { color: var(--gc-muted-foreground); }
+      .border-muted-foreground { border-color: var(--gc-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--gc-muted-foreground); }
+      .bg-accent { background-color: var(--gc-accent); }
+      .text-accent { color: var(--gc-accent); }
+      .border-accent { border-color: var(--gc-accent); }
+      .ring-accent { --tw-ring-color: var(--gc-accent); }
+      .bg-border { background-color: var(--gc-border); }
+      .text-border { color: var(--gc-border); }
+      .border-border { border-color: var(--gc-border); }
+      .ring-border { --tw-ring-color: var(--gc-border); }
+      .bg-input { background-color: var(--gc-input); }
+      .text-input { color: var(--gc-input); }
+      .border-input { border-color: var(--gc-input); }
+      .ring-input { --tw-ring-color: var(--gc-input); }
+      .bg-ring { background-color: var(--gc-ring); }
+      .text-ring { color: var(--gc-ring); }
+      .border-ring { border-color: var(--gc-ring); }
+      .ring-ring { --tw-ring-color: var(--gc-ring); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+<style id="critical-layout">
+/* ============================================================
+   治理配置 Hi-Fi — Shared Project Shell (Critical Layout CSS)
+   Static CSS — no Tailwind runtime dependency.
+   All tokens reference project-local colors_and_type.css (--gc-* prefix).
+   Viewport: 1920×1080 desktop, app-shell mode.
+   ============================================================ */
+
+/* ---- Shell grid ---- */
+.gc-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--gc-bg);
+  font-family: var(--gc-font-sans);
+  color: var(--gc-text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Topbar (56px fixed) ---- */
+.gc-shell-topbar {
+  height: 56px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: var(--gc-panel);
+  border-bottom: 1px solid var(--gc-line);
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+}
+
+.gc-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.gc-topbar-brand {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gc-text);
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
+.gc-topbar-center {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.gc-top-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--gc-muted);
+  text-decoration: none;
+  border-radius: var(--gc-radius-small);
+  transition: color 0.15s cubic-bezier(.2,.8,.2,1), background-color 0.15s cubic-bezier(.2,.8,.2,1);
+  white-space: nowrap;
+}
+.gc-top-tab:hover {
+  color: var(--gc-text);
+  background: var(--gc-bg-hover);
+}
+.gc-top-tab:focus-visible {
+  outline: 2px solid var(--gc-accent);
+  outline-offset: -2px;
+}
+.gc-top-tab--active {
+  background: var(--gc-accent-soft);
+  color: var(--gc-accent);
+  font-weight: 600;
+}
+.gc-top-tab--active:hover {
+  background: var(--gc-accent-soft);
+  color: var(--gc-accent);
+}
+
+.gc-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.gc-role-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--gc-muted);
+  background: transparent;
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius-small);
+  cursor: pointer;
+  transition: color 0.15s cubic-bezier(.2,.8,.2,1), border-color 0.15s cubic-bezier(.2,.8,.2,1);
+  font-family: inherit;
+}
+.gc-role-switch:hover {
+  color: var(--gc-text);
+  border-color: var(--gc-line-strong);
+}
+.gc-role-switch:focus-visible {
+  outline: 2px solid var(--gc-accent);
+  outline-offset: -1px;
+}
+.gc-role-switch .gc-caret {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.gc-identity-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  background: var(--gc-accent-soft);
+  color: var(--gc-accent);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 10px;
+  white-space: nowrap;
+}
+
+/* ---- Shell body (sidebar + workspace) ---- */
+.gc-shell-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ---- Sidebar (380px fixed) ---- */
+.gc-shell-sidebar {
+  width: 300px;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  background: var(--gc-panel);
+  border-right: 1px solid var(--gc-line);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.gc-sidebar-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--gc-line);
+  flex-shrink: 0;
+}
+.gc-sidebar-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.gc-sidebar-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gc-text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.gc-version-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--gc-func-green);
+  background: var(--gc-func-green-soft);
+  border-radius: 9999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.gc-shell-sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0 8px;
+}
+
+.gc-nav-group {
+  margin-bottom: 2px;
+}
+.gc-nav-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 20px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.gc-nav-group-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.gc-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px 10px 16px;
+  min-height: 40px;
+  text-decoration: none;
+  color: var(--gc-text);
+  position: relative;
+  transition: background-color 0.15s cubic-bezier(.2,.8,.2,1);
+}
+.gc-nav-item:hover {
+  background: var(--gc-bg-hover);
+}
+.gc-nav-item:focus-visible {
+  outline: 2px solid var(--gc-accent);
+  outline-offset: -2px;
+}
+.gc-nav-bar {
+  width: 4px;
+  height: 16px;
+  border-radius: 2px;
+  background: transparent;
+  flex-shrink: 0;
+  transition: background-color 0.15s cubic-bezier(.2,.8,.2,1);
+}
+.gc-nav-item--active {
+  background: var(--gc-bg-active);
+  font-weight: 600;
+}
+.gc-nav-item--active .gc-nav-bar {
+  background: var(--gc-accent);
+}
+.gc-nav-label {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.gc-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 9999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.gc-badge-published {
+  color: var(--gc-func-green);
+  background: var(--gc-func-green-soft);
+}
+.gc-badge-draft {
+  color: var(--gc-func-orange);
+  background: var(--gc-func-orange-soft);
+}
+
+/* ---- Workspace (flex-1) ---- */
+.gc-shell-workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--gc-bg);
+  min-width: 0;
+}
+
+.gc-workspace-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 24px 16px;
+  background: var(--gc-panel);
+  border-bottom: 1px solid var(--gc-line);
+  flex-shrink: 0;
+}
+.gc-workspace-header-main {
+  flex: 1;
+  min-width: 0;
+}
+.gc-workspace-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.gc-workspace-banner-slot {
+  flex-shrink: 0;
+}
+
+.gc-shell-workspace-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px;
+}
+
+.gc-shell-footer {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 24px;
+  background: var(--gc-panel);
+  border-top: 1px solid var(--gc-line);
+  flex-shrink: 0;
+}
+
+/* ---- Scrollbar styling (sidebar + workspace) ---- */
+.gc-shell-sidebar-nav::-webkit-scrollbar,
+.gc-shell-workspace-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.gc-shell-sidebar-nav::-webkit-scrollbar-thumb,
+.gc-shell-workspace-scroll::-webkit-scrollbar-thumb {
+  background: var(--gc-line-strong);
+  border-radius: 3px;
+}
+.gc-shell-sidebar-nav::-webkit-scrollbar-track,
+.gc-shell-workspace-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .gc-top-tab,
+  .gc-nav-item,
+  .gc-nav-bar,
+  .gc-role-switch {
+    transition: none;
+  }
+}
+</style>
+
+<style id="page-css">
+/* ============================================================
+   P32 时限规则 · 生效只读 — 页面自有样式
+   只用 --gc-* 令牌；静态 CSS，无运行时依赖。
+   ============================================================ */
+
+/* ---- 顶栏身份区 ---- */
+.gc-identity-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gc-text);
+  white-space: nowrap;
+}
+
+/* ---- 页头 ---- */
+.gc-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--gc-muted);
+  margin: 0 0 8px;
+}
+.gc-breadcrumb-sep { color: var(--gc-line-strong); }
+.gc-page-impact {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--gc-muted);
+}
+.gc-page-meta {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--gc-muted);
+}
+.gc-meta-draft {
+  color: var(--gc-func-orange);
+  font-weight: 500;
+}
+
+/* ---- 未发布草稿横幅（橙色细条） ---- */
+.gc-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px;
+  background: var(--gc-func-orange-soft);
+  border-bottom: 1px solid var(--gc-line);
+}
+.gc-banner-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--gc-func-orange);
+}
+.gc-banner-text {
+  font-size: 13px;
+  color: var(--gc-text);
+  min-width: 0;
+}
+.gc-banner-link {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gc-func-orange);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.gc-banner-link:hover { text-decoration: underline; }
+.gc-banner-link:focus-visible {
+  outline: 2px solid var(--gc-func-orange);
+  outline-offset: 2px;
+}
+
+/* ---- 正文区块 ---- */
+.gc-section + .gc-section { margin-top: 16px; }
+.gc-card {
+  background: var(--gc-panel);
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius-large);
+}
+
+/* ---- 1. 筛选条（生效只读，禁用示意） ---- */
+.gc-filter-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+}
+.gc-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gc-filter-label {
+  font-size: 13px;
+  color: var(--gc-muted);
+  white-space: nowrap;
+}
+.gc-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: not-allowed;
+}
+.gc-select select {
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--gc-muted);
+  background: var(--gc-disabled-bg);
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius-small);
+  padding: 6px 32px 6px 12px;
+  cursor: not-allowed;
+}
+.gc-select-caret {
+  position: absolute;
+  right: 10px;
+  width: 12px;
+  height: 12px;
+  color: var(--gc-disabled-text);
+  pointer-events: none;
+}
+.gc-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--gc-bg);
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius-medium);
+}
+.gc-tab {
+  appearance: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--gc-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--gc-radius-small);
+  padding: 5px 14px;
+  cursor: not-allowed;
+  white-space: nowrap;
+}
+.gc-tab--active {
+  background: var(--gc-accent-soft);
+  color: var(--gc-accent);
+  font-weight: 600;
+}
+.gc-filter-hint {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--gc-muted);
+  white-space: nowrap;
+}
+.gc-filter-hint-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+/* ---- 2. 时限矩阵表 ---- */
+.gc-table-card { overflow: hidden; }
+.gc-table-wrap { overflow-x: auto; }
+.gc-sla-table {
+  width: 100%;
+  min-width: 880px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.gc-sla-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gc-muted);
+  background: var(--gc-bg);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--gc-line);
+  white-space: nowrap;
+}
+.gc-sla-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--gc-line);
+  color: var(--gc-text);
+  vertical-align: middle;
+}
+.gc-cell-type { font-weight: 500; }
+.gc-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: var(--gc-radius-full);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.gc-tag--normal {
+  color: var(--gc-muted);
+  background: var(--gc-bg-hover);
+}
+.gc-tag--urgent {
+  color: var(--gc-func-red);
+  background: var(--gc-func-red-soft);
+}
+.gc-tag--supervise {
+  color: var(--gc-func-orange);
+  background: var(--gc-func-orange-soft);
+}
+.gc-act-plain { color: var(--gc-muted); }
+.gc-table-footnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 20px;
+}
+.gc-footnote-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--gc-muted);
+  margin-top: 2px;
+}
+.gc-footnote-main {
+  margin: 0;
+  font-size: 13px;
+  color: var(--gc-text);
+}
+.gc-footnote-sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--gc-muted);
+}
+
+/* ---- 3. 异常监控说明卡 ---- */
+.gc-chain-card { padding: 16px 20px; }
+.gc-chain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.gc-chain-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--gc-bg);
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius-medium);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gc-text);
+  white-space: nowrap;
+}
+.gc-chain-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.gc-chain-arrow {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--gc-muted);
+}
+.gc-chain-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--gc-muted);
+}
+
+/* ---- 底部动作条 ---- */
+.gc-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  background: var(--gc-accent);
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--gc-radius-small);
+  text-decoration: none;
+  transition: background-color 0.15s cubic-bezier(.2,.8,.2,1);
+}
+.gc-btn-primary:hover { background: var(--gc-accent-hover); }
+.gc-btn-primary:focus-visible {
+  outline: 2px solid var(--gc-accent);
+  outline-offset: 2px;
+}
+.gc-btn-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gc-btn-primary { transition: none; }
+}
+</style>
+
+<!-- ============================================================
+     SeeTime 城运AI · 治理配置 — Shared Project Shell
+     Fragment only: no <html>/<head>/<body>. All leaf pages inherit this.
+     Shared regions: topbar, sidebar, workspace frame.
+     ============================================================ -->
+<style id="gc-sla-guard-css">
+/* ---- 共享组件（本页补齐：状态胶囊 / 行内按钮 / 操作列） ---- */
+.gc-td-actions { white-space: nowrap; }
+.gc-td-actions > * + * { margin-left: 8px; }
+.gc-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  border-radius: var(--gc-radius-full);
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+.gc-chip--on { color: var(--gc-func-green); background: var(--gc-func-green-soft); }
+.gc-chip--off { color: var(--gc-disabled-text); background: var(--gc-disabled-bg); }
+.gc-chip--block { color: var(--gc-func-red); background: var(--gc-func-red-soft); }
+.gc-chip--finer { color: var(--gc-accent); background: var(--gc-accent-soft); }
+.gc-btn-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--gc-accent);
+  background: transparent;
+  border: 1px solid var(--gc-line);
+  border-radius: var(--gc-radius-small);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s cubic-bezier(.2,.8,.2,1), background-color 0.15s cubic-bezier(.2,.8,.2,1), border-color 0.15s cubic-bezier(.2,.8,.2,1);
+}
+.gc-btn-link:hover { color: var(--gc-accent); background: var(--gc-accent-soft); border-color: var(--gc-accent-soft); }
+.gc-btn-link:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 1px; }
+.gc-btn-link--disabled,
+.gc-btn-link--disabled:hover { color: var(--gc-disabled-text); background: var(--gc-disabled-bg); border-color: var(--gc-line); cursor: not-allowed; }
+.gc-btn-link--danger { color: var(--gc-func-red); }
+.gc-btn-link--danger:hover { color: var(--gc-func-red); background: var(--gc-func-red-soft); border-color: var(--gc-func-red-soft); }
+.gc-btn-secondary { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--gc-radius-small); border: 1px solid var(--gc-line-strong); background: var(--gc-panel); color: var(--gc-text); font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; text-decoration: none; white-space: nowrap; }
+.gc-btn-secondary:hover { background: var(--gc-bg-hover); }
+.gc-btn-secondary:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-btn-secondary svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* ---- 全局计时口径：改为可维护列表（基础样式见 gc-crud-base-css / gc-crud-css） ---- */
+
+/* ---- 区域口径：更细优先 ---- */
+.gc-sla-priority { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 20px; border-bottom: 1px solid var(--gc-line); background: var(--gc-bg); font-size: 12px; color: var(--gc-muted); }
+.gc-sla-priority strong { color: var(--gc-text); font-weight: 600; }
+.gc-sla-arrow { color: var(--gc-disabled-text); }
+
+/* ---- 行级标记 ---- */
+.gc-sla-row--conflict td { background: var(--gc-func-red-soft); }
+.gc-sla-row--shadowed td { background: var(--gc-bg-hover); color: var(--gc-muted); }
+.gc-sla-row--new td { box-shadow: inset 3px 0 0 0 var(--gc-func-orange); }
+.gc-sla-flag { display: block; margin-top: 4px; font-size: 11px; font-weight: 500; line-height: 1.5; }
+.gc-sla-flag--block { color: var(--gc-func-red); }
+.gc-sla-flag--finer { color: var(--gc-accent); }
+.gc-sla-flag--muted { color: var(--gc-muted); }
+.gc-sla-src { font-size: 11px; color: var(--gc-func-orange); }
+
+/* ---- 结论 / 阻断 ---- */
+.gc-sla-verdict-wrap { padding: 12px 20px 4px; }
+.gc-sla-verdict { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: var(--gc-radius-medium); font-size: 13px; }
+.gc-sla-verdict--ok { background: var(--gc-func-green-soft); color: var(--gc-func-green); }
+.gc-sla-verdict--warn { background: var(--gc-func-orange-soft); color: var(--gc-func-orange); }
+.gc-sla-verdict--block { background: var(--gc-func-red-soft); color: var(--gc-func-red); }
+.gc-sla-verdict-ico { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+.gc-sla-verdict-main { margin: 0; font-weight: 600; }
+.gc-sla-verdict-sub { margin: 4px 0 0; font-size: 12px; line-height: 1.6; }
+
+/* ---- 底部动作条 ---- */
+.gc-shell-footer-note { margin: 0 auto 0 0; font-size: 12px; color: var(--gc-muted); }
+.gc-shell-footer-note--block { color: var(--gc-func-red); font-weight: 500; }
+.gc-btn-primary[disabled] { background: var(--gc-disabled-bg); color: var(--gc-disabled-text); cursor: not-allowed; }
+.gc-btn-primary[disabled]:hover { background: var(--gc-disabled-bg); }
+
+/* ---- banner 阻断 / 一致态 ---- */
+.gc-banner.gc-sla-banner--block { background: var(--gc-func-red-soft); }
+.gc-banner.gc-sla-banner--block .gc-banner-icon,
+.gc-banner.gc-sla-banner--block .gc-banner-link { color: var(--gc-func-red); }
+.gc-banner.gc-sla-banner--block .gc-banner-link:focus-visible { outline-color: var(--gc-func-red); }
+.gc-banner.gc-sla-banner--muted { background: var(--gc-bg-hover); }
+.gc-banner.gc-sla-banner--muted .gc-banner-icon,
+.gc-banner.gc-sla-banner--muted .gc-banner-link { color: var(--gc-muted); }
+
+/* ---- toast ---- */
+.gc-sla-toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 60; display: none; max-width: 640px; padding: 10px 16px; border-radius: var(--gc-radius-medium); background: var(--gc-text); color: #FFFFFF; font-size: 13px; line-height: 1.6; }
+.gc-sla-toast--show { display: block; }
+
+/* ---- 启用开关 ---- */
+.gc-switch { position: relative; display: inline-block; width: 40px; height: 22px; border-radius: 9999px; background: var(--gc-line-strong); cursor: pointer; flex-shrink: 0; vertical-align: middle; }
+.gc-switch-knob { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 9999px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05); }
+.gc-switch--on { background: var(--gc-accent); }
+.gc-switch--on .gc-switch-knob { left: 20px; }
+.gc-switch:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-switch[aria-disabled="true"] { cursor: not-allowed; opacity: 0.6; }
+@media (prefers-reduced-motion: reduce) {
+  .gc-btn-link { transition: none; }
+}
+
+/* ---- 口径卡脚注已并入 .gc-card-foot ---- */
+
+/* ---- 启用列 / 提醒列 ---- */
+.gc-sla-table { min-width: 1180px; }
+.gc-sla-td-enable { white-space: nowrap; }
+.gc-sla-enable-cell,
+.gc-sla-remind-cell { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.gc-sla-remind-cell .gc-sla-flag { margin-top: 0; }
+.gc-sla-remind-none { color: var(--gc-disabled-text); }
+.gc-sla-remind-sub { font-size: 11px; color: var(--gc-muted); }
+.gc-sla-flag:empty { display: none; }
+
+/* ---- 区域优先提示条 ---- */
+.gc-sla-priority svg { width: 14px; height: 14px; flex-shrink: 0; color: var(--gc-muted); }
+
+/* ---- 全局口径：单选已移除，改为列表行 ---- */
+
+/* ---- 结论块补充 ---- */
+.gc-sla-verdict-body { flex: 1; min-width: 0; }
+.gc-sla-verdict-fix { margin-top: 10px; }
+.gc-sla-verdict--ok .gc-sla-verdict-fix { display: none; }
+.gc-sla-verdict--ok .gc-sla-verdict-main { color: var(--gc-func-green); }
+</style>
+<style id="draft-css">.gc-diff-mark{display:inline-block;margin-left:6px;font-size:11px;font-weight:500;color:var(--gc-func-orange);background:var(--gc-func-orange-soft);border-radius:9999px;padding:1px 8px;vertical-align:1px;}</style>
+<style id="shell-collapse-css">
+.gc-collapse-btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: none; background: transparent; color: var(--gc-muted); cursor: pointer; padding: 0; border-radius: 6px; flex-shrink: 0; }
+.gc-collapse-btn:hover { color: var(--gc-text); background: var(--gc-bg-hover); }
+.gc-collapse-btn:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-collapse-btn svg { width: 15px; height: 15px; }
+.gc-shell-sidebar { transition: width 0.18s cubic-bezier(.2,.8,.2,1), min-width 0.18s cubic-bezier(.2,.8,.2,1); }
+
+/* 收起态：64px 图标栏（名称悬浮提示） */
+.gc-shell-body.gc-rail .gc-shell-sidebar { width: 64px; min-width: 64px; }
+.gc-shell-body.gc-rail .gc-sidebar-header { padding: 12px 0 10px; }
+.gc-shell-body.gc-rail .gc-sidebar-header-row { flex-direction: column; gap: 6px; }
+.gc-shell-body.gc-rail .gc-sidebar-title, .gc-shell-body.gc-rail .gc-version-badge { display: none; }
+.gc-shell-body.gc-rail .gc-nav-group-title { justify-content: center; padding: 10px 0 4px; }
+.gc-shell-body.gc-rail .gc-nav-group-name { display: none; }
+.gc-shell-body.gc-rail .gc-nav-item { justify-content: center; padding: 10px 0; margin: 2px 14px; }
+.gc-shell-body.gc-rail .gc-nav-bar, .gc-shell-body.gc-rail .gc-nav-label, .gc-shell-body.gc-rail .gc-nav-badge { display: none; }
+
+/* 模块图标 */
+.gc-nav-ico { width: 16px; height: 16px; color: var(--gc-muted); flex-shrink: 0; display: inline-flex; }
+.gc-nav-ico svg { width: 16px; height: 16px; }
+.gc-nav-item--active .gc-nav-ico { color: var(--gc-accent); }
+
+/* SaaS 视觉打磨 */
+.gc-shell-sidebar { width: 300px; min-width: 300px; background: #F7F9FC; }
+.gc-nav-item { margin: 2px 10px; padding: 9px 12px; border-radius: 8px; }
+.gc-nav-item--active { background: var(--gc-accent-soft); }
+.gc-nav-item--active .gc-nav-label { color: var(--gc-accent); }
+.gc-card { border-radius: 12px; box-shadow: 0 1px 2px rgba(15,23,42,0.04); }
+.gc-page-title { font-size: 18px; }
+.gc-table thead th { background: #F7F9FC; }
+.gc-table tbody tr:hover td { background: rgba(50,109,255,0.04); }
+.gc-topbar-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
+.gc-brand-mark { width: 20px; height: 20px; border-radius: 6px; background: linear-gradient(135deg, var(--gc-accent), #5B8CFF); display: inline-flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+@media (prefers-reduced-motion: reduce) { .gc-shell-sidebar { transition: none; } }
+</style>
+<div class="gc-shell">
+
+  <!-- ======== 1. 顶部全局导航 (height 56px) ======== -->
+  <header class="gc-shell-topbar">
+
+    <!-- 左：品牌名 -->
+    <div class="gc-topbar-left">
+      <span class="gc-topbar-brand"><span class="gc-brand-mark" aria-hidden="true">城</span>SeeTime 城运AI</span>
+    </div>
+
+    <!-- 中：六模块tab水平排列 -->
+    <nav class="gc-topbar-center" aria-label="全局模块导航">
+      <a href="#" class="gc-top-tab">治理大屏</a>
+      <a href="#" class="gc-top-tab">AI实时治理</a>
+      <a href="#" class="gc-top-tab">事件档案</a>
+      <a href="#" class="gc-top-tab">AI统计</a>
+      <a href="#" class="gc-top-tab">AI工作台</a>
+      <a href="#" class="gc-top-tab gc-top-tab--active" aria-current="page">治理配置</a>
+    </nav>
+
+    <!-- 右：角色身份区 -->
+    <div class="gc-topbar-right">
+      <button type="button" class="gc-role-switch" data-dom-id="role-switch" aria-haspopup="listbox" aria-expanded="false">
+        <span>切换角色</span>
+        <svg class="gc-caret" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="gc-identity-name">王倩</span>
+      <span class="gc-identity-badge">全局协调</span>
+    </div>
+
+  </header>
+
+  <!-- ======== Shell body: sidebar + workspace ======== -->
+  <div class="gc-shell-body">
+
+    <!-- ======== 2. 左侧模块导航栏 (width 380px) ======== -->
+    <aside class="gc-shell-sidebar">
+
+      <!-- 顶部标题区 -->
+      <div class="gc-sidebar-header">
+        <div class="gc-sidebar-header-row">
+          <div class="gc-sidebar-title">治理配置</div>
+          <button type="button" class="gc-collapse-btn" data-dom-id="sidebar-toggle" aria-expanded="true" aria-label="收起左侧导航" title="收起左侧导航"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/></svg></button>
+          <span class="gc-version-badge">V2026.08.18</span>
+        </div>
+      </div>
+
+      <!-- 分组筛选 + 模块列表 (flex-1 overflow-y-auto) -->
+      <nav class="gc-shell-sidebar-nav" aria-label="治理配置模块导航">
+
+        <!-- Group 1: 治理基础 (蓝 var(--gc-accent)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-accent);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-accent);"></span><span class="gc-nav-group-name">治理基础</span>
+          </div>
+          <a href="org-permission-live.html" data-dom-id="nav-org-permission-live" title="组织与权限" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+            <span class="gc-nav-label">组织与权限</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+          <a href="space-responsibility-live.html" data-dom-id="nav-space-responsibility-live" title="空间与责任" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span>
+            <span class="gc-nav-label">空间与责任</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+          <a href="event-standard-live.html" data-dom-id="nav-event-standard-live" title="事件标准" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg></span>
+            <span class="gc-nav-label">事件标准</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+        </div>
+
+        <!-- Group 2: 流程运行 (橙 var(--gc-func-orange)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-func-orange);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-func-orange);"></span><span class="gc-nav-group-name">流程运行</span>
+          </div>
+          <a href="lifecycle-live.html" data-dom-id="nav-lifecycle" title="生命周期" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span>
+            <span class="gc-nav-label">生命周期</span>
+            <span class="gc-nav-badge gc-badge-draft">草稿</span>
+          </a>
+          <a href="sla-matrix-live.html" data-dom-id="nav-sla-matrix-live" title="时限规则" class="gc-nav-item gc-nav-item--active" aria-current="page">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
+            <span class="gc-nav-label">时限规则</span>
+            <span class="gc-nav-badge gc-badge-draft">草稿</span>
+          </a>
+          <a href="dispatch-claim-live.html" data-dom-id="nav-dispatch-claim-live" title="派工与认领" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>
+            <span class="gc-nav-label">派工与认领</span>
+            <span class="gc-nav-badge gc-badge-draft">草稿</span>
+          </a>
+        </div>
+
+        <!-- Group 3: 持续治理 (绿 var(--gc-func-green)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-func-green);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-func-green);"></span><span class="gc-nav-group-name">持续治理</span>
+          </div>
+          <a href="dedup-recurrence-live.html" data-dom-id="nav-dedup-recurrence-live" title="查重复发" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span>
+            <span class="gc-nav-label">查重复发</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+          <a href="metric-caliber-live.html" data-dom-id="nav-metric-caliber-live" title="评价口径" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></span>
+            <span class="gc-nav-label">评价口径</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+        </div>
+
+        <!-- Group 4: 配置管理 (紫 var(--gc-func-purple)) -->
+        <div class="gc-nav-group">
+          <div class="gc-nav-group-title" style="color: var(--gc-func-purple);">
+            <span class="gc-nav-group-dot" style="background: var(--gc-func-purple);"></span><span class="gc-nav-group-name">配置管理</span>
+          </div>
+          <a href="publish-draft-review.html" data-dom-id="nav-publish-draft-review" title="发布与审计" class="gc-nav-item">
+            <span class="gc-nav-bar"></span><span class="gc-nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></span>
+            <span class="gc-nav-label">发布与审计</span>
+            <span class="gc-nav-badge gc-badge-published">已发布</span>
+          </a>
+        </div>
+
+      </nav>
+
+    </aside>
+
+    <!-- ======== 3. 右侧工作区框架 (flex-1, flex-col) ======== -->
+    <main class="gc-shell-workspace">
+
+      <!-- 页头: 标题 + 动作区 (fixed, 不滚动) -->
+      <div class="gc-workspace-header">
+        <div class="gc-workspace-header-main">
+          <nav class="gc-breadcrumb" aria-label="面包屑">
+            <span>治理配置</span>
+            <span class="gc-breadcrumb-sep" aria-hidden="true">/</span>
+            <span>时限规则</span>
+          </nav>
+          <h1 class="gc-h1 gc-page-title">时限与异常监控</h1>
+          <p class="gc-page-impact">时限矩阵约束每类事件的立案、处置、核查、结案节奏。</p>
+          <p class="gc-page-meta">编辑中 · 基于 生效版本 V2026.08.18 · 修改人 全局协调 · 王倩 · 2026-08-19 09:35</p>
+        </div>
+        <div class="gc-workspace-header-actions">
+        </div>
+      </div>
+
+      <!-- 横幅区 (fixed, 不滚动) -->
+      <div class="gc-workspace-banner-slot">
+        <div class="gc-banner" role="status" data-gc-sla-banner>
+          <svg class="gc-banner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span class="gc-banner-text" data-gc-sla-banner-text>草稿不可发布：共享单车乱停放 × 一般 × 网格·东华门-03 存在 2 条启用行。</span>
+          <a class="gc-banner-link" href="sla-matrix-live.html" data-dom-id="back-sla-matrix-live">对比生效版</a>
+        </div>
+      </div>
+
+      <!-- 正文内容区 (可滚动) -->
+      <div class="gc-shell-workspace-scroll">
+
+        <!-- 1. 筛选条（生效只读，禁用视觉示意） -->
+        <section class="gc-section" aria-label="时限筛选">
+          <div class="gc-card gc-filter-card">
+            <div class="gc-filter-group">
+              <label class="gc-filter-label" for="sla-filter-type">事件类型</label>
+              <span class="gc-select">
+                <select id="sla-filter-type" disabled aria-label="事件类型筛选（生效版只读）">
+                  <option selected>全部类型</option>
+                  <option>道路秩序</option>
+                  <option>环境卫生</option>
+                  <option>广告标识</option>
+                </select>
+                <svg class="gc-select-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </span>
+            </div>
+            <div class="gc-filter-group">
+              <label class="gc-filter-label" for="sla-filter-level">等级</label>
+              <span class="gc-select">
+                <select id="sla-filter-level" disabled aria-label="等级筛选（生效版只读）">
+                  <option selected>全部</option>
+                  <option>紧急</option>
+                  <option>一般</option>
+                </select>
+                <svg class="gc-select-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </span>
+            </div>
+            <div class="gc-filter-group">
+              <span class="gc-filter-label" id="sla-region-label">区域维度</span>
+              <div class="gc-tabs" role="group" aria-labelledby="sla-region-label">
+                <button type="button" class="gc-tab gc-tab--active" disabled aria-pressed="true">全区</button>
+                <button type="button" class="gc-tab" disabled>街道</button>
+                <button type="button" class="gc-tab" disabled>网格</button>
+              </div>
+            </div>
+            <span class="gc-filter-hint">
+              <svg class="gc-filter-hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              先筛类型，再看等级
+            </span>
+          </div>
+        </section>
+
+        <!-- 2. 全局计时口径（可维护列表：新增 / 编辑 / 删除 / 启用·停用） -->
+        <section class="gc-section" aria-label="全局计时口径">
+          <div class="gc-card" data-gc-crud="sla-caliber" data-gc-crud-name="计时口径项"
+            data-gc-crud-fields='[{"k":"item","label":"口径项","kind":"name","required":true,"primary":true,"ph":"如 计时起点"},{"k":"value","label":"取值","ph":"如 派发成功时刻"},{"k":"scope","label":"适用范围","type":"select","options":["全平台","时限矩阵","事件页"],"def":"全平台"},{"k":"note","label":"说明","full":true,"ph":"可留空"}]'
+            data-gc-crud-note="计时口径不再是一条全局单例，按行维护；改动写入草稿，发布前须经平台口径校验。">
+            <header class="gc-card-head">
+              <h2 class="gc-card-title" id="gc-cal-title">全局计时口径</h2>
+              <span class="gc-card-note">一行一条口径项 · 不再是「仅一套」只读值</span>
+            </header>
+            <div class="gc-toolbar">
+              <div class="gc-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                <input type="text" id="gc-q-sla-caliber" placeholder="搜索口径项 / 取值 / 说明" aria-label="搜索计时口径项" data-gc-crud-q>
+                <button type="button" class="gc-btn-ghost" data-gc-crud-search>查询</button>
+              </div>
+              <button type="button" class="gc-btn-primary" data-gc-crud-new>＋ 新增口径项</button>
+            </div>
+            <div class="gc-table-scroll">
+              <table class="gc-table" data-gc-crud-table>
+                <thead><tr><th>口径项</th><th>取值</th><th>适用范围</th><th>说明</th><th>状态</th><th class="gc-th-actions">操作</th></tr></thead>
+                <tbody>
+                  <tr data-gc-row>
+                    <td class="gc-td-name" data-col="item" data-primary>计时起点</td>
+                    <td data-col="value">派发成功时刻</td>
+                    <td data-col="scope">全平台</td>
+                    <td data-col="note">不是事件发现时间，也不是点击立案的时刻。</td>
+                    <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+                    <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+                  </tr>
+                  <tr data-gc-row>
+                    <td class="gc-td-name" data-col="item" data-primary>外部等待（部门回退、外场核查等待）</td>
+                    <td data-col="value">冻结计时</td>
+                    <td data-col="scope">时限矩阵</td>
+                    <td data-col="note">冻结时，等待时长不计入处置时限。</td>
+                    <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+                    <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+                  </tr>
+                  <tr data-gc-row>
+                    <td class="gc-td-name" data-col="item" data-primary>工作日口径</td>
+                    <td data-col="value">自然小时（连续计）</td>
+                    <td data-col="scope">全平台</td>
+                    <td data-col="note">不写死 8×7；按平台工作日历口径执行。</td>
+                    <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+                    <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+                  </tr>
+                  <tr data-gc-row>
+                    <td class="gc-td-name" data-col="item" data-primary>暂停规则</td>
+                    <td data-col="value">需在事件上记录原因与起止</td>
+                    <td data-col="scope">事件页</td>
+                    <td data-col="note">本版本不提供自动暂停，人工暂停动作由事件页记录。</td>
+                    <td data-col="status"><span class="gc-chip gc-chip--green">启用</span></td>
+                    <td class="gc-td-actions" data-col="actions"><button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button><button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button><button type="button" class="gc-btn-link" data-gc-crud-del>删除</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="gc-card-foot">未就绪：工作日口径切到「工作时段」需要接入区级工作日历；未接入前按自然小时连续计时，跨长假的事件不会自动顺延，需在派发时人工备注。计时起点原为平台冻结项，现已可在此维护，发布前须经平台口径校验。</p>
+          </div>
+        </section>
+
+        <!-- 3. 时限矩阵表 -->
+        <section class="gc-section" aria-label="时限矩阵">
+          <div class="gc-card gc-table-card">
+            <div class="gc-sla-priority">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              适用区域按 <strong>更细优先</strong> 命中：<strong>网格</strong><span class="gc-sla-arrow">›</span><strong>街道</strong><span class="gc-sla-arrow">›</span><strong>全区</strong>
+              <span class="gc-chip gc-chip--finer" data-gc-sla-priority-chip>共享单车乱停放 × 一般：命中「网格·东华门-03」，按更细行计时</span>
+            </div>
+            <div class="gc-table-wrap">
+              <table class="gc-sla-table">
+                <thead>
+                  <tr>
+                    <th scope="col">事件类型</th>
+                    <th scope="col">细类</th>
+                    <th scope="col">等级</th>
+                    <th scope="col">区域</th>
+                    <th scope="col">处置时限</th>
+                    <th scope="col">核查时限</th>
+                    <th scope="col">到期前提醒</th>
+                    <th scope="col">超时后打升级标记</th>
+                    <th scope="col">启用</th>
+                    <th scope="col" class="gc-th-actions">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr data-key="共享单车乱停放×一般×全区" data-sub="共享单车乱停放" data-level="一般" data-region="全区" data-match="网格·东华门-03">
+                    <td rowspan="6" class="gc-cell-type">道路秩序</td>
+                    <td data-f="sub">共享单车乱停放</td>
+                    <td data-f="level"><span class="gc-tag gc-tag--normal">一般</span></td>
+                    <td data-f="region">
+                      <span class="gc-sla-region-cell">
+                        <span>全区</span>
+                        <span class="gc-sla-flag gc-sla-flag--finer" data-gc-sla-cover>已被「网格·东华门-03」覆盖</span>
+                      </span>
+                    </td>
+                    <td class="gc-num" data-f="dispose">90 分<span class="gc-diff-mark">草稿</span></td>
+                    <td class="gc-num" data-f="check">30 分</td>
+                    <td data-f="remind" data-remind="5" data-remind-to="当前网格责任人">
+                      <span class="gc-sla-remind-cell">
+                        <span>提前 5 分</span>
+                        <span class="gc-sla-remind-sub">当前网格责任人</span>
+                      </span>
+                    </td>
+                    <td data-f="act"><span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="共享单车乱停放 一般 全区 超时后打升级标记" data-gc-sla-act-switch><span class="gc-switch-knob"></span></span></td>
+                    <td class="gc-sla-td-enable" data-f="enable">
+                      <span class="gc-sla-enable-cell">
+                        <span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="共享单车乱停放 一般 全区 启用" data-gc-sla-enable><span class="gc-switch-knob"></span></span>
+                        <span class="gc-sla-flag gc-sla-flag--block" data-gc-sla-enable-flag></span>
+                      </span>
+                    </td>
+                    <td class="gc-td-actions"><button type="button" class="gc-btn-link" data-gc-sla-edit data-key="共享单车乱停放×一般×全区">编辑</button></td>
+                  </tr>
+                  <tr data-key="机动车违停×一般×全区" data-sub="机动车违停" data-level="一般" data-region="全区">
+                    <td data-f="sub">机动车违停</td>
+                    <td data-f="level"><span class="gc-tag gc-tag--normal">一般</span></td>
+                    <td data-f="region">全区</td>
+                    <td class="gc-num" data-f="dispose">60 分</td>
+                    <td class="gc-num" data-f="check">30 分</td>
+                    <td data-f="remind" data-remind="0" data-remind-to=""><span class="gc-sla-remind-none">—</span></td>
+                    <td data-f="act"><span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="机动车违停 一般 全区 超时后打升级标记" data-gc-sla-act-switch><span class="gc-switch-knob"></span></span></td>
+                    <td class="gc-sla-td-enable" data-f="enable">
+                      <span class="gc-sla-enable-cell">
+                        <span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="机动车违停 一般 全区 启用" data-gc-sla-enable><span class="gc-switch-knob"></span></span>
+                        <span class="gc-sla-flag gc-sla-flag--block" data-gc-sla-enable-flag></span>
+                      </span>
+                    </td>
+                    <td class="gc-td-actions"><button type="button" class="gc-btn-link" data-gc-sla-edit data-key="机动车违停×一般×全区">编辑</button></td>
+                  </tr>
+                  <tr data-key="占道经营×一般×全区" data-sub="占道经营" data-level="一般" data-region="全区">
+                    <td data-f="sub">占道经营</td>
+                    <td data-f="level"><span class="gc-tag gc-tag--normal">一般</span></td>
+                    <td data-f="region">全区</td>
+                    <td class="gc-num" data-f="dispose">90 分</td>
+                    <td class="gc-num" data-f="check">30 分</td>
+                    <td data-f="remind" data-remind="0" data-remind-to=""><span class="gc-sla-remind-none">—</span></td>
+                    <td data-f="act"><span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="占道经营 一般 全区 超时后打升级标记" data-gc-sla-act-switch><span class="gc-switch-knob"></span></span></td>
+                    <td class="gc-sla-td-enable" data-f="enable">
+                      <span class="gc-sla-enable-cell">
+                        <span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="占道经营 一般 全区 启用" data-gc-sla-enable><span class="gc-switch-knob"></span></span>
+                        <span class="gc-sla-flag gc-sla-flag--block" data-gc-sla-enable-flag></span>
+                      </span>
+                    </td>
+                    <td class="gc-td-actions"><button type="button" class="gc-btn-link" data-gc-sla-edit data-key="占道经营×一般×全区">编辑</button></td>
+                  </tr>
+                  <tr data-key="施工占道×紧急×全区" data-sub="施工占道" data-level="紧急" data-region="全区">
+                    <td data-f="sub">施工占道</td>
+                    <td data-f="level"><span class="gc-tag gc-tag--urgent">紧急</span></td>
+                    <td data-f="region">全区</td>
+                    <td class="gc-num" data-f="dispose">45 分</td>
+                    <td class="gc-num" data-f="check">20 分</td>
+                    <td data-f="remind" data-remind="5" data-remind-to="当前网格责任人">
+                      <span class="gc-sla-remind-cell">
+                        <span>提前 5 分</span>
+                        <span class="gc-sla-remind-sub">当前网格责任人</span>
+                      </span>
+                    </td>
+                    <td data-f="act"><span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="施工占道 紧急 全区 超时后打升级标记" data-gc-sla-act-switch><span class="gc-switch-knob"></span></span></td>
+                    <td class="gc-sla-td-enable" data-f="enable">
+                      <span class="gc-sla-enable-cell">
+                        <span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="施工占道 紧急 全区 启用" data-gc-sla-enable><span class="gc-switch-knob"></span></span>
+                        <span class="gc-sla-flag gc-sla-flag--block" data-gc-sla-enable-flag></span>
+                      </span>
+                    </td>
+                    <td class="gc-td-actions"><button type="button" class="gc-btn-link" data-gc-sla-edit data-key="施工占道×紧急×全区">编辑</button></td>
+                  </tr>
+                  <tr class="gc-sla-row--new" data-key="共享单车乱停放×一般×网格·东华门-03" data-sub="共享单车乱停放" data-level="一般" data-region="网格·东华门-03">
+                    <td data-f="sub">共享单车乱停放<span class="gc-diff-mark">草稿新增</span></td>
+                    <td data-f="level"><span class="gc-tag gc-tag--normal">一般</span></td>
+                    <td data-f="region">
+                      <span class="gc-sla-region-cell">
+                        <span>网格</span>
+                        <span class="gc-sla-remind-sub">东华门-03</span>
+                      </span>
+                    </td>
+                    <td class="gc-num" data-f="dispose">45 分</td>
+                    <td class="gc-num" data-f="check">20 分</td>
+                    <td data-f="remind" data-remind="5" data-remind-to="当前网格责任人">
+                      <span class="gc-sla-remind-cell">
+                        <span>提前 5 分</span>
+                        <span class="gc-sla-remind-sub">当前网格责任人</span>
+                      </span>
+                    </td>
+                    <td data-f="act"><span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="共享单车乱停放 一般 网格·东华门-03 超时后打升级标记" data-gc-sla-act-switch><span class="gc-switch-knob"></span></span></td>
+                    <td class="gc-sla-td-enable" data-f="enable">
+                      <span class="gc-sla-enable-cell">
+                        <span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="共享单车乱停放 一般 网格·东华门-03 启用" data-gc-sla-enable><span class="gc-switch-knob"></span></span>
+                        <span class="gc-sla-flag gc-sla-flag--block" data-gc-sla-enable-flag>重复启用行</span>
+                      </span>
+                    </td>
+                    <td class="gc-td-actions"><button type="button" class="gc-btn-link" data-gc-sla-edit data-key="共享单车乱停放×一般×网格·东华门-03">编辑</button></td>
+                  </tr>
+                  <tr class="gc-sla-row--conflict gc-sla-row--new" data-key="共享单车乱停放×一般×网格·东华门-03（重复行）" data-sub="共享单车乱停放" data-level="一般" data-region="网格·东华门-03">
+                    <td data-f="sub">共享单车乱停放</td>
+                    <td data-f="level"><span class="gc-tag gc-tag--normal">一般</span></td>
+                    <td data-f="region">
+                      <span class="gc-sla-region-cell">
+                        <span>网格</span>
+                        <span class="gc-sla-remind-sub">东华门-03</span>
+                      </span>
+                    </td>
+                    <td class="gc-num" data-f="dispose">60 分</td>
+                    <td class="gc-num" data-f="check">20 分</td>
+                    <td data-f="remind" data-remind="5" data-remind-to="当前网格责任人">
+                      <span class="gc-sla-remind-cell">
+                        <span>提前 5 分</span>
+                        <span class="gc-sla-remind-sub">当前网格责任人</span>
+                      </span>
+                    </td>
+                    <td data-f="act"><span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="共享单车乱停放 一般 网格·东华门-03 重复行 超时后打升级标记" data-gc-sla-act-switch><span class="gc-switch-knob"></span></span></td>
+                    <td class="gc-sla-td-enable" data-f="enable">
+                      <span class="gc-sla-enable-cell">
+                        <span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="共享单车乱停放 一般 网格·东华门-03 重复行 启用" data-gc-sla-enable><span class="gc-switch-knob"></span></span>
+                        <span class="gc-sla-flag gc-sla-flag--block" data-gc-sla-enable-flag>重复启用行</span>
+                      </span>
+                    </td>
+                    <td class="gc-td-actions"><button type="button" class="gc-btn-link" data-gc-sla-edit data-key="共享单车乱停放×一般×网格·东华门-03（重复行）">编辑</button></td>
+                  </tr>
+                  <tr data-key="暴露垃圾×紧急×全区" data-sub="暴露垃圾" data-level="紧急" data-region="全区">
+                    <td rowspan="2" class="gc-cell-type">环境卫生</td>
+                    <td data-f="sub">暴露垃圾</td>
+                    <td data-f="level"><span class="gc-tag gc-tag--urgent">紧急</span></td>
+                    <td data-f="region">全区</td>
+                    <td class="gc-num" data-f="dispose">30 分</td>
+                    <td class="gc-num" data-f="check">20 分</td>
+                    <td data-f="remind" data-remind="5" data-remind-to="当前网格责任人">
+                      <span class="gc-sla-remind-cell">
+                        <span>提前 5 分</span>
+                        <span class="gc-sla-remind-sub">当前网格责任人</span>
+                      </span>
+                    </td>
+                    <td data-f="act"><span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="暴露垃圾 紧急 全区 超时后打升级标记" data-gc-sla-act-switch><span class="gc-switch-knob"></span></span></td>
+                    <td class="gc-sla-td-enable" data-f="enable">
+                      <span class="gc-sla-enable-cell">
+                        <span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="暴露垃圾 紧急 全区 启用" data-gc-sla-enable><span class="gc-switch-knob"></span></span>
+                        <span class="gc-sla-flag gc-sla-flag--block" data-gc-sla-enable-flag></span>
+                      </span>
+                    </td>
+                    <td class="gc-td-actions"><button type="button" class="gc-btn-link" data-gc-sla-edit data-key="暴露垃圾×紧急×全区">编辑</button></td>
+                  </tr>
+                  <tr data-key="非法倾倒×一般×街道·东华门" data-sub="非法倾倒" data-level="一般" data-region="街道·东华门">
+                    <td data-f="sub">非法倾倒</td>
+                    <td data-f="level"><span class="gc-tag gc-tag--normal">一般</span></td>
+                    <td data-f="region">
+                      <span class="gc-sla-region-cell">
+                        <span>街道</span>
+                        <span class="gc-sla-remind-sub">东华门</span>
+                      </span>
+                    </td>
+                    <td class="gc-num" data-f="dispose">120 分</td>
+                    <td class="gc-num" data-f="check">30 分</td>
+                    <td data-f="remind" data-remind="0" data-remind-to=""><span class="gc-sla-remind-none">—</span></td>
+                    <td data-f="act"><span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="非法倾倒 一般 街道·东华门 超时后打升级标记" data-gc-sla-act-switch><span class="gc-switch-knob"></span></span></td>
+                    <td class="gc-sla-td-enable" data-f="enable">
+                      <span class="gc-sla-enable-cell">
+                        <span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="非法倾倒 一般 街道·东华门 启用" data-gc-sla-enable><span class="gc-switch-knob"></span></span>
+                        <span class="gc-sla-flag gc-sla-flag--block" data-gc-sla-enable-flag></span>
+                      </span>
+                    </td>
+                    <td class="gc-td-actions"><button type="button" class="gc-btn-link" data-gc-sla-edit data-key="非法倾倒×一般×街道·东华门">编辑</button></td>
+                  </tr>
+                  <tr data-key="无证户外广告×一般×街道·东华门" data-sub="无证户外广告" data-level="一般" data-region="街道·东华门">
+                    <td rowspan="2" class="gc-cell-type">广告标识</td>
+                    <td data-f="sub">无证户外广告</td>
+                    <td data-f="level"><span class="gc-tag gc-tag--normal">一般</span></td>
+                    <td data-f="region">
+                      <span class="gc-sla-region-cell">
+                        <span>街道</span>
+                        <span class="gc-sla-remind-sub">东华门</span>
+                      </span>
+                    </td>
+                    <td class="gc-num" data-f="dispose">24 小时</td>
+                    <td class="gc-num" data-f="check">30 分</td>
+                    <td data-f="remind" data-remind="0" data-remind-to=""><span class="gc-sla-remind-none">—</span></td>
+                    <td data-f="act"><span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="无证户外广告 一般 街道·东华门 超时后打升级标记" data-gc-sla-act-switch><span class="gc-switch-knob"></span></span></td>
+                    <td class="gc-sla-td-enable" data-f="enable">
+                      <span class="gc-sla-enable-cell">
+                        <span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="无证户外广告 一般 街道·东华门 启用" data-gc-sla-enable><span class="gc-switch-knob"></span></span>
+                        <span class="gc-sla-flag gc-sla-flag--block" data-gc-sla-enable-flag></span>
+                      </span>
+                    </td>
+                    <td class="gc-td-actions"><button type="button" class="gc-btn-link" data-gc-sla-edit data-key="无证户外广告×一般×街道·东华门">编辑</button></td>
+                  </tr>
+                  <tr data-key="违规灯箱×一般×网格·东华门-03" data-sub="违规灯箱" data-level="一般" data-region="网格·东华门-03">
+                    <td data-f="sub">违规灯箱</td>
+                    <td data-f="level"><span class="gc-tag gc-tag--normal">一般</span></td>
+                    <td data-f="region">
+                      <span class="gc-sla-region-cell">
+                        <span>网格</span>
+                        <span class="gc-sla-remind-sub">东华门-03</span>
+                      </span>
+                    </td>
+                    <td class="gc-num" data-f="dispose">48 小时</td>
+                    <td class="gc-num" data-f="check">30 分</td>
+                    <td data-f="remind" data-remind="0" data-remind-to=""><span class="gc-sla-remind-none">—</span></td>
+                    <td data-f="act"><span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="违规灯箱 一般 网格·东华门-03 超时后打升级标记" data-gc-sla-act-switch><span class="gc-switch-knob"></span></span></td>
+                    <td class="gc-sla-td-enable" data-f="enable">
+                      <span class="gc-sla-enable-cell">
+                        <span class="gc-switch gc-switch--on" role="switch" tabindex="0" aria-checked="true" aria-label="违规灯箱 一般 网格·东华门-03 启用" data-gc-sla-enable><span class="gc-switch-knob"></span></span>
+                        <span class="gc-sla-flag gc-sla-flag--block" data-gc-sla-enable-flag></span>
+                      </span>
+                    </td>
+                    <td class="gc-td-actions"><button type="button" class="gc-btn-link" data-gc-sla-edit data-key="违规灯箱×一般×网格·东华门-03">编辑</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="gc-sla-verdict-wrap">
+              <div class="gc-sla-verdict gc-sla-verdict--block" role="alert" data-gc-sla-verdict>
+                <svg class="gc-sla-verdict-ico" data-gc-sla-ico="alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <svg class="gc-sla-verdict-ico" data-gc-sla-ico="check" hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <div class="gc-sla-verdict-body">
+                  <p class="gc-sla-verdict-main" data-gc-sla-verdict-main>不可发布：存在重复启用行</p>
+                  <p class="gc-sla-verdict-sub" data-gc-sla-verdict-sub>「共享单车乱停放 × 一般 × 网格·东华门-03」有 2 条启用行。同一细类 + 等级 + 同一区域只能有一条启用时限行，请停用其中一条后再发布。</p>
+                  <button type="button" class="gc-btn-secondary gc-sla-verdict-fix" data-gc-sla-fix>演示：停用重复行</button>
+                </div>
+              </div>
+            </div>
+            <div class="gc-table-footnote">
+              <svg class="gc-footnote-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              <div>
+                <p class="gc-footnote-main">发布后只作用于新事件，不改写历史结论。</p>
+                <p class="gc-footnote-sub">处置时限自「派发成功时刻」起算，到处置反馈或自动结案终态为止。历史事件按立案当时版本计时。</p>
+                <p class="gc-footnote-sub">核查时限留空 = 该细类不考核核查段。无任何时限行时，处理池不显示时限风险；建议试点细类至少保留一条全区默认行。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. 异常监控说明卡（简短，无图表） -->
+        <section class="gc-section" aria-label="超时异常链路">
+          <div class="gc-card gc-chain-card">
+            <h2 class="gc-h3">超时异常链路</h2>
+            <div class="gc-chain">
+              <span class="gc-chain-step">
+                <svg class="gc-chain-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--gc-accent);">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                临近提醒
+              </span>
+              <svg class="gc-chain-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+              <span class="gc-chain-step">
+                <svg class="gc-chain-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--gc-func-orange);">
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+                  <polyline points="16 7 22 7 22 13"/>
+                </svg>
+                超时升级
+              </span>
+              <svg class="gc-chain-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+              <span class="gc-chain-step">
+                <svg class="gc-chain-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--gc-func-red);">
+                  <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                  <line x1="4" y1="22" x2="4" y2="15"/>
+                </svg>
+                挂督办
+              </span>
+            </div>
+            <p class="gc-chain-note">超时升级按矩阵行配置触发，不做额外统计图表。</p>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- 底部动作条 (fixed, 不滚动) -->
+      <div class="gc-shell-footer">
+        <p class="gc-shell-footer-note" data-gc-sla-footer-note>本页只保存草稿；「确认发布」不在业务模块页，须经「发布前预览」做冲突校验后确认。</p>
+        <button type="button" class="gc-btn-secondary" id="gc-sla-save-draft" data-gc-sla-save-draft data-dom-id="cta-save-draft">保存到草稿</button>
+        <button type="button" class="gc-btn-primary" id="gc-sla-go-preview" data-dom-id="cta-go-preview" aria-describedby="gc-sla-footer-reason" disabled>去发布前预览</button>
+        <span id="gc-sla-footer-reason" hidden></span>
+      </div>
+
+    </main>
+
+  </div><!-- /.gc-shell-body -->
+
+</div><!-- /.gc-shell -->
+<script id="shell-collapse-js">
+(function () {
+  var btn = document.querySelector('.gc-collapse-btn');
+  var body = document.querySelector('.gc-shell-body');
+  if (!btn || !body) return;
+  function setRail(on) {
+    body.classList.toggle('gc-rail', on);
+    btn.setAttribute('aria-expanded', on ? 'false' : 'true');
+    btn.setAttribute('aria-label', on ? '展开左侧导航' : '收起左侧导航');
+  }
+  btn.addEventListener('click', function () { setRail(!body.classList.contains('gc-rail')); });
+})();
+</script>
+
+<style id="sla-drawer-css">
+.gc-scrim { position: fixed; inset: 0; background: rgba(22, 45, 77, 0.32); z-index: 50; }
+.gc-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 440px; max-width: 90vw; background: var(--gc-panel); border-left: 1px solid var(--gc-line); z-index: 60; display: flex; flex-direction: column; }
+.gc-drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--gc-line); }
+.gc-drawer-title { font-size: 15px; font-weight: 600; margin: 0; }
+.gc-drawer-body { flex: 1; overflow-y: auto; padding: 16px 20px; font-size: 13px; }
+.gc-drawer-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--gc-line); }
+.gc-ov-close { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--gc-line); background: var(--gc-panel); color: var(--gc-muted); cursor: pointer; font-size: 14px; font-family: inherit; }
+.gc-ov-close:hover { color: var(--gc-text); background: var(--gc-bg-hover); }
+.gc-ov-close:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.gc-form-grid .gc-field--full { grid-column: 1 / -1; }
+.gc-field { display: flex; flex-direction: column; gap: 6px; }
+.gc-field label { font-size: 12px; color: var(--gc-muted); }
+.gc-field input, .gc-field select { height: 36px; border: 1px solid var(--gc-line-strong); border-radius: 8px; padding: 0 10px; font: inherit; font-size: 13px; background: var(--gc-panel); color: var(--gc-text); min-width: 0; }
+.gc-field input:focus, .gc-field select:focus { outline: 2px solid var(--gc-accent); outline-offset: -1px; border-color: var(--gc-accent); }
+.gc-ov-note { margin: 12px 0 0; font-size: 12px; color: var(--gc-muted); }
+.gc-drawer-ctx { margin: 0 0 12px; padding: 8px 12px; border-radius: 8px; background: var(--gc-bg-hover); font-size: 12px; color: var(--gc-text); }
+.gc-field-hint { font-size: 11px; line-height: 1.5; color: var(--gc-muted); }
+.gc-btn-ghost { height: 34px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--gc-line-strong); background: var(--gc-panel); color: var(--gc-text); font-size: 13px; cursor: pointer; font-family: inherit; }
+.gc-btn-ghost:hover { background: var(--gc-bg-hover); }
+.gc-btn-ghost:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-diff-mark { display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 500; color: var(--gc-func-orange); background: var(--gc-func-orange-soft); border-radius: 9999px; padding: 1px 8px; vertical-align: 1px; }
+</style>
+<style id="gc-crud-base-css">
+/* ══ 通用后台管理：卡片 / 表格基础样式（补齐本页缺失，与其它配置页一致） ══ */
+.gc-card[data-gc-crud] { overflow: hidden; }
+.gc-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--gc-line); }
+.gc-card-title { margin: 0; font-size: 14px; font-weight: 600; color: var(--gc-text); }
+.gc-card-note { font-size: 12px; color: var(--gc-muted); font-weight: 400; }
+.gc-card-foot { margin: 0; padding: 12px 20px; border-top: 1px solid var(--gc-line); font-size: 12px; line-height: 1.6; color: var(--gc-muted); }
+.gc-table { width: 100%; min-width: 960px; border-collapse: collapse; }
+.gc-table th { padding: 8px 12px; font-size: 12px; font-weight: 500; color: var(--gc-muted); text-align: left; border-bottom: 1px solid var(--gc-line); white-space: nowrap; }
+.gc-table td { padding: 8px 12px; font-size: 13px; line-height: 1.5; color: var(--gc-text); border-bottom: 1px solid var(--gc-line); vertical-align: middle; }
+.gc-table th:first-child, .gc-table td:first-child { padding-left: 20px; }
+.gc-table th:last-child, .gc-table td:last-child { padding-right: 20px; }
+.gc-table tbody tr:last-child td { border-bottom: 0; }
+.gc-td-name { font-weight: 500; white-space: nowrap; }
+.gc-td-code { font-family: var(--gc-font-mono); font-size: 12px; color: var(--gc-muted); white-space: nowrap; }
+.gc-td-dash { color: var(--gc-disabled-text); }
+.gc-td-actions { white-space: nowrap; }
+.gc-td-actions > * + * { margin-left: 8px; }
+.gc-th-actions { text-align: left; }
+</style>
+<style id="gc-crud-css">
+/* ══ 治理配置 · 通用后台管理引擎（列表 + 新增 / 编辑 / 删除 / 启用·停用） ══ */
+/* 工具条 */
+.gc-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 20px; border-bottom: 1px solid var(--gc-line); }
+.gc-search { display: flex; align-items: center; gap: 8px; flex: 1; max-width: 460px; }
+.gc-search svg { width: 14px; height: 14px; color: var(--gc-muted); flex-shrink: 0; }
+.gc-search input { flex: 1; height: 34px; padding: 0 12px; border: 1px solid var(--gc-line-strong); border-radius: 8px; font: inherit; font-size: 13px; color: var(--gc-text); background: var(--gc-panel); min-width: 0; }
+.gc-search input:focus { outline: 2px solid var(--gc-accent); outline-offset: -1px; border-color: var(--gc-accent); }
+.gc-btn-ghost { height: 34px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--gc-line-strong); background: var(--gc-panel); color: var(--gc-text); font-size: 13px; cursor: pointer; font-family: inherit; white-space: nowrap; }
+.gc-btn-ghost:hover { background: var(--gc-bg-hover); }
+.gc-btn-ghost:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-table-scroll { overflow-x: auto; }
+/* 状态与行操作 */
+.gc-chip--green { background: var(--gc-func-green-soft); color: var(--gc-func-green); font-size: 11px; font-weight: 500; border-radius: 9999px; padding: 1px 8px; white-space: nowrap; }
+.gc-btn-link--danger,
+.gc-btn-link--danger:hover { color: var(--gc-func-red); background: var(--gc-func-red-soft); border-color: var(--gc-func-red-soft); }
+.gc-empty-row td { text-align: center; color: var(--gc-muted); padding: 24px 0; }
+tr.gc-empty-row[hidden],
+tr[data-empty-row][hidden],
+.gc-scrim[hidden],
+.gc-drawer[hidden] { display: none !important; }
+/* 抽屉与表单（自包含，供各页复用） */
+.gc-scrim { position: fixed; inset: 0; background: rgba(22, 45, 77, 0.32); z-index: 50; }
+.gc-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 460px; max-width: 92vw; background: var(--gc-panel); border-left: 1px solid var(--gc-line); z-index: 60; display: flex; flex-direction: column; }
+.gc-drawer-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--gc-line); }
+.gc-drawer-title { font-size: 15px; font-weight: 600; margin: 0; }
+.gc-drawer-body { flex: 1; overflow-y: auto; padding: 16px 20px; font-size: 13px; }
+.gc-drawer-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--gc-line); }
+.gc-ov-close { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--gc-line); background: var(--gc-panel); color: var(--gc-muted); cursor: pointer; font-size: 14px; font-family: inherit; }
+.gc-ov-close:hover { color: var(--gc-text); background: var(--gc-bg-hover); }
+.gc-ov-close:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.gc-form-grid .gc-field--full { grid-column: 1 / -1; }
+.gc-field { display: flex; flex-direction: column; gap: 6px; }
+.gc-field label { font-size: 12px; color: var(--gc-muted); }
+.gc-field input, .gc-field select { height: 36px; border: 1px solid var(--gc-line-strong); border-radius: 8px; padding: 0 10px; font: inherit; font-size: 13px; background: var(--gc-panel); color: var(--gc-text); min-width: 0; }
+.gc-field input:focus, .gc-field select:focus { outline: 2px solid var(--gc-accent); outline-offset: -1px; border-color: var(--gc-accent); }
+.gc-field--err label { color: var(--gc-func-red); }
+.gc-field--err input, .gc-field--err select { border-color: var(--gc-func-red); }
+.gc-req { color: var(--gc-func-red); }
+.gc-form-err { display: none; margin: 12px 0 0; font-size: 12px; color: var(--gc-func-red); }
+.gc-form-err--show { display: block; }
+.gc-ov-note { margin: 12px 0 0; font-size: 12px; color: var(--gc-muted); }
+/* 草稿提示条 */
+.gc-draft-toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 60; display: none; max-width: 640px; padding: 10px 16px; border-radius: var(--gc-radius-medium); background: var(--gc-text); color: #FFFFFF; font-size: 13px; line-height: 1.6; }
+.gc-draft-toast--show { display: block; }
+</style>
+<div class="gc-scrim" data-gc-scrim hidden></div>
+<aside class="gc-drawer" role="dialog" aria-modal="true" aria-labelledby="gc-sla-title" data-gc-drawer="sla" hidden>
+  <div class="gc-drawer-head">
+    <h2 class="gc-drawer-title" id="gc-sla-title">时限编辑</h2>
+    <button type="button" class="gc-ov-close" data-gc-close aria-label="关闭">✕</button>
+  </div>
+  <div class="gc-drawer-body">
+    <p class="gc-drawer-ctx" data-gc-sla-ctx>适用对象：—</p>
+    <div class="gc-form-grid">
+      <div class="gc-field"><label for="gc-s-dispose">处置时限（分钟）</label><input type="number" id="gc-s-dispose" min="1"><span class="gc-field-hint">派发成功 → 处置反馈或自动结案终态，必填且 &gt; 0。</span></div>
+      <div class="gc-field"><label for="gc-s-check">核查时限（分钟）</label><input type="number" id="gc-s-check" min="1" placeholder="留空 = 不考核核查段"><span class="gc-field-hint">留空 = 该细类不考核核查段。</span></div>
+      <div class="gc-field"><label for="gc-s-remind">到期前提醒（分钟）</label><input type="number" id="gc-s-remind" min="0" placeholder="留空 = 不提醒"><span class="gc-field-hint">填了提醒就必须选提醒对象。</span></div>
+      <div class="gc-field"><label for="gc-s-remindto">提醒对象</label>
+        <select id="gc-s-remindto"><option value="">不提醒</option><option>当前网格责任人</option><option>当前审核人</option><option>全局协调</option></select>
+      </div>
+      <div class="gc-field"><label for="gc-s-act">超时后打升级标记</label>
+        <select id="gc-s-act"><option value="on">开启</option><option value="off">关闭</option></select>
+      </div>
+      <div class="gc-field"><label for="gc-s-enable">启用</label>
+        <select id="gc-s-enable"><option value="on">启用</option><option value="off">停用</option></select>
+        <span class="gc-field-hint">同一细类 + 等级 + 同一区域只能有一条启用行。</span>
+      </div>
+    </div>
+    <p class="gc-ov-note">计时起点、外部等待、工作日口径、暂停规则统一在「全局计时口径」列表中按行维护；本抽屉只覆盖该行的细分时限。保存后写入草稿并标注与生效版的差异；发布后才作用于新事件。</p>
+  </div>
+  <div class="gc-drawer-foot">
+    <button type="button" class="gc-btn-ghost" data-gc-close>取消</button>
+    <button type="button" class="gc-btn-primary" data-gc-sla-save>保存到草稿</button>
+  </div>
+</aside>
+<div class="gc-sla-toast gc-draft-toast" data-gc-sla-toast data-gc-draft-toast role="alert" aria-live="assertive"></div>
+<script id="sla-edit-js">
+(function () {
+  var tbody = document.querySelector('table.gc-sla-table tbody');
+  if (!tbody) return;
+  var rows = [].slice.call(tbody.querySelectorAll('tr'));
+  var scrim = document.querySelector('[data-gc-scrim]');
+  var drawer = document.querySelector('[data-gc-drawer="sla"]');
+  var banner = document.querySelector('[data-gc-sla-banner]');
+  var bannerText = document.querySelector('[data-gc-sla-banner-text]');
+  var verdict = document.querySelector('[data-gc-sla-verdict]');
+  var vMain = document.querySelector('[data-gc-sla-verdict-main]');
+  var vSub = document.querySelector('[data-gc-sla-verdict-sub]');
+  var icoAlert = document.querySelector('[data-gc-sla-ico="alert"]');
+  var icoCheck = document.querySelector('[data-gc-sla-ico="check"]');
+  var footerNote = document.querySelector('[data-gc-sla-footer-note]');
+  var previewBtn = document.getElementById('gc-sla-go-preview');
+  var reasonEl = document.getElementById('gc-sla-footer-reason');
+  var toastEl = document.querySelector('[data-gc-sla-toast]');
+  var cur = null;
+
+  /* ---- 基础读取 ---- */
+  function cell(tr, f) { return tr.querySelector('[data-f="' + f + '"]'); }
+  function num(tr, f) {
+    var td = cell(tr, f);
+    if (!td) return 0;
+    var n = parseFloat(td.textContent.replace(/[^0-9.]/g, ''));
+    return isNaN(n) ? 0 : Math.round(n);
+  }
+  function isOn(tr, attr) {
+    var sw = tr.querySelector('[' + attr + ']');
+    return !!sw && sw.getAttribute('aria-checked') === 'true';
+  }
+  function pairOf(tr) {
+    return tr.getAttribute('data-sub') + '|' + tr.getAttribute('data-level') + '|' + tr.getAttribute('data-region');
+  }
+  function label(tr) {
+    return tr.getAttribute('data-sub') + ' × ' + tr.getAttribute('data-level') + ' × ' + tr.getAttribute('data-region');
+  }
+  function fmt(min) {
+    if (min >= 240) { var hh = min / 60; return (Number.isInteger(hh) ? hh : hh.toFixed(1)) + ' 小时'; }
+    return min + ' 分';
+  }
+
+  /* ---- 生效版基线快照（用来看草稿差异） ---- */
+  var base = new Map();
+  rows.forEach(function (tr) {
+    base.set(tr, {
+      dispose: num(tr, 'dispose'),
+      check: num(tr, 'check'),
+      remind: parseInt(tr.getAttribute('data-remind') || '0', 10) || 0,
+      act: isOn(tr, 'data-gc-sla-act-switch'),
+      enable: isOn(tr, 'data-gc-sla-enable')
+    });
+  });
+
+  /* ---- 重复启用行判定 ---- */
+  function conflicts() {
+    var seen = {}, dup = [];
+    rows.forEach(function (tr) {
+      if (!isOn(tr, 'data-gc-sla-enable')) return;
+      var k = pairOf(tr);
+      seen[k] = (seen[k] || 0) + 1;
+    });
+    rows.forEach(function (tr) {
+      if (isOn(tr, 'data-gc-sla-enable') && seen[pairOf(tr)] > 1) dup.push(tr);
+    });
+    return dup;
+  }
+
+  /* ---- 渲染：verdict / footer / banner / 行标记 全同步 ---- */
+  function render() {
+    var dup = conflicts();
+    var blocked = dup.length > 0;
+    var keys = [];
+    dup.forEach(function (tr) {
+      if (keys.indexOf(label(tr)) < 0) keys.push(label(tr));
+    });
+
+    rows.forEach(function (tr) {
+      var bad = blocked && dup.indexOf(tr) >= 0;
+      tr.classList.toggle('gc-sla-row--conflict', bad);
+      var flag = tr.querySelector('[data-gc-sla-enable-flag]');
+      if (flag) flag.textContent = bad ? '重复启用行' : '';
+    });
+
+    if (verdict) verdict.classList.toggle('gc-sla-verdict--block', blocked);
+    if (verdict) verdict.classList.toggle('gc-sla-verdict--ok', !blocked);
+    if (icoAlert) icoAlert.hidden = !blocked;
+    if (icoCheck) icoCheck.hidden = blocked;
+    if (vMain) vMain.textContent = blocked ? '不可发布：存在重复启用行' : '可发布：无重复启用行';
+    if (vSub) {
+      vSub.textContent = blocked
+        ? '「' + keys.join('」「') + '」有 2 条启用行。同一细类 + 等级 + 同一区域只能有一条启用时限行，请停用其中一条后再发布。'
+        : '同一细类 + 等级 + 同一区域只有一条启用行。确认发布前仍会做全量冲突校验，本页只保存草稿。';
+    }
+
+    if (banner) {
+      banner.classList.toggle('gc-sla-banner--block', blocked);
+      banner.classList.toggle('gc-sla-banner--muted', !blocked);
+    }
+    if (bannerText) {
+      bannerText.textContent = blocked
+        ? '草稿不可发布：' + keys.join('、') + ' 存在 2 条启用行。'
+        : '草稿已就绪：当前矩阵无重复启用行，可进入发布前预览。';
+    }
+
+    if (footerNote) {
+      footerNote.textContent = blocked
+        ? '不能进入发布前预览：先停用重复启用行（同一细类 + 等级 + 同一区域只能启用一条）。'
+        : '本页只保存草稿；「确认发布」不在业务模块页，须经「发布前预览」做冲突校验后确认。';
+      footerNote.classList.toggle('gc-shell-footer-note--block', blocked);
+    }
+    if (previewBtn) {
+      previewBtn.disabled = blocked;
+      var tip = blocked ? '当前草稿存在重复启用行，不能进入发布前预览' : '带着本草稿进入发布前预览';
+      previewBtn.title = tip;
+      if (reasonEl) reasonEl.textContent = tip;
+    }
+    document.body.setAttribute('data-gc-sla-state', blocked ? 'blocked' : 'ready');
+  }
+
+  /* ---- 开关 ---- */
+  function toggleSwitch(sw) {
+    var on = sw.getAttribute('aria-checked') === 'true';
+    sw.setAttribute('aria-checked', on ? 'false' : 'true');
+    sw.classList.toggle('gc-switch--on', !on);
+    var holder = sw.closest('tr');
+    if (holder) holder.setAttribute('data-gc-sla-dirty', '1');
+    render();
+    if (sw.hasAttribute('data-gc-sla-enable')) {
+      toast(!on
+        ? '草稿：已启用「' + label(holder) + '」的时限行。'
+        : '草稿：已停用「' + label(holder) + '」的时限行。');
+    }
+  }
+  tbody.addEventListener('click', function (e) {
+    var sw = e.target.closest && e.target.closest('.gc-switch');
+    if (sw) { toggleSwitch(sw); return; }
+    var eb = e.target.closest && e.target.closest('[data-gc-sla-edit]');
+    if (eb) openDrawer(eb);
+  });
+  tbody.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var sw = e.target.closest && e.target.closest('.gc-switch');
+    if (!sw) return;
+    e.preventDefault();
+    toggleSwitch(sw);
+  });
+
+
+  /* ---- 抽屉 ---- */
+  function openDrawer(btn) {
+    var tr = btn.closest('tr');
+    if (!tr) return;
+    cur = tr;
+    var ctx = document.querySelector('[data-gc-sla-ctx]');
+    if (ctx) ctx.textContent = '适用对象：' + label(tr) + '（区域按更细优先命中）';
+    document.getElementById('gc-sla-title').textContent = '时限编辑 · ' + label(tr);
+    document.getElementById('gc-s-dispose').value = num(tr, 'dispose') || '';
+    var ck = num(tr, 'check');
+    document.getElementById('gc-s-check').value = ck > 0 ? ck : '';
+    document.getElementById('gc-s-remind').value = tr.getAttribute('data-remind') || '';
+    document.getElementById('gc-s-remindto').value = tr.getAttribute('data-remind-to') || '';
+    document.getElementById('gc-s-act').value = isOn(tr, 'data-gc-sla-act-switch') ? 'on' : 'off';
+    document.getElementById('gc-s-enable').value = isOn(tr, 'data-gc-sla-enable') ? 'on' : 'off';
+    drawer.hidden = false;
+    scrim.hidden = false;
+  }
+  function close() { drawer.hidden = true; scrim.hidden = true; }
+  scrim.addEventListener('click', close);
+  [].slice.call(document.querySelectorAll('[data-gc-close]')).forEach(function (b) { b.addEventListener('click', close); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !drawer.hidden) close(); });
+
+  var saveBtn = document.querySelector('[data-gc-sla-save]');
+  if (saveBtn) saveBtn.addEventListener('click', function () {
+    if (!cur) return;
+    var tr = cur;
+    var dInput = document.getElementById('gc-s-dispose');
+    var dispose = parseInt(dInput.value, 10);
+    if (!dispose || dispose < 1) { dInput.focus(); return; }
+    var check = parseInt(document.getElementById('gc-s-check').value, 10);
+    var remind = parseInt(document.getElementById('gc-s-remind').value, 10);
+    var remindTo = document.getElementById('gc-s-remindto').value;
+    if (remind > 0 && !remindTo) { document.getElementById('gc-s-remindto').focus(); return; }
+    if (!(remind > 0)) { remind = 0; remindTo = ''; }
+    var actOn = document.getElementById('gc-s-act').value === 'on';
+    var enableOn = document.getElementById('gc-s-enable').value === 'on';
+
+    var b = base.get(tr) || {};
+    var dirty = tr.querySelector('[data-f="sub"]');
+    if (dirty && !dirty.querySelector('.gc-diff-mark')) {
+      dirty.insertAdjacentHTML('beforeend', '<span class="gc-diff-mark">草稿</span>');
+    }
+    tr.setAttribute('data-gc-sla-dirty', '1');
+
+    var dTd = cell(tr, 'dispose');
+    if (dTd) dTd.innerHTML = fmt(dispose) + (b.dispose !== dispose ? '<span class="gc-diff-mark">草稿</span>' : '');
+
+    var cTd = cell(tr, 'check');
+    if (cTd) {
+      cTd.innerHTML = (!check || check < 1)
+        ? '<span class="gc-sla-remind-none">不考核</span>'
+        : fmt(check) + (b.check !== check ? '<span class="gc-diff-mark">草稿</span>' : '');
+    }
+
+    tr.setAttribute('data-remind', String(remind));
+    tr.setAttribute('data-remind-to', remindTo);
+    var rTd = cell(tr, 'remind');
+    if (rTd) {
+      rTd.innerHTML = remind > 0
+        ? '<span class="gc-sla-remind-cell"><span>提前 ' + remind + ' 分</span><span class="gc-sla-remind-sub">' + remindTo + '</span></span>'
+        : '<span class="gc-sla-remind-none">—</span>';
+    }
+
+    var aSw = tr.querySelector('[data-gc-sla-act-switch]');
+    if (aSw) {
+      aSw.setAttribute('aria-checked', actOn ? 'true' : 'false');
+      aSw.classList.toggle('gc-switch--on', actOn);
+    }
+    var eSw = tr.querySelector('[data-gc-sla-enable]');
+    if (eSw) {
+      eSw.setAttribute('aria-checked', enableOn ? 'true' : 'false');
+      eSw.classList.toggle('gc-switch--on', enableOn);
+    }
+
+    close();
+    render();
+    var block = conflicts().length > 0;
+    toast(block
+      ? '草稿已保存（未发布）：该行改动触发了重复启用行，发布前预览会被阻断。'
+      : '草稿已保存（未发布）：生效版本仍为 V2026.08.18，发布需经「发布前预览」确认。');
+  });
+
+  /* ---- 演示：一键停用重复行 ---- */
+  var fixBtn = document.querySelector('[data-gc-sla-fix]');
+  if (fixBtn) fixBtn.addEventListener('click', function () {
+    var dup = conflicts();
+    if (dup.length < 2) { toast('当前没有重复启用行，无需处理。'); return; }
+    var sw = dup[dup.length - 1].querySelector('[data-gc-sla-enable]');
+    if (!sw) return;
+    sw.setAttribute('aria-checked', 'false');
+    sw.classList.remove('gc-switch--on');
+    dup[dup.length - 1].setAttribute('data-gc-sla-dirty', '1');
+    render();
+    toast('草稿：已停用「' + label(dup[dup.length - 1]) + '」的重复启用行，阻断解除。');
+  });
+
+  /* ---- 保存草稿 / 去发布前预览 ---- */
+  var saveDraft = document.querySelector('[data-gc-sla-save-draft]');
+  if (saveDraft) saveDraft.addEventListener('click', function () {
+    toast('草稿已保存（未发布）：生效版本仍为 V2026.08.18，发布需经「发布前预览」确认。');
+  });
+  if (previewBtn) previewBtn.addEventListener('click', function () {
+    if (previewBtn.disabled) return;
+    location.href = 'publish-preview.html?scene=conflict';
+  });
+
+  /* ---- 深链：?edit=细类×等级×区域 | ?fix=1 ---- */
+  var qs = (typeof location !== 'undefined' && location.search) ? new URLSearchParams(location.search) : null;
+  if (qs) {
+    if (qs.get('fix') === '1') {
+      var d = conflicts();
+      if (d.length > 1) {
+        var s = d[d.length - 1].querySelector('[data-gc-sla-enable]');
+        if (s) { s.setAttribute('aria-checked', 'false'); s.classList.remove('gc-switch--on'); }
+      }
+    }
+    if (qs.get('edit')) {
+      var key = qs.get('edit');
+      var target = null;
+      rows.forEach(function (tr) {
+        if (!target && tr.getAttribute('data-key') === key) target = tr;
+      });
+      var eb = target ? target.querySelector('[data-gc-sla-edit]') : null;
+      if (eb) openDrawer(eb);
+    }
+  }
+
+  function toast(msg) {
+    if (!toastEl) return;
+    toastEl.textContent = msg;
+    toastEl.classList.add('gc-sla-toast--show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { toastEl.classList.remove('gc-sla-toast--show'); }, 3200);
+  }
+
+  render();
+})();
+</script>
+
+<script id="gc-crud-js">
+(function () {
+  var DASH = '—';
+  var registry = {};
+  var cur = null;
+  var scrim = null, drawer = null, titleEl = null, formEl = null, errEl = null, noteEl = null, saveBtn = null;
+
+  function q(sel, root) { return (root || document).querySelector(sel); }
+  function qa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function norm(s) { return (s == null ? '' : String(s)).replace(/\s+/g, ' ').trim(); }
+  function lower(s) { return norm(s).toLowerCase(); }
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  /* ── 草稿提示（复用页脚 toast 或自建） ── */
+  function toast(msg) {
+    var el = q('[data-gc-draft-toast]');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'gc-draft-toast';
+      el.setAttribute('data-gc-draft-toast', '');
+      el.setAttribute('role', 'alert');
+      el.setAttribute('aria-live', 'assertive');
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('gc-draft-toast--show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { el.classList.remove('gc-draft-toast--show'); }, 3200);
+  }
+
+  /* ── 抽屉外壳 ── */
+  function shell() {
+    if (drawer) return;
+    scrim = document.createElement('div');
+    scrim.className = 'gc-scrim';
+    scrim.setAttribute('data-gc-crud-scrim', '');
+    scrim.hidden = true;
+    drawer = document.createElement('aside');
+    drawer.className = 'gc-drawer';
+    drawer.setAttribute('role', 'dialog');
+    drawer.setAttribute('aria-modal', 'true');
+    drawer.setAttribute('aria-labelledby', 'gc-crud-title');
+    drawer.setAttribute('data-gc-crud-drawer', '');
+    drawer.hidden = true;
+    drawer.innerHTML =
+      '<div class="gc-drawer-head">' +
+        '<h2 class="gc-drawer-title" id="gc-crud-title" data-gc-crud-title></h2>' +
+        '<button type="button" class="gc-ov-close" data-gc-crud-cancel aria-label="关闭">✕</button>' +
+      '</div>' +
+      '<div class="gc-drawer-body">' +
+        '<div class="gc-form-grid" data-gc-crud-form></div>' +
+        '<p class="gc-form-err" data-gc-crud-err role="alert"></p>' +
+        '<p class="gc-ov-note" data-gc-crud-note></p>' +
+      '</div>' +
+      '<div class="gc-drawer-foot">' +
+        '<button type="button" class="gc-btn-ghost" data-gc-crud-cancel>取消</button>' +
+        '<button type="button" class="gc-btn-primary" data-gc-crud-save>保存到草稿</button>' +
+      '</div>';
+    document.body.appendChild(scrim);
+    document.body.appendChild(drawer);
+    titleEl = q('[data-gc-crud-title]', drawer);
+    formEl = q('[data-gc-crud-form]', drawer);
+    errEl = q('[data-gc-crud-err]', drawer);
+    noteEl = q('[data-gc-crud-note]', drawer);
+    saveBtn = q('[data-gc-crud-save]', drawer);
+    scrim.addEventListener('click', closeDrawer);
+    qa('[data-gc-crud-cancel]', drawer).forEach(function (b) { b.addEventListener('click', closeDrawer); });
+    saveBtn.addEventListener('click', save);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && drawer && !drawer.hidden) closeDrawer();
+    });
+  }
+  function closeDrawer() {
+    if (!drawer) return;
+    drawer.hidden = true;
+    scrim.hidden = true;
+    cur = null;
+  }
+
+  /* ── 行读取 / 写入 ── */
+  function pkOf(info) { for (var i = 0; i < info.fields.length; i++) if (info.fields[i].primary) return info.fields[i].k; return info.fields.length ? info.fields[0].k : ''; }
+  function rowsOf(info) { return qa('tr[data-gc-row]', info.tbody); }
+  function cellOf(row, k) { return row ? q('td[data-col="' + k + '"]', row) : null; }
+  function valueOf(row, k) {
+    var td = cellOf(row, k);
+    if (!td) return '';
+    var t = norm(td.textContent);
+    return (t === DASH || t === '（空）' || t === '空') ? '' : t;
+  }
+  function rowEnabled(row) {
+    var td = cellOf(row, 'status');
+    if (!td) return false;
+    return td.textContent.indexOf('启用') > -1;
+  }
+  function setRowEnabled(row, on) {
+    var td = cellOf(row, 'status');
+    if (td) td.innerHTML = '<span class="gc-chip ' + (on ? 'gc-chip--green' : 'gc-chip--off') + '">' + (on ? '启用' : '停用') + '</span>';
+    var btn = q('[data-gc-crud-toggle]', row);
+    if (btn) btn.textContent = on ? '停用' : '启用';
+  }
+  function cellClass(f, v) {
+    if (!v) return 'gc-td-dash';
+    if (f.kind === 'name') return 'gc-td-name';
+    if (f.kind === 'code') return 'gc-td-code';
+    return '';
+  }
+  function writeRow(info, row, vals) {
+    info.fields.forEach(function (f) {
+      var td = cellOf(row, f.k);
+      if (!td) return;
+      var v = vals[f.k];
+      td.className = cellClass(f, v);
+      td.textContent = v || DASH;
+    });
+  }
+  function actionsHTML() {
+    return '<button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button>' +
+      '<button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button>' +
+      '<button type="button" class="gc-btn-link" data-gc-crud-del>删除</button>';
+  }
+  function lockSingle(info) {
+    if (!info.single) return;
+    var tip = '启用中的' + info.name + '不可删除，请先启用其它' + info.name;
+    rowsOf(info).forEach(function (tr) {
+      var del = q('[data-gc-crud-del]', tr);
+      if (!del) return;
+      if (rowEnabled(tr)) {
+        del.setAttribute('data-gc-crud-nodelete', tip);
+        del.classList.add('gc-btn-link--disabled');
+        del.setAttribute('title', tip);
+      } else if (del.getAttribute('data-gc-crud-nodelete') === tip) {
+        del.removeAttribute('data-gc-crud-nodelete');
+        del.classList.remove('gc-btn-link--disabled');
+        del.removeAttribute('title');
+      }
+    });
+  }
+
+  /* ── 搜索过滤 ── */
+  function applyFilter(info) {
+    var input = q('[data-gc-crud-q]', info.card);
+    var kw = input ? lower(input.value) : '';
+    var shown = 0;
+    rowsOf(info).forEach(function (tr) {
+      var hit = !kw;
+      if (!hit) {
+        var cells = qa('td[data-col]', tr);
+        for (var i = 0; i < cells.length; i++) {
+          if (lower(cells[i].textContent).indexOf(kw) > -1) { hit = true; break; }
+        }
+      }
+      tr.hidden = !hit;
+      if (hit) shown++;
+    });
+    var empty = q('tr.gc-empty-row, tr[data-empty-row]', info.tbody);
+    if (!empty) {
+      empty = document.createElement('tr');
+      empty.className = 'gc-empty-row';
+      empty.innerHTML = '<td colspan="' + (qa('thead th', info.table).length || 1) + '">未找到匹配' + esc(info.name) + '，请调整关键词</td>';
+      info.tbody.appendChild(empty);
+    }
+    empty.hidden = !kw || shown > 0;
+    return shown;
+  }
+  function afterChange(info) { applyFilter(info); lockSingle(info); }
+
+  /* ── 表单 ── */
+  function buildForm(info, row) {
+    var html = '';
+    info.fields.forEach(function (f) {
+      var v = row ? valueOf(row, f.k) : (f.def == null ? '' : f.def);
+      html += '<div class="gc-field' + (f.full ? ' gc-field--full' : '') + '" data-field="' + esc(f.k) + '">' +
+        '<label for="gc-crud-input-' + esc(f.k) + '">' + esc(f.label) + (f.required ? ' <span class="gc-req" aria-hidden="true">*</span>' : '') + '</label>';
+      if (f.type === 'select') {
+        var opts = (f.options || []).map(function (o) {
+          return '<option value="' + esc(o) + '"' + (o === v ? ' selected' : '') + '>' + esc(o) + '</option>';
+        }).join('');
+        if (v === '' || (f.options || []).indexOf(v) < 0) opts = '<option value="" selected></option>' + opts;
+        html += '<select id="gc-crud-input-' + esc(f.k) + '" data-gc-crud-input="' + esc(f.k) + '">' + opts + '</select>';
+      } else {
+        html += '<input type="' + esc(f.type || 'text') + '" id="gc-crud-input-' + esc(f.k) + '" data-gc-crud-input="' + esc(f.k) + '"' +
+          (f.type === 'number' ? ' min="0" step="1" inputmode="numeric"' : '') +
+          ' value="' + esc(v) + '"' + (f.ph ? ' placeholder="' + esc(f.ph) + '"' : '') + '>';
+      }
+      html += '</div>';
+    });
+    formEl.innerHTML = html;
+  }
+  function showErr(msg, field) {
+    errEl.textContent = msg;
+    errEl.classList.add('gc-form-err--show');
+    qa('.gc-field--err', formEl).forEach(function (w) { w.classList.remove('gc-field--err'); });
+    if (field) {
+      var w = field.closest ? field.closest('.gc-field') : null;
+      if (w) w.classList.add('gc-field--err');
+      field.focus();
+    }
+  }
+  function openDrawer(info, row) {
+    shell();
+    cur = { info: info, row: row || null };
+    titleEl.textContent = (row ? '编辑' : '新增') + info.name;
+    noteEl.textContent = info.note || '';
+    noteEl.hidden = !info.note;
+    errEl.textContent = '';
+    errEl.classList.remove('gc-form-err--show');
+    buildForm(info, row);
+    scrim.hidden = false;
+    drawer.hidden = false;
+    var first = q('input, select', formEl);
+    if (first) first.focus();
+  }
+  function save() {
+    if (!cur) return;
+    var info = cur.info, row = cur.row, err = '', errField = null, vals = {};
+    info.fields.forEach(function (f) {
+      var el = q('[data-gc-crud-input="' + f.k + '"]', formEl);
+      var v = el ? norm(el.value) : '';
+      if (f.required && !v && !err) { err = '「' + f.label + '」为必填项'; errField = el; }
+      else if (f.type === 'number' && v !== '' && !/^\d+(\.\d+)?$/.test(v) && !err) { err = '「' + f.label + '」须填写数字'; errField = el; }
+      vals[f.k] = v;
+    });
+    var pk = pkOf(info);
+    if (!err && pk && vals[pk]) {
+      var dup = false;
+      rowsOf(info).forEach(function (tr) {
+        if (tr === row || dup) return;
+        if (lower(valueOf(tr, pk)) === lower(vals[pk])) dup = true;
+      });
+      if (dup) { err = '「' + vals[pk] + '」已存在，' + info.name + '不可重复'; errField = q('[data-gc-crud-input="' + pk + '"]', formEl); }
+    }
+    if (err) { showErr(err, errField); return; }
+    var label = vals[pk] || vals[info.fields[0].k] || info.name;
+    if (row) {
+      writeRow(info, row, vals);
+      toast('已更新「' + label + '」，写入草稿，尚未生效。');
+    } else {
+      var tr = document.createElement('tr');
+      tr.setAttribute('data-gc-row', '');
+      var html = '';
+      info.fields.forEach(function (f) {
+        var v = vals[f.k];
+        html += '<td class="' + cellClass(f, v) + '" data-col="' + esc(f.k) + '"' + (f.primary ? ' data-primary' : '') + '>' + esc(v || DASH) + '</td>';
+      });
+      html += '<td data-col="status"><span class="gc-chip gc-chip--off">停用</span></td>';
+      html += '<td class="gc-td-actions" data-col="actions">' + actionsHTML() + '</td>';
+      tr.innerHTML = html;
+      info.tbody.appendChild(tr);
+      setRowEnabled(tr, true);
+      if (info.single) {
+        rowsOf(info).forEach(function (o) { if (o !== tr) setRowEnabled(o, false); });
+        toast('已新增「' + label + '」并置为启用，其余' + info.name + '已自动停用，写入草稿尚未生效。');
+      } else {
+        toast('已新增「' + label + '」并置为启用，写入草稿，尚未生效。');
+      }
+    }
+    closeDrawer();
+    afterChange(info);
+  }
+
+  /* ── 行操作 ── */
+  function toggleRow(info, row) {
+    var on = rowEnabled(row);
+    var label = valueOf(row, pkOf(info)) || info.name;
+    setRowEnabled(row, !on);
+    if (!on && info.single) {
+      rowsOf(info).forEach(function (o) { if (o !== row) setRowEnabled(o, false); });
+      toast('已启用「' + label + '」，其余' + info.name + '已自动停用，写入草稿尚未生效。');
+    } else {
+      toast((on ? '已停用「' : '已启用「') + label + '」，写入草稿，尚未生效。');
+    }
+    afterChange(info);
+  }
+  function deleteRow(info, row, btn) {
+    if (btn.getAttribute('data-gc-crud-nodelete') || btn.classList.contains('gc-btn-link--disabled')) {
+      toast(btn.getAttribute('data-gc-crud-nodelete') || btn.getAttribute('title') || '该' + info.name + '当前不可删除');
+      return;
+    }
+    if (btn.getAttribute('data-gc-crud-confirm') === '1') {
+      clearTimeout(btn._t);
+      var label = valueOf(row, pkOf(info)) || info.name;
+      if (row.parentNode) row.parentNode.removeChild(row);
+      toast('已删除「' + label + '」，写入草稿，尚未生效。');
+      afterChange(info);
+      return;
+    }
+    btn.setAttribute('data-gc-crud-confirm', '1');
+    btn._text = btn.textContent;
+    btn.textContent = '确认删除';
+    btn.classList.add('gc-btn-link--danger');
+    clearTimeout(btn._t);
+    btn._t = setTimeout(function () {
+      btn.removeAttribute('data-gc-crud-confirm');
+      btn.textContent = btn._text || '删除';
+      btn.classList.remove('gc-btn-link--danger');
+    }, 3000);
+  }
+
+  /* ── 初始化 ── */
+  function init(card) {
+    var id = card.getAttribute('data-gc-crud');
+    if (!id || registry[id]) return;
+    var table = q('[data-gc-crud-table]', card);
+    if (!table) return;
+    var fields = [];
+    try { fields = JSON.parse(card.getAttribute('data-gc-crud-fields') || '[]'); } catch (e) { fields = []; }
+    if (!fields.length) return;
+    var info = {
+      id: id,
+      name: card.getAttribute('data-gc-crud-name') || '记录',
+      note: card.getAttribute('data-gc-crud-note') || '',
+      fields: fields,
+      single: card.hasAttribute('data-gc-crud-single'),
+      card: card,
+      table: table,
+      tbody: q('tbody', table)
+    };
+    registry[id] = info;
+    rowsOf(info).forEach(function (tr) { setRowEnabled(tr, rowEnabled(tr)); });
+    var input = q('[data-gc-crud-q]', card);
+    if (input) {
+      input.addEventListener('input', function () { applyFilter(info); });
+      input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); applyFilter(info); } });
+    }
+    var sbtn = q('[data-gc-crud-search]', card);
+    if (sbtn) sbtn.addEventListener('click', function () { applyFilter(info); });
+    var nbtn = q('[data-gc-crud-new]', card);
+    if (nbtn) nbtn.addEventListener('click', function () { openDrawer(info, null); });
+    lockSingle(info);
+    applyFilter(info);
+  }
+  function delegate(e) {
+    if (!e.target || !e.target.closest) return;
+    var card = e.target.closest('[data-gc-crud]');
+    if (!card) return;
+    var info = registry[card.getAttribute('data-gc-crud')];
+    if (!info) return;
+    var b = e.target.closest('[data-gc-crud-nodelete]');
+    if (b) { toast(b.getAttribute('data-gc-crud-nodelete')); return; }
+    var row = e.target.closest('tr[data-gc-row]');
+    if (!row) return;
+    if ((b = e.target.closest('[data-gc-crud-edit]'))) { openDrawer(info, row); return; }
+    if ((b = e.target.closest('[data-gc-crud-toggle]'))) { toggleRow(info, row); return; }
+    if ((b = e.target.closest('[data-gc-crud-del]'))) { deleteRow(info, row, b); return; }
+    if ((b = e.target.closest('.gc-btn-link--disabled'))) { toast(b.getAttribute('title') || '该操作当前不可用'); return; }
+  }
+  function deepLink() {
+    if (typeof location === 'undefined' || !location.search) return;
+    var qs = new URLSearchParams(location.search);
+    if (qs.get('create')) {
+      var firstCard = document.querySelector('[data-gc-crud][data-gc-crud-fields]');
+      if (firstCard) {
+        var firstInfo = registry[firstCard.getAttribute('data-gc-crud')];
+        if (firstInfo) { openDrawer(firstInfo, null); return; }
+      }
+    }
+    var want = qs.get('edit');
+    if (!want) return;
+    var hitRow = null, hitInfo = null;
+    Object.keys(registry).forEach(function (id) {
+      if (hitRow) return;
+      var info = registry[id], pk = pkOf(info);
+      rowsOf(info).forEach(function (tr) {
+        if (hitRow) return;
+        if (pk && lower(valueOf(tr, pk)) === lower(want)) { hitRow = tr; hitInfo = info; }
+      });
+    });
+    if (hitRow) openDrawer(hitInfo, hitRow);
+  }
+  function boot() {
+    shell();
+    qa('[data-gc-crud]').forEach(init);
+    document.addEventListener('click', delegate);
+    window.gcCrud = {
+      count: function (id, on) {
+        var info = registry[id];
+        if (!info) return 0;
+        return rowsOf(info).filter(function (tr) { return rowEnabled(tr) === !!on; }).length;
+      },
+      enabledNames: function (id) {
+        var info = registry[id];
+        if (!info) return [];
+        var pk = pkOf(info);
+        return rowsOf(info).filter(function (tr) { return rowEnabled(tr); }).map(function (tr) { return valueOf(tr, pk); });
+      },
+      names: function (id) {
+        var info = registry[id];
+        if (!info) return [];
+        var pk = pkOf(info);
+        return rowsOf(info).map(function (tr) { return valueOf(tr, pk); });
+      },
+      value: function (id, name, k) {
+        var info = registry[id];
+        if (!info) return '';
+        var pk = pkOf(info), hit = null;
+        rowsOf(info).forEach(function (tr) { if (lower(valueOf(tr, pk)) === lower(name)) hit = tr; });
+        return hit ? valueOf(hit, k) : '';
+      }
+    };
+    deepLink();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script>
+
+
+</body>
+</html>

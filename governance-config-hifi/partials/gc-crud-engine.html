@@ -1,0 +1,456 @@
+<style id="gc-crud-css">
+/* ══ 治理配置 · 通用后台管理引擎（列表 + 新增 / 编辑 / 删除 / 启用·停用） ══ */
+/* 工具条 */
+.gc-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 20px; border-bottom: 1px solid var(--gc-line); }
+.gc-search { display: flex; align-items: center; gap: 8px; flex: 1; max-width: 460px; }
+.gc-search svg { width: 14px; height: 14px; color: var(--gc-muted); flex-shrink: 0; }
+.gc-search input { flex: 1; height: 34px; padding: 0 12px; border: 1px solid var(--gc-line-strong); border-radius: 8px; font: inherit; font-size: 13px; color: var(--gc-text); background: var(--gc-panel); min-width: 0; }
+.gc-search input:focus { outline: 2px solid var(--gc-accent); outline-offset: -1px; border-color: var(--gc-accent); }
+.gc-btn-ghost { height: 34px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--gc-line-strong); background: var(--gc-panel); color: var(--gc-text); font-size: 13px; cursor: pointer; font-family: inherit; white-space: nowrap; }
+.gc-btn-ghost:hover { background: var(--gc-bg-hover); }
+.gc-btn-ghost:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-table-scroll { overflow-x: auto; }
+/* 状态与行操作 */
+.gc-chip--green { background: var(--gc-func-green-soft); color: var(--gc-func-green); font-size: 11px; font-weight: 500; border-radius: 9999px; padding: 1px 8px; white-space: nowrap; }
+.gc-btn-link--danger,
+.gc-btn-link--danger:hover { color: var(--gc-func-red); background: var(--gc-func-red-soft); border-color: var(--gc-func-red-soft); }
+.gc-empty-row td { text-align: center; color: var(--gc-muted); padding: 24px 0; }
+tr.gc-empty-row[hidden],
+tr[data-empty-row][hidden],
+.gc-scrim[hidden],
+.gc-drawer[hidden] { display: none !important; }
+/* 抽屉与表单（自包含，供各页复用） */
+.gc-scrim { position: fixed; inset: 0; background: rgba(22, 45, 77, 0.32); z-index: 50; }
+.gc-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 460px; max-width: 92vw; background: var(--gc-panel); border-left: 1px solid var(--gc-line); z-index: 60; display: flex; flex-direction: column; }
+.gc-drawer-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--gc-line); }
+.gc-drawer-title { font-size: 15px; font-weight: 600; margin: 0; }
+.gc-drawer-body { flex: 1; overflow-y: auto; padding: 16px 20px; font-size: 13px; }
+.gc-drawer-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--gc-line); }
+.gc-ov-close { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--gc-line); background: var(--gc-panel); color: var(--gc-muted); cursor: pointer; font-size: 14px; font-family: inherit; }
+.gc-ov-close:hover { color: var(--gc-text); background: var(--gc-bg-hover); }
+.gc-ov-close:focus-visible { outline: 2px solid var(--gc-accent); outline-offset: 2px; }
+.gc-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.gc-form-grid .gc-field--full { grid-column: 1 / -1; }
+.gc-field { display: flex; flex-direction: column; gap: 6px; }
+.gc-field label { font-size: 12px; color: var(--gc-muted); }
+.gc-field input, .gc-field select { height: 36px; border: 1px solid var(--gc-line-strong); border-radius: 8px; padding: 0 10px; font: inherit; font-size: 13px; background: var(--gc-panel); color: var(--gc-text); min-width: 0; }
+.gc-field input:focus, .gc-field select:focus { outline: 2px solid var(--gc-accent); outline-offset: -1px; border-color: var(--gc-accent); }
+.gc-field--err label { color: var(--gc-func-red); }
+.gc-field--err input, .gc-field--err select { border-color: var(--gc-func-red); }
+.gc-req { color: var(--gc-func-red); }
+.gc-form-err { display: none; margin: 12px 0 0; font-size: 12px; color: var(--gc-func-red); }
+.gc-form-err--show { display: block; }
+.gc-ov-note { margin: 12px 0 0; font-size: 12px; color: var(--gc-muted); }
+/* 草稿提示条 */
+.gc-draft-toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 60; display: none; max-width: 640px; padding: 10px 16px; border-radius: var(--gc-radius-medium); background: var(--gc-text); color: #FFFFFF; font-size: 13px; line-height: 1.6; }
+.gc-draft-toast--show { display: block; }
+</style>
+<script id="gc-crud-js">
+(function () {
+  var DASH = '—';
+  var registry = {};
+  var cur = null;
+  var scrim = null, drawer = null, titleEl = null, formEl = null, errEl = null, noteEl = null, saveBtn = null;
+
+  function q(sel, root) { return (root || document).querySelector(sel); }
+  function qa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function norm(s) { return (s == null ? '' : String(s)).replace(/\s+/g, ' ').trim(); }
+  function lower(s) { return norm(s).toLowerCase(); }
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  /* ── 草稿提示（复用页脚 toast 或自建） ── */
+  function toast(msg) {
+    var el = q('[data-gc-draft-toast]');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'gc-draft-toast';
+      el.setAttribute('data-gc-draft-toast', '');
+      el.setAttribute('role', 'alert');
+      el.setAttribute('aria-live', 'assertive');
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('gc-draft-toast--show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { el.classList.remove('gc-draft-toast--show'); }, 3200);
+  }
+
+  /* ── 抽屉外壳 ── */
+  function shell() {
+    if (drawer) return;
+    scrim = document.createElement('div');
+    scrim.className = 'gc-scrim';
+    scrim.setAttribute('data-gc-crud-scrim', '');
+    scrim.hidden = true;
+    drawer = document.createElement('aside');
+    drawer.className = 'gc-drawer';
+    drawer.setAttribute('role', 'dialog');
+    drawer.setAttribute('aria-modal', 'true');
+    drawer.setAttribute('aria-labelledby', 'gc-crud-title');
+    drawer.setAttribute('data-gc-crud-drawer', '');
+    drawer.hidden = true;
+    drawer.innerHTML =
+      '<div class="gc-drawer-head">' +
+        '<h2 class="gc-drawer-title" id="gc-crud-title" data-gc-crud-title></h2>' +
+        '<button type="button" class="gc-ov-close" data-gc-crud-cancel aria-label="关闭">✕</button>' +
+      '</div>' +
+      '<div class="gc-drawer-body">' +
+        '<div class="gc-form-grid" data-gc-crud-form></div>' +
+        '<p class="gc-form-err" data-gc-crud-err role="alert"></p>' +
+        '<p class="gc-ov-note" data-gc-crud-note></p>' +
+      '</div>' +
+      '<div class="gc-drawer-foot">' +
+        '<button type="button" class="gc-btn-ghost" data-gc-crud-cancel>取消</button>' +
+        '<button type="button" class="gc-btn-primary" data-gc-crud-save>保存到草稿</button>' +
+      '</div>';
+    document.body.appendChild(scrim);
+    document.body.appendChild(drawer);
+    titleEl = q('[data-gc-crud-title]', drawer);
+    formEl = q('[data-gc-crud-form]', drawer);
+    errEl = q('[data-gc-crud-err]', drawer);
+    noteEl = q('[data-gc-crud-note]', drawer);
+    saveBtn = q('[data-gc-crud-save]', drawer);
+    scrim.addEventListener('click', closeDrawer);
+    qa('[data-gc-crud-cancel]', drawer).forEach(function (b) { b.addEventListener('click', closeDrawer); });
+    saveBtn.addEventListener('click', save);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && drawer && !drawer.hidden) closeDrawer();
+    });
+  }
+  function closeDrawer() {
+    if (!drawer) return;
+    drawer.hidden = true;
+    scrim.hidden = true;
+    cur = null;
+  }
+
+  /* ── 行读取 / 写入 ── */
+  function pkOf(info) { for (var i = 0; i < info.fields.length; i++) if (info.fields[i].primary) return info.fields[i].k; return info.fields.length ? info.fields[0].k : ''; }
+  function rowsOf(info) { return qa('tr[data-gc-row]', info.tbody); }
+  function cellOf(row, k) { return row ? q('td[data-col="' + k + '"]', row) : null; }
+  function valueOf(row, k) {
+    var td = cellOf(row, k);
+    if (!td) return '';
+    var t = norm(td.textContent);
+    return (t === DASH || t === '（空）' || t === '空') ? '' : t;
+  }
+  function rowEnabled(row) {
+    var td = cellOf(row, 'status');
+    if (!td) return false;
+    return td.textContent.indexOf('启用') > -1;
+  }
+  function setRowEnabled(row, on) {
+    var td = cellOf(row, 'status');
+    if (td) td.innerHTML = '<span class="gc-chip ' + (on ? 'gc-chip--green' : 'gc-chip--off') + '">' + (on ? '启用' : '停用') + '</span>';
+    var btn = q('[data-gc-crud-toggle]', row);
+    if (btn) btn.textContent = on ? '停用' : '启用';
+  }
+  function cellClass(f, v) {
+    if (!v) return 'gc-td-dash';
+    if (f.kind === 'name') return 'gc-td-name';
+    if (f.kind === 'code') return 'gc-td-code';
+    return '';
+  }
+  function writeRow(info, row, vals) {
+    info.fields.forEach(function (f) {
+      var td = cellOf(row, f.k);
+      if (!td) return;
+      var v = vals[f.k];
+      td.className = cellClass(f, v);
+      td.textContent = v || DASH;
+    });
+  }
+  function actionsHTML() {
+    return '<button type="button" class="gc-btn-link" data-gc-crud-edit>编辑</button>' +
+      '<button type="button" class="gc-btn-link" data-gc-crud-toggle>停用</button>' +
+      '<button type="button" class="gc-btn-link" data-gc-crud-del>删除</button>';
+  }
+  function lockSingle(info) {
+    if (!info.single) return;
+    var tip = '启用中的' + info.name + '不可删除，请先启用其它' + info.name;
+    rowsOf(info).forEach(function (tr) {
+      var del = q('[data-gc-crud-del]', tr);
+      if (!del) return;
+      if (rowEnabled(tr)) {
+        del.setAttribute('data-gc-crud-nodelete', tip);
+        del.classList.add('gc-btn-link--disabled');
+        del.setAttribute('title', tip);
+      } else if (del.getAttribute('data-gc-crud-nodelete') === tip) {
+        del.removeAttribute('data-gc-crud-nodelete');
+        del.classList.remove('gc-btn-link--disabled');
+        del.removeAttribute('title');
+      }
+    });
+  }
+
+  /* ── 搜索过滤 ── */
+  function applyFilter(info) {
+    var input = q('[data-gc-crud-q]', info.card);
+    var kw = input ? lower(input.value) : '';
+    var shown = 0;
+    rowsOf(info).forEach(function (tr) {
+      var hit = !kw;
+      if (!hit) {
+        var cells = qa('td[data-col]', tr);
+        for (var i = 0; i < cells.length; i++) {
+          if (lower(cells[i].textContent).indexOf(kw) > -1) { hit = true; break; }
+        }
+      }
+      tr.hidden = !hit;
+      if (hit) shown++;
+    });
+    var empty = q('tr.gc-empty-row, tr[data-empty-row]', info.tbody);
+    if (!empty) {
+      empty = document.createElement('tr');
+      empty.className = 'gc-empty-row';
+      empty.innerHTML = '<td colspan="' + (qa('thead th', info.table).length || 1) + '">未找到匹配' + esc(info.name) + '，请调整关键词</td>';
+      info.tbody.appendChild(empty);
+    }
+    empty.hidden = !kw || shown > 0;
+    return shown;
+  }
+  function afterChange(info) { applyFilter(info); lockSingle(info); }
+
+  /* ── 表单 ── */
+  function buildForm(info, row) {
+    var html = '';
+    info.fields.forEach(function (f) {
+      var v = row ? valueOf(row, f.k) : (f.def == null ? '' : f.def);
+      html += '<div class="gc-field' + (f.full ? ' gc-field--full' : '') + '" data-field="' + esc(f.k) + '">' +
+        '<label for="gc-crud-input-' + esc(f.k) + '">' + esc(f.label) + (f.required ? ' <span class="gc-req" aria-hidden="true">*</span>' : '') + '</label>';
+      if (f.type === 'select') {
+        var opts = (f.options || []).map(function (o) {
+          return '<option value="' + esc(o) + '"' + (o === v ? ' selected' : '') + '>' + esc(o) + '</option>';
+        }).join('');
+        if (v === '' || (f.options || []).indexOf(v) < 0) opts = '<option value="" selected></option>' + opts;
+        html += '<select id="gc-crud-input-' + esc(f.k) + '" data-gc-crud-input="' + esc(f.k) + '">' + opts + '</select>';
+      } else {
+        html += '<input type="' + esc(f.type || 'text') + '" id="gc-crud-input-' + esc(f.k) + '" data-gc-crud-input="' + esc(f.k) + '"' +
+          (f.type === 'number' ? ' min="0" step="1" inputmode="numeric"' : '') +
+          ' value="' + esc(v) + '"' + (f.ph ? ' placeholder="' + esc(f.ph) + '"' : '') + '>';
+      }
+      html += '</div>';
+    });
+    formEl.innerHTML = html;
+  }
+  function showErr(msg, field) {
+    errEl.textContent = msg;
+    errEl.classList.add('gc-form-err--show');
+    qa('.gc-field--err', formEl).forEach(function (w) { w.classList.remove('gc-field--err'); });
+    if (field) {
+      var w = field.closest ? field.closest('.gc-field') : null;
+      if (w) w.classList.add('gc-field--err');
+      field.focus();
+    }
+  }
+  function openDrawer(info, row) {
+    shell();
+    cur = { info: info, row: row || null };
+    titleEl.textContent = (row ? '编辑' : '新增') + info.name;
+    noteEl.textContent = info.note || '';
+    noteEl.hidden = !info.note;
+    errEl.textContent = '';
+    errEl.classList.remove('gc-form-err--show');
+    buildForm(info, row);
+    scrim.hidden = false;
+    drawer.hidden = false;
+    var first = q('input, select', formEl);
+    if (first) first.focus();
+  }
+  function save() {
+    if (!cur) return;
+    var info = cur.info, row = cur.row, err = '', errField = null, vals = {};
+    info.fields.forEach(function (f) {
+      var el = q('[data-gc-crud-input="' + f.k + '"]', formEl);
+      var v = el ? norm(el.value) : '';
+      if (f.required && !v && !err) { err = '「' + f.label + '」为必填项'; errField = el; }
+      else if (f.type === 'number' && v !== '' && !/^\d+(\.\d+)?$/.test(v) && !err) { err = '「' + f.label + '」须填写数字'; errField = el; }
+      vals[f.k] = v;
+    });
+    var pk = pkOf(info);
+    if (!err && pk && vals[pk]) {
+      var dup = false;
+      rowsOf(info).forEach(function (tr) {
+        if (tr === row || dup) return;
+        if (lower(valueOf(tr, pk)) === lower(vals[pk])) dup = true;
+      });
+      if (dup) { err = '「' + vals[pk] + '」已存在，' + info.name + '不可重复'; errField = q('[data-gc-crud-input="' + pk + '"]', formEl); }
+    }
+    if (err) { showErr(err, errField); return; }
+    var label = vals[pk] || vals[info.fields[0].k] || info.name;
+    if (row) {
+      writeRow(info, row, vals);
+      toast('已更新「' + label + '」，写入草稿，尚未生效。');
+    } else {
+      var tr = document.createElement('tr');
+      tr.setAttribute('data-gc-row', '');
+      var html = '';
+      info.fields.forEach(function (f) {
+        var v = vals[f.k];
+        html += '<td class="' + cellClass(f, v) + '" data-col="' + esc(f.k) + '"' + (f.primary ? ' data-primary' : '') + '>' + esc(v || DASH) + '</td>';
+      });
+      html += '<td data-col="status"><span class="gc-chip gc-chip--off">停用</span></td>';
+      html += '<td class="gc-td-actions" data-col="actions">' + actionsHTML() + '</td>';
+      tr.innerHTML = html;
+      info.tbody.appendChild(tr);
+      setRowEnabled(tr, true);
+      if (info.single) {
+        rowsOf(info).forEach(function (o) { if (o !== tr) setRowEnabled(o, false); });
+        toast('已新增「' + label + '」并置为启用，其余' + info.name + '已自动停用，写入草稿尚未生效。');
+      } else {
+        toast('已新增「' + label + '」并置为启用，写入草稿，尚未生效。');
+      }
+    }
+    closeDrawer();
+    afterChange(info);
+  }
+
+  /* ── 行操作 ── */
+  function toggleRow(info, row) {
+    var on = rowEnabled(row);
+    var label = valueOf(row, pkOf(info)) || info.name;
+    setRowEnabled(row, !on);
+    if (!on && info.single) {
+      rowsOf(info).forEach(function (o) { if (o !== row) setRowEnabled(o, false); });
+      toast('已启用「' + label + '」，其余' + info.name + '已自动停用，写入草稿尚未生效。');
+    } else {
+      toast((on ? '已停用「' : '已启用「') + label + '」，写入草稿，尚未生效。');
+    }
+    afterChange(info);
+  }
+  function deleteRow(info, row, btn) {
+    if (btn.getAttribute('data-gc-crud-nodelete') || btn.classList.contains('gc-btn-link--disabled')) {
+      toast(btn.getAttribute('data-gc-crud-nodelete') || btn.getAttribute('title') || '该' + info.name + '当前不可删除');
+      return;
+    }
+    if (btn.getAttribute('data-gc-crud-confirm') === '1') {
+      clearTimeout(btn._t);
+      var label = valueOf(row, pkOf(info)) || info.name;
+      if (row.parentNode) row.parentNode.removeChild(row);
+      toast('已删除「' + label + '」，写入草稿，尚未生效。');
+      afterChange(info);
+      return;
+    }
+    btn.setAttribute('data-gc-crud-confirm', '1');
+    btn._text = btn.textContent;
+    btn.textContent = '确认删除';
+    btn.classList.add('gc-btn-link--danger');
+    clearTimeout(btn._t);
+    btn._t = setTimeout(function () {
+      btn.removeAttribute('data-gc-crud-confirm');
+      btn.textContent = btn._text || '删除';
+      btn.classList.remove('gc-btn-link--danger');
+    }, 3000);
+  }
+
+  /* ── 初始化 ── */
+  function init(card) {
+    var id = card.getAttribute('data-gc-crud');
+    if (!id || registry[id]) return;
+    var table = q('[data-gc-crud-table]', card);
+    if (!table) return;
+    var fields = [];
+    try { fields = JSON.parse(card.getAttribute('data-gc-crud-fields') || '[]'); } catch (e) { fields = []; }
+    if (!fields.length) return;
+    var info = {
+      id: id,
+      name: card.getAttribute('data-gc-crud-name') || '记录',
+      note: card.getAttribute('data-gc-crud-note') || '',
+      fields: fields,
+      single: card.hasAttribute('data-gc-crud-single'),
+      card: card,
+      table: table,
+      tbody: q('tbody', table)
+    };
+    registry[id] = info;
+    rowsOf(info).forEach(function (tr) { setRowEnabled(tr, rowEnabled(tr)); });
+    var input = q('[data-gc-crud-q]', card);
+    if (input) {
+      input.addEventListener('input', function () { applyFilter(info); });
+      input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); applyFilter(info); } });
+    }
+    var sbtn = q('[data-gc-crud-search]', card);
+    if (sbtn) sbtn.addEventListener('click', function () { applyFilter(info); });
+    var nbtn = q('[data-gc-crud-new]', card);
+    if (nbtn) nbtn.addEventListener('click', function () { openDrawer(info, null); });
+    lockSingle(info);
+    applyFilter(info);
+  }
+  function delegate(e) {
+    if (!e.target || !e.target.closest) return;
+    var card = e.target.closest('[data-gc-crud]');
+    if (!card) return;
+    var info = registry[card.getAttribute('data-gc-crud')];
+    if (!info) return;
+    var b = e.target.closest('[data-gc-crud-nodelete]');
+    if (b) { toast(b.getAttribute('data-gc-crud-nodelete')); return; }
+    var row = e.target.closest('tr[data-gc-row]');
+    if (!row) return;
+    if ((b = e.target.closest('[data-gc-crud-edit]'))) { openDrawer(info, row); return; }
+    if ((b = e.target.closest('[data-gc-crud-toggle]'))) { toggleRow(info, row); return; }
+    if ((b = e.target.closest('[data-gc-crud-del]'))) { deleteRow(info, row, b); return; }
+    if ((b = e.target.closest('.gc-btn-link--disabled'))) { toast(b.getAttribute('title') || '该操作当前不可用'); return; }
+  }
+  function deepLink() {
+    if (typeof location === 'undefined' || !location.search) return;
+    var qs = new URLSearchParams(location.search);
+    if (qs.get('create')) {
+      var firstCard = document.querySelector('[data-gc-crud][data-gc-crud-fields]');
+      if (firstCard) {
+        var firstInfo = registry[firstCard.getAttribute('data-gc-crud')];
+        if (firstInfo) { openDrawer(firstInfo, null); return; }
+      }
+    }
+    var want = qs.get('edit');
+    if (!want) return;
+    var hitRow = null, hitInfo = null;
+    Object.keys(registry).forEach(function (id) {
+      if (hitRow) return;
+      var info = registry[id], pk = pkOf(info);
+      rowsOf(info).forEach(function (tr) {
+        if (hitRow) return;
+        if (pk && lower(valueOf(tr, pk)) === lower(want)) { hitRow = tr; hitInfo = info; }
+      });
+    });
+    if (hitRow) openDrawer(hitInfo, hitRow);
+  }
+  function boot() {
+    shell();
+    qa('[data-gc-crud]').forEach(init);
+    document.addEventListener('click', delegate);
+    window.gcCrud = {
+      count: function (id, on) {
+        var info = registry[id];
+        if (!info) return 0;
+        return rowsOf(info).filter(function (tr) { return rowEnabled(tr) === !!on; }).length;
+      },
+      enabledNames: function (id) {
+        var info = registry[id];
+        if (!info) return [];
+        var pk = pkOf(info);
+        return rowsOf(info).filter(function (tr) { return rowEnabled(tr); }).map(function (tr) { return valueOf(tr, pk); });
+      },
+      names: function (id) {
+        var info = registry[id];
+        if (!info) return [];
+        var pk = pkOf(info);
+        return rowsOf(info).map(function (tr) { return valueOf(tr, pk); });
+      },
+      value: function (id, name, k) {
+        var info = registry[id];
+        if (!info) return '';
+        var pk = pkOf(info), hit = null;
+        rowsOf(info).forEach(function (tr) { if (lower(valueOf(tr, pk)) === lower(name)) hit = tr; });
+        return hit ? valueOf(hit, k) : '';
+      }
+    };
+    deepLink();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script>

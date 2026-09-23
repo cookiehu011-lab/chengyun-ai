@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="<!-- figma:lang -->">
+  <head>
+    <!-- figma:head-start -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><!-- figma:title --></title>
+    <!-- figma:head-end -->
+  </head>
+  <body>
+    <!-- figma:body-start -->
+    <script>
+      (function () {
+        // 皮肤 early apply：React 挂载前应用记忆的皮肤，避免首帧闪烁
+        // 注意：用 data-skin 承载（宿主运行时会改写 data-theme，与其解耦）
+        try {
+          var t = localStorage.getItem("app-skin") === "tech" ? "tech" : "light";
+          document.documentElement.setAttribute("data-skin", t);
+        } catch (e) {}
+      })();
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx?v=cr50"></script>
+    <!-- figma:body-end -->
+  </body>
+</html>

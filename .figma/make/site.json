@@ -1,0 +1,10 @@
+{
+  "description": "This application offers a streamlined interface for managing tasks with clear visual hierarchy and intuitive navigation, enhancing user productivity.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

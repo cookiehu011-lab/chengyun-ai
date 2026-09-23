@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="270" viewBox="0 0 480 270">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F3FAFF"/>
+      <stop offset="100%" stop-color="#E4F3FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="270" fill="url(#bg)"/>
+  <g transform="translate(190, 70)">
+    <rect x="10" y="60" width="80" height="90" fill="#FF7A42" opacity="0.15" stroke="#FF7A42" stroke-width="2"/>
+    <rect x="20" y="75" width="25" height="25" fill="#FFFFFF" opacity="0.7"/>
+    <rect x="55" y="75" width="25" height="25" fill="#FFFFFF" opacity="0.7"/>
+    <rect x="20" y="110" width="25" height="30" fill="#FFFFFF" opacity="0.7"/>
+    <polygon points="10,60 50,20 90,60" fill="#FF7A42" opacity="0.25"/>
+    <rect x="45" y="10" width="10" height="40" fill="#FF7A42" opacity="0.4"/>
+  </g>
+  <text x="240" y="230" text-anchor="middle" font-size="14" fill="#6E8197" font-family="Noto Sans SC, Inter, sans-serif">施工场景</text>
+</svg>
