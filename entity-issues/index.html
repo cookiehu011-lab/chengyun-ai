@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>生产数据怎么建的 · 三件问题对照</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+  <style>
+    :root {
+      --bg: #ece7dc;
+      --paper: #f7f3ea;
+      --ink: #1c1915;
+      --muted: #6a645a;
+      --line: #d4cdc0;
+      --entity: #c45c26;
+      --entity-bg: #f8e6d8;
+      --area: #1f6f6a;
+      --area-bg: #dceeea;
+      --child: #2f6b3a;
+      --child-bg: #ddebd8;
+      --orphan: #b42318;
+      --orphan-bg: #f8dcd8;
+      --ok: #2f6b3a;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "Noto Sans SC", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.55;
+    }
+    .top {
+      position: sticky; top: 0; z-index: 20;
+      background: rgba(247,243,234,.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+    }
+    .top-inner {
+      max-width: 1180px; margin: 0 auto; padding: 12px 24px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand { font-weight: 700; letter-spacing: .04em; white-space: nowrap; }
+    .brand span { color: var(--muted); font-weight: 400; margin-left: 10px; font-size: 13px; }
+    nav { display: flex; gap: 8px; flex-wrap: wrap; }
+    nav a {
+      color: var(--ink); text-decoration: none; font-size: 13px;
+      padding: 6px 10px; border: 1px solid transparent; border-radius: 999px;
+    }
+    nav a:hover { border-color: var(--line); background: #fff; }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 36px 24px 80px; }
+    h1 { font-size: 36px; line-height: 1.2; margin: 0 0 12px; font-weight: 700; }
+    .lead { font-size: 18px; max-width: 42em; color: var(--muted); margin: 0 0 28px; }
+    .how {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 48px;
+    }
+    .how div {
+      background: var(--paper); border: 1px solid var(--line); padding: 16px 18px; border-radius: 12px;
+    }
+    .how b { display: block; margin-bottom: 6px; }
+    .how p { margin: 0; font-size: 14px; color: var(--muted); }
+    section { margin-bottom: 72px; }
+    .sec-kicker { font-family: "JetBrains Mono", monospace; font-size: 12px; letter-spacing: .12em; color: var(--entity); margin-bottom: 8px; }
+    h2 { font-size: 28px; margin: 0 0 8px; }
+    .sec-lead { color: var(--muted); max-width: 46em; margin: 0 0 24px; }
+    .shot {
+      background: #111; border-radius: 12px; overflow: hidden; position: relative;
+    }
+    .shot img { display: block; width: 100%; height: 220px; object-fit: cover; }
+    .shot.tall img { height: 280px; }
+    .stamp {
+      position: absolute; left: 10px; top: 10px;
+      font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px;
+      letter-spacing: .04em;
+    }
+    .e { background: var(--entity-bg); color: var(--entity); }
+    .a { background: var(--area-bg); color: var(--area); }
+    .c { background: var(--child-bg); color: var(--child); }
+    .o { background: var(--orphan-bg); color: var(--orphan); }
+    .cap {
+      background: var(--paper); border: 1px solid var(--line); border-top: 0;
+      border-radius: 0 0 12px 12px; padding: 10px 12px 12px; margin-top: -12px; position: relative;
+    }
+    .shot + .cap { margin-top: 0; border-radius: 0 0 12px 12px; }
+    .card { display: flex; flex-direction: column; }
+    .card .shot { border-radius: 12px 12px 0 0; }
+    .name { font-weight: 600; font-size: 14px; }
+    .meta { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .note { font-size: 13px; color: var(--muted); margin-top: 6px; }
+    .judge { font-size: 13px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+    .stamps { position: absolute; left: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+    .shot .stamp { position: static; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .board {
+      display: grid; grid-template-columns: 280px 1fr; gap: 20px; align-items: start;
+      background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 18px;
+      margin-bottom: 20px;
+    }
+    .parent-box { }
+    .parent-box h3 { margin: 10px 0 4px; font-size: 18px; }
+    .children {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    }
+    .col h4 { margin: 0 0 10px; font-size: 13px; letter-spacing: .06em; }
+    .col.in h4 { color: var(--child); }
+    .col.out h4 { color: var(--orphan); }
+    .empty {
+      height: 220px; display: flex; align-items: center; justify-content: center;
+      background: repeating-linear-gradient(-45deg, #1a1a1a, #1a1a1a 8px, #222 8px, #222 16px);
+      color: #cfcfcf; font-size: 14px;
+    }
+    .same {
+      outline: 2px dashed var(--orphan); outline-offset: 2px;
+    }
+    .legend { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 20px; }
+    .legend i {
+      font-style: normal; font-size: 12px; font-weight: 600;
+      padding: 3px 8px; border-radius: 999px;
+    }
+    .dual {
+      display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center;
+      margin-bottom: 28px;
+    }
+    .vs {
+      font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--orphan);
+      writing-mode: vertical-rl; text-align: center; letter-spacing: .2em;
+    }
+    footer { color: var(--muted); font-size: 12px; padding-top: 24px; border-top: 1px solid var(--line); }
+    table.model { width: 100%; border-collapse: collapse; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 14px; margin: 0 0 24px; }
+    table.model th, table.model td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    table.model th { font-size: 12px; color: var(--muted); font-weight: 600; background: #efe9dc; }
+    table.model tr:last-child td { border-bottom: 0; }
+    .steps { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+    .steps article { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+    .steps h3 { margin: 0 0 8px; font-size: 16px; }
+    .steps p { margin: 0; color: var(--muted); font-size: 14px; }
+    .want { background: var(--child-bg); color: var(--child); }
+    @media (max-width: 1100px) {
+      .grid-4 { grid-template-columns: 1fr 1fr; }
+      .grid-3 { grid-template-columns: 1fr 1fr; }
+      .how { grid-template-columns: 1fr; }
+      .board { grid-template-columns: 1fr; }
+      .children { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      .grid-4, .grid-3, .dual { grid-template-columns: 1fr; }
+      .vs { writing-mode: horizontal-tb; padding: 8px 0; }
+      .shot img, .empty { height: 180px; }
+      h1 { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="top-inner">
+      <div class="brand">数据怎么建的<span>生产实拍</span></div>
+      <nav>
+        <a href="#p1">第一件 · 不该是地点</a>
+        <a href="#p2">第二件 · 园里有名单没有</a>
+        <a href="#p3">第三件 · 建了两次</a>
+        <a href="#p4">第四件 · 技能对不上</a>
+        <a href="#should">应该怎么建</a>
+        <a href="/entity-scheme/index.html">AI 方案</a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <h1>不是在讲概念。<br>是镜头里已经这样建了。</h1>
+    <p class="lead">下面每张图都是生产相机画面。图上角标只写<strong>现在数据里是什么</strong>，不是建议。对不对的看法写在图下「判断」里。</p>
+
+    <div class="legend">
+      <i class="e">现状：实体</i>
+      <i class="a">现状：构成</i>
+      <i class="c">现状：从属（已挂在上级下）</i>
+      <i class="o">现状：独立（没有上级）</i>
+    </div>
+    <p class="note" style="margin:-8px 0 20px">这四项是生产库里的现有身份，不是改造方案。实体 / 构成 / 从属 / 独立，都是当前怎么建的。</p>
+
+    <div class="how">
+      <div><b>怎么读</b><p>角标 = 现状。图下「判断」= 这页的问题看法。两者分开看。</p></div>
+      <div><b>名字怎么读</b><p>大标题是生产里的实体名 / 构成名。下一行「ID」是系统编号，对照用的，不是名称的一部分。名称里自带的「2楼」「187号」才是原名。</p></div>
+      <div><b>数据范围</b><p>生产全库 4319 个实体。空壳只看已发布。入库顺序：先认地点，再认这一路是它的哪一面。</p></div>
+    </div>
+
+    <!-- P1 -->
+    <section id="p1">
+      <div class="sec-kicker">01 / 三件问题</div>
+      <h2>第一件：不该是地点的，也成了实体</h2>
+      <p class="sec-lead">总统府是地点，没问题。扶梯、路灯路段不该当地点，应停在构成。卫生间要能被问「哪里有卫生间」，应是商场/景区的<strong>从属实体</strong>；现状有的建成实体、有的停在构成、有的还没挂上级，不统一。</p>
+
+      <div class="grid-4">
+        <article class="card">
+          <div class="shot"><span class="stamp e">现状：实体</span><img src="img/president.jpg" alt="总统府门口实拍" /></div>
+          <div class="cap">
+            <div class="name">总统府</div>
+            <div class="meta">ID 25183 · 南京 · 已发布 · 场景=景区</div>
+            <div class="judge">判断：可以当地点，这样建没问题。</div>
+          </div>
+        </article>
+        <article class="card">
+          <div class="shot"><span class="stamp e">现状：实体</span><img src="img/toilet-b5.jpg" alt="六角广场二期五楼北卫生间" /></div>
+          <div class="cap">
+            <div class="name">六角广场二期五楼北卫生间</div>
+            <div class="meta">ID 25639 · 场景=卫生间 · 从属于二期</div>
+            <div class="judge">判断：卫生间应是商场的从属实体，这样个人版才能召回「哪里有卫生间」。现状这条已经是从属实体，方向对；不要再在商场构成里占一条同名观察面。</div>
+          </div>
+        </article>
+        <article class="card">
+          <div class="shot"><span class="stamp e">现状：实体</span><img src="img/toilet-b2.jpg" alt="六角广场二期二楼卫生间" /></div>
+          <div class="cap">
+            <div class="name">六角广场二期二楼卫生间</div>
+            <div class="meta">ID 25628 · 场景=卫生间 · 从属于二期</div>
+            <div class="judge">判断：按楼层建成从属实体可以问「几楼卫生间」。问题是商场构成里还有「2楼卫生间向北」，同一厕所建了两次。</div>
+          </div>
+        </article>
+        <article class="card">
+          <div class="shot"><span class="stamp e">现状：实体</span><div class="empty">已发布 · 0 构成 · 0 相机 · 0 从属</div></div>
+          <div class="cap">
+            <div class="name">南京和平公园</div>
+            <div class="meta">ID 25275 · 玄武 · 已发布</div>
+            <div class="judge">判断：已发布仍是空壳，才算建模问题。未发布的「六角广场1」（ID 24752）本页不拿来当样例。</div>
+          </div>
+        </article>
+      </div>
+
+      <p class="sec-lead" style="margin-top:28px">同一商场里，扶梯没有升成实体，但被切成多块<strong>构成</strong>。路也按路灯号切开。对象不是地点，是镜头切片。</p>
+      <div class="grid-4">
+        <article class="card">
+          <div class="shot"><span class="stamp a">现状：构成</span><img src="img/escalator-b1.jpg" alt="负1楼手扶梯" /></div>
+          <div class="cap"><div class="name">负1楼手扶梯</div><div class="meta">构成 · 属于实体「六角广场」· ID 24608</div><div class="judge">判断：应留在构成，不要升成实体。现状已经是构成。</div></div>
+        </article>
+        <article class="card">
+          <div class="shot"><span class="stamp a">现状：构成</span><img src="img/phase2-esc.jpg" alt="4楼手扶梯" /></div>
+          <div class="cap"><div class="name">4楼手扶梯</div><div class="meta">构成 · 属于实体「六角广场二期」· ID 25416</div></div>
+        </article>
+        <article class="card">
+          <div class="shot"><span class="stamp a">现状：构成</span><img src="img/lianhua-2.jpg" alt="187号路灯路段" /></div>
+          <div class="cap"><div class="name">187号路灯路段</div><div class="meta">构成 · 属于实体「莲花大道」· ID 17843 · 共 59 块构成</div><div class="judge">判断：切得过碎，但身份是构成不是实体。「187号」是构成原名里的字。</div></div>
+        </article>
+        <article class="card">
+          <div class="shot"><span class="stamp a">现状：构成</span><img src="img/lianhua-3.jpg" alt="191号路灯路段" /></div>
+          <div class="cap"><div class="name">191号路灯路段</div><div class="meta">同一条路，按灯号再切一块</div></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- P2 -->
+    <section id="p2">
+      <div class="sec-kicker">02 / 三件问题</div>
+      <h2>第二件：园里明明有，从属名单里没有</h2>
+      <p class="sec-lead">左边是上级地点的镜头。右边绿的是已经记成从属的；红的是现场就在园里，数据却是一条独立实体。问上级的时候，红色这些出不来。</p>
+
+      <div class="board">
+        <div class="parent-box">
+          <div class="shot tall"><span class="stamp e">现状：实体</span><img src="img/shaolin-gate.jpg" alt="少林寺检票入口" /></div>
+          <h3>嵩山少林寺</h3>
+          <div class="meta">ID 23897 · 郑州登封 · 从属记了 10 个</div>
+          <p class="note">寺里有店、有摊。数据只把游客中心、索道、停车场等记进从属。</p>
+        </div>
+        <div class="children">
+          <div class="col in">
+            <h4>记进少林寺从属的（10 个里的现场）</h4>
+            <article class="card">
+              <div class="shot"><span class="stamp a">现状：构成</span><img src="img/shaolin-square.jpg" alt="少林寺广场构成" /></div>
+              <div class="cap">
+                <div class="name">少林寺广场（构成）</div>
+                <div class="note">游客中心、文创店、VIP 停车场等 10 条，现状已挂在少林寺从属里。</div>
+              </div>
+            </article>
+          </div>
+          <div class="col out">
+            <h4>就在寺里，但不是少林寺的从属</h4>
+            <article class="card">
+              <div class="shot"><span class="stamp o">现状：独立实体</span><img src="img/tastien.jpg" alt="少林寺塔斯汀" /></div>
+              <div class="cap">
+                <div class="name">嵩山少林寺塔斯汀中国汉堡</div>
+                <div class="meta">ID 23928 · 场景=餐厅 · 无上级</div>
+                <div class="judge">判断：现场在寺里，应从属于少林寺。</div>
+              </div>
+            </article>
+            <article class="card">
+              <div class="shot"><span class="stamp o">现状：独立实体</span><img src="img/old-rest.jpg" alt="老牌坊餐馆" /></div>
+              <div class="cap">
+                <div class="name">嵩山少林寺老牌坊餐馆</div>
+                <div class="meta">ID 23935 · 场景=餐厅 · 无上级</div>
+                <div class="judge">判断：名称已带少林寺，应从属。</div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+
+      <div class="board">
+        <div class="parent-box">
+          <div class="shot tall"><span class="stamp e">现状：实体</span><img src="img/zhongshan-road.jpg" alt="钟山太平门入口道路" /></div>
+          <h3>钟山风景区</h3>
+          <div class="meta">ID 25211 · 从属 11 个 · 自己 4 块构成全是路</div>
+          <p class="note">这张就是钟山自己的构成：太平门入口道路。不是中山陵，不是玄武湖。</p>
+        </div>
+        <div class="children">
+          <div class="col out" style="grid-column:1/-1">
+            <h4>在钟山范围里，没有记到钟山下</h4>
+            <div class="grid-3">
+              <article class="card">
+                <div class="shot"><span class="stamp o">现状：独立实体</span><img src="img/meiling-park.jpg" alt="美龄宫停车场" /></div>
+                <div class="cap">
+                  <div class="name">钟山风景区-美龄宫停车场</div>
+                  <div class="meta">ID 24849 · 无上级</div>
+                  <div class="judge">判断：应挂到钟山下。</div>
+                </div>
+              </article>
+              <article class="card">
+                <div class="shot"><span class="stamp c">现状：从属实体</span><img src="img/cable-a.jpg" alt="紫金山索道挂在钟山下" /></div>
+                <div class="cap">
+                  <div class="name">钟山风景名胜区-紫金山索道</div>
+                  <div class="meta">ID 25601 · 已挂钟山下 · 场景写成「景区」</div>
+                  <div class="judge">判断：和旁边那条独立索道是同一对象，应合并。</div>
+                </div>
+              </article>
+              <article class="card">
+                <div class="shot"><span class="stamp o">现状：独立实体</span><img src="img/cable-b.jpg" alt="紫金山索道独立实体" /></div>
+                <div class="cap">
+                  <div class="name">钟山风景区-紫金山索道</div>
+                  <div class="meta">ID 25329 · 场景=索道 · 无上级</div>
+                  <div class="judge">判断：与「钟山风景名胜区-紫金山索道」重复建设。</div>
+                </div>
+              </article>
+            </div>
+            <article class="card" style="margin-top:14px">
+              <div class="shot"><span class="stamp o">现状：独立实体</span><img src="img/cable-p.jpg" alt="紫金山索道停车场" /></div>
+              <div class="cap">
+                <div class="name">紫金山索道停车场</div>
+                <div class="meta">ID 25616 · 无上级</div>
+                <div class="judge">判断：应挂索道或钟山下，不要第三条独立实体。</div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+
+      <div class="board">
+        <div class="parent-box">
+          <div class="shot tall"><span class="stamp e">现状：实体</span><img src="img/niushou.jpg" alt="牛首山东出口" /></div>
+          <h3>南京牛首山文化旅游区</h3>
+          <div class="meta">ID 10577 · 从属只记了 5 个广场/寺庙</div>
+        </div>
+        <div class="children">
+          <div class="col out" style="grid-column:1/-1">
+            <h4>名称带牛首山，却不算牛首山的从属</h4>
+            <div class="grid-3">
+              <article class="card">
+                <div class="shot"><span class="stamp o">现状：独立实体</span><img src="img/hilton.jpg" alt="牛首山希尔顿" /></div>
+                <div class="cap"><div class="name">南京牛首山文化旅游区希尔顿酒店</div><div class="meta">ID 10677 · 场景=酒店 · 无上级</div><div class="judge">判断：应从属于牛首山。</div></div>
+              </article>
+              <article class="card">
+                <div class="shot"><span class="stamp o">现状：独立实体</span><img src="img/bus-park.jpg" alt="大客车停车场" /></div>
+                <div class="cap"><div class="name">南京牛首山文化旅游区大客车停车场</div><div class="meta">ID 10656 · 场景=停车场 · 无上级</div><div class="judge">判断：应从属于牛首山。</div></div>
+              </article>
+              <article class="card">
+                <div class="shot"><span class="stamp o">现状：独立实体</span><img src="img/ticket.jpg" alt="牛首山售票处" /></div>
+                <div class="cap"><div class="name">南京牛首山文化旅游区售票处</div><div class="meta">ID 10581 · 场景=售票处 · 无上级</div><div class="judge">判断：应从属于牛首山。</div></div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="note">同结构、本页未再贴图的：九华山地藏禅寺 / 闵公禅寺（生产构成无图）、六角广场地面停车场、楠溪江石桅岩。规则一样——名称在园里，从属名单没有。</p>
+    </section>
+
+    <!-- P3 -->
+    <section id="p3">
+      <div class="sec-kicker">03 / 三件问题</div>
+      <h2>第三件：同一个对象，地点和观察面抢着建</h2>
+      <p class="sec-lead">该当「从哪看」的升成了地点；该当地点的只停在构成里。有的还是同一路相机，进了两个名字。</p>
+
+      <h3 style="margin:0 0 12px;font-size:18px">西天目停车场：构成一条，实体又一条</h3>
+      <div class="dual">
+        <article class="card">
+          <div class="shot tall"><span class="stamp a">现状：构成</span><img src="img/xitian-park-area.jpg" alt="西天目停车场作为构成" /></div>
+          <div class="cap">
+            <div class="name">西天目山景区停车场</div>
+            <div class="meta">构成 · 挂在实体「西天目山景区」下 · 实体 ID 23733</div>
+            <div class="note">镜头：景区停车场车位。身份是观察面。</div>
+          </div>
+        </article>
+        <div class="vs">同一停车场</div>
+        <article class="card">
+          <div class="shot tall"><span class="stamp c">现状：从属实体</span><img src="img/xitian-park-ent.jpg" alt="西天目停车场作为实体" /></div>
+          <div class="cap">
+            <div class="name">西天目山景区停车场</div>
+            <div class="meta">实体 ID 23886 · 又是景区的从属实体</div>
+            <div class="note">同一块地，数据建了两次：一次构成，一次实体。</div>
+          </div>
+        </article>
+      </div>
+
+      <h3 style="margin:0 0 12px;font-size:18px">园内点升级规则不统一：七星亭 vs 禅源寺</h3>
+      <div class="dual">
+        <article class="card">
+          <div class="shot tall"><span class="stamp a">现状：构成</span><img src="img/qixing.jpg" alt="七星亭构成" /></div>
+          <div class="cap">
+            <div class="name">七星亭</div>
+            <div class="meta">西天目 15 块构成之一 · 没有对应实体 · 构成场景类目写成「景点」</div>
+            <div class="note">相机名就写着「七星亭」。景点没有升成地点。</div>
+          </div>
+        </article>
+        <div class="vs">同是园内点</div>
+        <article class="card">
+          <div class="shot tall"><span class="stamp c">现状：从属实体</span><img src="img/chanyuan.jpg" alt="禅源寺实体" /></div>
+          <div class="cap">
+            <div class="name">西天目山风景区禅源寺</div>
+            <div class="meta">实体 ID 23805 · 景区从属</div>
+            <div class="note">「西天目山风景区仙人顶」同样是从属实体。亭子不升级，寺庙升级。构成类型标成「景点」也不对：景点是地点，构成类型应是观察面。</div>
+          </div>
+        </article>
+      </div>
+
+      <h3 style="margin:0 0 12px;font-size:18px">玄武湖「水岸听风」：同一路相机，两个身份</h3>
+      <div class="dual">
+        <article class="card">
+          <div class="shot tall same"><span class="stamp a">现状：构成</span><img src="img/shui-area.jpg" alt="水岸听风作为玄武湖构成" /></div>
+          <div class="cap">
+            <div class="name">水岸听风（构成）</div>
+            <div class="meta">属于实体「钟山风景区-玄武湖景区」· ID 24700 · 与构成「湖面」共用同一 cameraId</div>
+            <div class="note">湖面构成用的是同一张底图。一块画面切成两个观察对象。</div>
+          </div>
+        </article>
+        <div class="vs">同一对象</div>
+        <article class="card">
+          <div class="shot tall"><span class="stamp c">现状：从属实体</span><img src="img/shui-ent.jpg" alt="水岸听风作为实体" /></div>
+          <div class="cap">
+            <div class="name">水岸听风</div>
+            <div class="meta">实体 ID 25891 · 挂在「玄武湖景区十里长堤」下，不挂在湖</div>
+            <div class="note">构成在湖上，实体在堤上。人看到的是同一处步道。</div>
+          </div>
+        </article>
+      </div>
+
+      <h3 style="margin:0 0 12px;font-size:18px">卫生间：构成一条，实体又一条（应统一成从属实体）</h3>
+      <div class="dual">
+        <article class="card">
+          <div class="shot tall"><span class="stamp a">现状：构成</span><img src="img/toilet-area.jpg" alt="2楼卫生间向北构成" /></div>
+          <div class="cap">
+            <div class="name">2楼卫生间向北</div>
+            <div class="meta">构成 · 挂在实体「六角广场」下 · ID 24608</div>
+            <div class="judge">判断：个人版 matchedIndices 不含构成，问「哪里有卫生间」召不回这条。</div>
+          </div>
+        </article>
+        <div class="vs">应合成一条从属</div>
+        <article class="card">
+          <div class="shot tall"><span class="stamp o">现状：独立实体</span><img src="img/toilet-b1.jpg" alt="一期负一楼卫生间实体" /></div>
+          <div class="cap">
+            <div class="name">六角广场负一楼卫生间</div>
+            <div class="meta">实体 ID 25759 · 是实体，但无上级</div>
+            <div class="judge">判断：应改成六角广场的从属实体；镜头做成这条实体自己的构成。</div>
+          </div>
+        </article>
+      </div>
+
+      <h3 style="margin:0 0 12px;font-size:18px">挂反：停车场当父，景区当子</h3>
+      <div class="dual">
+        <article class="card">
+          <div class="shot tall"><span class="stamp e">现状：实体（停车场）</span><img src="img/weilai-park.jpg" alt="天目未来谷停车场" /></div>
+          <div class="cap">
+            <div class="name">天目未来谷停车场</div>
+            <div class="meta">实体 ID 23766 · 场景=停车场 · 下面挂了 5 个从属</div>
+          </div>
+        </article>
+        <div class="vs">父子反了</div>
+        <article class="card">
+          <div class="shot tall"><span class="stamp c">现状：从属（景区）</span><img src="img/weilai-spot.jpg" alt="天目未来谷景区" /></div>
+          <div class="cap">
+            <div class="name">天目未来谷</div>
+            <div class="meta">实体 ID 23795 · 场景=景区 · 父是停车场</div>
+            <div class="note">便利店、研学馆也挂在停车场下。更大的地点成了下级。</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="p4">
+      <div class="sec-kicker">04 / 技能配置</div>
+      <h2>第四件：技能不是按「这个地点能回答什么」配的</h2>
+      <p class="sec-lead">个人版问人流、空车位、堵不堵，靠的是构成上所挂相机的技能。生产里技能跟镜头走：画面上能跑什么模型，就挂什么。和实体类型、问法对不齐。关系抽样 871 块构成上，人员流量 1491 次、车流量 937、车辆排队 697；停车位状态只有 45 次。列表 4319 条实体的 skillId 全空；时序抽样 24 条标题全是「人流量」，含停车场。</p>
+
+      <h3 style="margin:0 0 12px;font-size:18px">同一块构成，技能堆在一起</h3>
+      <div class="grid-2">
+        <article class="card">
+          <div class="shot tall"><span class="stamp a">现状：构成</span><img src="img/mall-outdoor.jpg" alt="六角广场室外区域" /></div>
+          <div class="cap">
+            <div class="name">六角广场 · 室外区域</div>
+            <div class="meta">1 块构成 · 44 路相机</div>
+            <div class="note">挂了：人员流量、人员排队、停车位状态、儿童行为、共享单车、场地设施占用、空座位识别、营业状态、车流量、车辆排队。</div>
+            <div class="judge">判断：一块「室外」把商场外场所有模型都接上了。问人流、问停车、问营业会打到同一锅画面，无法对应「这个构成回答哪一个问题」。</div>
+          </div>
+        </article>
+        <article class="card">
+          <div class="shot tall"><span class="stamp a">现状：构成</span><img src="img/phase2-esc.jpg" alt="扶梯技能" /></div>
+          <div class="cap">
+            <div class="name">六角广场扶梯构成（2楼手扶梯这条）</div>
+            <div class="meta">类型=电梯</div>
+            <div class="note">挂了：人员流量、人员排队、儿童行为、场地设施占用、营业状态。</div>
+            <div class="judge">判断：扶梯不承载「儿童行为 / 场地占用 / 营业」。技能是镜头上的模型清单，不是这个观察面该答的问题。</div>
+          </div>
+        </article>
+      </div>
+
+      <h3 style="margin:0 0 12px;font-size:18px">地点类型和技能对不上</h3>
+      <div class="grid-3">
+        <article class="card">
+          <div class="shot"><span class="stamp a">现状：构成</span><img src="img/toilet-area.jpg" alt="卫生间只有人流技能" /></div>
+          <div class="cap">
+            <div class="name">2楼卫生间向北</div>
+            <div class="meta">技能只有「人员流量」</div>
+            <div class="judge">判断：卫生间画面被当成人数点。卫生间应是从属实体，构成挂在它自己下面；技能应对「是否可用 / 这里是卫生间」，不是只报人流。</div>
+          </div>
+        </article>
+        <article class="card">
+          <div class="shot"><span class="stamp a">现状：构成</span><img src="img/weilai-park.jpg" alt="停车场技能" /></div>
+          <div class="cap">
+            <div class="name">天目未来谷停车场 · 停车位</div>
+            <div class="meta">构成技能=停车位状态 · 实体时序标题仍是人流量</div>
+            <div class="judge">判断：个人版问空车位应对停车位状态。实体级时序却写人流量，详情 skillId 还经常是 1（人流档）。两套技能各说各的。</div>
+          </div>
+        </article>
+        <article class="card">
+          <div class="shot"><span class="stamp a">现状：构成</span><img src="img/zhongshan-road.jpg" alt="钟山入口道路技能" /></div>
+          <div class="cap">
+            <div class="name">钟山风景区 · 太平门入口道路</div>
+            <div class="meta">技能=人员流量 + 车流量 + 车辆排队</div>
+            <div class="judge">判断：钟山自己几乎只有路的构成。问「钟山人多吗」会打到入口道路车流，不是园内现场。</div>
+          </div>
+        </article>
+      </div>
+
+      <div class="grid-3" style="margin-top:14px">
+        <article class="card">
+          <div class="shot"><span class="stamp a">现状：构成</span><img src="img/lianhua-2.jpg" alt="路灯路段技能" /></div>
+          <div class="cap">
+            <div class="name">莲花大道 · 187号路灯路段</div>
+            <div class="meta">人员流量 + 车流量 + 车辆排队</div>
+            <div class="judge">判断：59 块路灯切块技能几乎同一套。路段问车流说得通，但切块过碎，个人版概况还不许把路段构成召回成子实体。</div>
+          </div>
+        </article>
+        <article class="card">
+          <div class="shot"><span class="stamp a">现状：构成</span><img src="img/xihu-lake.jpg" alt="湖面与水岸听风同一技能" /></div>
+          <div class="cap">
+            <div class="name">玄武湖 · 湖面 / 水岸听风</div>
+            <div class="meta">同一 cameraId · 人员流量 + 水域活动 + 自然风光</div>
+            <div class="judge">判断：两个构成、一套技能。问湖面风光和水岸打卡，感知结果无法分开。</div>
+          </div>
+        </article>
+        <article class="card">
+          <div class="shot"><span class="stamp a">现状：构成</span><img src="img/xitian-park-area.jpg" alt="西天目停车场停车位状态" /></div>
+          <div class="cap">
+            <div class="name">西天目停车场构成 vs 路侧停车</div>
+            <div class="meta">此处技能=停车位状态；抽样里停车位状态仅 45 次</div>
+            <div class="judge">判断：很多路段构成却挂了停车位状态（如板仓街、玄武大道路段）。停车技能不在停车场实体上，而在路过的镜头上。</div>
+          </div>
+        </article>
+      </div>
+
+      <p class="sec-lead" style="margin-top:24px">和个人版的对齐关系：问空车位要求类型是停车场且技能是车位；问人流要求地点能承载人流且不要构成。现在技能跟镜头走、实体类型跟名字走，两边没有「这个实体允许哪些 tagIds」的约束，所以召回即使用对了实体，画面和指标仍可能是错的。</p>
+    </section>
+
+    <section id="should">
+      <div class="sec-kicker">05 / 建议</div>
+      <h2>这套建模应该怎么建</h2>
+      <p class="sec-lead">不是另起一套。SeeTime 个人版已经定死：用户点名谁就答谁；概况只带下一级可提问地点，不带构成、不跳孙实体；技能和画面挂在构成上，选中实体后再取。数据中心要把「可提问地点」和「观察面」建准，并让「哪里有卫生间」这类设施问法能召回到从属实体。</p>
+
+      <table class="model">
+        <thead>
+          <tr><th>对象</th><th>是什么</th><th>个人版怎么用</th><th>例子</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>实体</b></td>
+            <td>用户会单独点名的地点</td>
+            <td>主实体，matchedIndices 第 1 个</td>
+            <td>总统府、少林寺、地藏禅寺、美龄宫停车场、紫金山索道</td>
+          </tr>
+          <tr>
+            <td><b>从属实体</b></td>
+            <td>真实包含的下一级地点，含设施点</td>
+            <td>问父概况时追加一层；问「哪里有卫生间」必须能召回卫生间从属</td>
+            <td>少林寺下的索道、园内停车场、卫生间；六角广场下的按楼层卫生间</td>
+          </tr>
+          <tr>
+            <td><b>关联</b></td>
+            <td>旁边配套，不是包含</td>
+            <td>道路概况追加路口；景区/商场不能承载停车时找兄弟停车场</td>
+            <td>双龙大道 ↔ 路口；景区 ↔ 园边停车场</td>
+          </tr>
+          <tr>
+            <td><b>构成</b></td>
+            <td>这个实体从哪几面看；相机和技能挂在这里</td>
+            <td>概况/人流禁止进 matchedIndices；选中实体后由下游取画面</td>
+            <td>门口、湖面、步道、停车位、扶梯。类型是观察面，不是景点</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="note" style="margin:-12px 0 24px">四者互斥：同一对象不能既是构成又是实体。扶梯、路灯路段停在构成；卫生间做成从属实体，镜头做成该卫生间的构成。</p>
+
+      <div class="steps">
+        <article>
+          <h3>第一问：镜头对着的是哪个地点</h3>
+          <p>拍到星巴克，先认定「这是星巴克」这条实体（没有就新建，并挂到商场下）。不是先把它建成构成。</p>
+        </article>
+        <article>
+          <h3>第二问：这一路是这个地点的哪一面</h3>
+          <p>同一家星巴克可以有门口、座位区。每一路相机只生成该实体下的构成、图、技能。扶梯、路灯路段没有可提问地点，构成才挂在商场/道路上。</p>
+        </article>
+      </div>
+      <p class="note" style="margin:-8px 0 24px">顺序是地点 → 观察面。现在的做法是镜头 → 直接切构成，所以星巴克会停在六角广场的构成里，个人版问店名召不回。</p>
+
+      <h3 style="margin:0 0 12px;font-size:18px">个人版问法，对应到这棵树上</h3>
+      <div class="grid-3">
+        <article class="card">
+          <div class="shot"><span class="stamp e">问嵩山</span><img src="img/shaolin-gate.jpg" alt="问容器答一层从属" /></div>
+          <div class="cap">
+            <div class="name">容器可以 0 相机</div>
+            <div class="note">答直接从属：少林寺、嵩阳、中岳。不跳到少林索道下的商户。</div>
+          </div>
+        </article>
+        <article class="card">
+          <div class="shot"><span class="stamp c">问少林寺</span><img src="img/shaolin-square.jpg" alt="问景区答区域级从属" /></div>
+          <div class="cap">
+            <div class="name">概况：一层区域级从属</div>
+            <div class="note">索道、游客中心、园内停车场、卫生间。塔斯汀这种店铺也可以建成从属；问「少林寺怎么样」默认不把店铺铺开，用户点名店名再答那家店。</div>
+          </div>
+        </article>
+        <article class="card">
+          <div class="shot"><span class="stamp c">问哪里有卫生间</span><img src="img/toilet-b5.jpg" alt="卫生间从属才能召回" /></div>
+          <div class="cap">
+            <div class="name">设施必须是从属实体</div>
+            <div class="note">个人版 matchedIndices 不含构成。卫生间只做构成，这句话召不回。应挂在景区/商场下，构成挂在卫生间自己下面。</div>
+          </div>
+        </article>
+      </div>
+
+      <h3 style="margin:24px 0 12px;font-size:18px">对照：现在 vs 应该</h3>
+      <div class="dual">
+        <article class="card">
+          <div class="shot tall"><span class="stamp a">现在：商场的构成</span><img src="img/toilet-area.jpg" alt="现在卫生间是构成" /></div>
+          <div class="cap">
+            <div class="name">2楼卫生间向北</div>
+            <div class="meta">召不回 · 技能还是人员流量</div>
+          </div>
+        </article>
+        <div class="vs">改成</div>
+        <article class="card">
+          <div class="shot tall"><span class="stamp c">应该：从属实体</span><img src="img/toilet-b5.jpg" alt="应该是从属卫生间" /></div>
+          <div class="cap">
+            <div class="name">六角广场 · 五楼北卫生间</div>
+            <div class="meta">父=六角广场或二期 · 自己再挂构成和技能</div>
+            <div class="judge">判断：二期已经这样挂了从属，应推广到景区/商场，并删掉商场侧同名构成。</div>
+          </div>
+        </article>
+      </div>
+
+      <div class="dual">
+        <article class="card">
+          <div class="shot tall"><span class="stamp a">现在：扶梯是构成</span><img src="img/escalator-b1.jpg" alt="扶梯保持构成" /></div>
+          <div class="cap">
+            <div class="name">负1楼手扶梯</div>
+            <div class="note">用户不会问「扶梯现在怎样」当地点。保持构成是对的。</div>
+          </div>
+        </article>
+        <div class="vs">维持</div>
+        <article class="card">
+          <div class="shot tall"><span class="stamp a">现在：路灯路段是构成</span><img src="img/lianhua-2.jpg" alt="路灯路段保持构成但应少切" /></div>
+          <div class="cap">
+            <div class="name">187号路灯路段</div>
+            <div class="judge">判断：身份应仍是构成，但不要按路灯号切 59 块。道路概况用路段从属或路口关联，不靠构成召回。</div>
+          </div>
+        </article>
+      </div>
+
+      <div class="dual">
+        <article class="card">
+          <div class="shot tall"><span class="stamp e">现在：停车场当父</span><img src="img/weilai-park.jpg" alt="停车场当父" /></div>
+          <div class="cap">
+            <div class="name">天目未来谷停车场</div>
+            <div class="meta">实体 ID 23766 · 景区挂在停车场下</div>
+          </div>
+        </article>
+        <div class="vs">改成</div>
+        <article class="card">
+          <div class="shot tall"><span class="stamp c">应该：景区为父</span><img src="img/weilai-spot.jpg" alt="景区为父" /></div>
+          <div class="cap">
+            <div class="name">天目未来谷</div>
+            <div class="meta">实体 ID 23795</div>
+            <div class="judge">判断：停车场是从属或园边关联。停车位画面是停车场实体的构成，技能用停车位状态，不要实体时序写人流量。</div>
+          </div>
+        </article>
+      </div>
+
+      <h3 style="margin:0 0 12px;font-size:18px">硬约束</h3>
+      <div class="how">
+        <div><b>从属写父 ID</b><p>园里真实存在的点必须出现在该地点从属里。少林寺塔斯汀、美龄宫停车场、牛首山希尔顿，不能只靠名字像。</p></div>
+        <div><b>构成与从属禁止同名</b><p>西天目停车场、水岸听风、卫生间，选一边。一路相机默认一个构成。</p></div>
+        <div><b>技能跟问法走</b><p>停车场构成挂停车位状态；景区现场挂人流/风光；扶梯不要儿童行为。实体级时序与构成技能一致。</p></div>
+      </div>
+    </section>
+
+    <footer>
+      画面来自生产相机图（2026-09-17）。标题为生产原名；ID 是对照编号，不是名称里的字。不含接口鉴权信息。
+    </footer>
+  </div>
+</body>
+</html>
