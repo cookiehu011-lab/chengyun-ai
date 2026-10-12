@@ -10,7 +10,7 @@ import { useGc, useToast, type LedgerAccount, type LedgerRole } from "../store"
 import { Chip, ConfirmModal, Drawer, S } from "../engine"
 import {
   STEPS, STEP_CAPTIONS, MENUS, MENU_CHILDREN, menuName, menuSummary, validateStepSet, stepsOf, menusOf, accountProfile,
-  enabledEventTypes, enabledStreets, gridRows, scopeText,
+  enabledStreets, gridRows, scopeText,
 } from "../ledger"
 
 // ─── 小组件 ──────────────────────────────────────────────────────────────────
@@ -193,9 +193,13 @@ function RoleCard({ cid }: { cid: string }) {
     leafMenus: [] as string[], // 无二级结构的菜单（dashboard/archive/stats/workbench）
     configModules: [] as string[], // 治理配置二级子模块
     liveTabs: [] as string[], // AI实时治理二级页签
+    subscribeTypes: [] as string[], // 订阅事件类型（来自客户订阅事件类型集合）
   })
   const [err, setErr] = useState("")
   const [confirmDel, setConfirmDel] = useState<string | null>(null)
+
+  // 客户订阅事件类型集合：角色订阅只能在此范围内选（平台层客户页维护）
+  const subscribedCatalog = state.platform.customers.find((c) => c.id === cid)?.subscribedTypes ?? []
 
   const filtered = useMemo(() => {
     const q = query.trim()
@@ -209,7 +213,7 @@ function RoleCard({ cid }: { cid: string }) {
 
   function openAdd() {
     setErr("")
-    setForm({ name: "", steps: [], leafMenus: [], configModules: [], liveTabs: [] })
+    setForm({ name: "", steps: [], leafMenus: [], configModules: [], liveTabs: [], subscribeTypes: [] })
     setDrawer({ mode: "add", id: "" })
   }
   function openEdit(id: string) {
@@ -223,6 +227,7 @@ function RoleCard({ cid }: { cid: string }) {
       leafMenus: menus.filter((mid) => !MENU_CHILDREN[mid]),
       configModules: [...(r.configModules ?? [])],
       liveTabs: [...(r.liveTabs ?? [])],
+      subscribeTypes: [...(r.subscribeTypes ?? [])],
     })
     setDrawer({ mode: "edit", id })
   }
@@ -249,6 +254,9 @@ function RoleCard({ cid }: { cid: string }) {
   function toggleConfigModule(id: string) {
     setForm((p) => ({ ...p, configModules: p.configModules.includes(id) ? p.configModules.filter((x) => x !== id) : [...p.configModules, id] }))
   }
+  function toggleSubscribeType(id: string) {
+    setForm((p) => ({ ...p, subscribeTypes: p.subscribeTypes.includes(id) ? p.subscribeTypes.filter((x) => x !== id) : [...p.subscribeTypes, id] }))
+  }
 
   function save() {
     if (!drawer) return
@@ -274,11 +282,14 @@ function RoleCard({ cid }: { cid: string }) {
       menus,
       configModules: [...form.configModules],
       liveTabs: [...form.liveTabs],
+      subscribeTypes: form.subscribeTypes.filter((t) => subscribedCatalog.includes(t)),
       source: prev?.source || "自定义",
       status: prev?.status || "启用",
     }
     dispatch({ type: "ledger-role-upsert", cid, role })
-    toast(`已保存角色「${name}」，立即生效：名下账号按角色获得步骤与功能菜单权限。`)
+    toast(form.subscribeTypes.length
+      ? `已保存角色「${name}」，立即生效：订阅事件类型 ${form.subscribeTypes.length} 项。`
+      : `已保存角色「${name}」，立即生效：未限定事件类型（订阅该客户全部事件类型）。`)
     setDrawer(null)
   }
 
@@ -317,14 +328,14 @@ function RoleCard({ cid }: { cid: string }) {
         <table style={S.table}>
           <thead>
             <tr>
-              {["角色", "成员数", "负责步骤", "功能菜单", "来源"].map((c) => <th key={c} style={S.th}>{c}</th>)}
+              {["角色", "成员数", "负责步骤", "功能菜单", "订阅事件类型", "来源"].map((c) => <th key={c} style={S.th}>{c}</th>)}
               <th style={S.th}>状态</th>
               <th style={{ ...S.th, textAlign: "right" }}>操作</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={7} style={S.empty}>{query ? "没有匹配的角色" : "暂无角色，点击右上角新增"}</td></tr>
+              <tr><td colSpan={8} style={S.empty}>{query ? "没有匹配的角色" : "暂无角色，点击右上角新增"}</td></tr>
             )}
             {filtered.map(({ r }) => (
               <tr key={r.id}>
@@ -332,6 +343,11 @@ function RoleCard({ cid }: { cid: string }) {
                 <td style={S.td}>{memberCount(r.id)}</td>
                 <td style={S.td}>{r.steps.join("、")}</td>
                 <td style={S.td}>{(r.menus ?? []).length ? menuSummary(r.menus, r.configModules, r.liveTabs).join("、") : "—"}</td>
+                <td style={S.td}>
+                  {(r.subscribeTypes ?? []).length
+                    ? <span style={{ fontSize: "11px" }}>{r.subscribeTypes!.slice(0, 3).join("、")}{r.subscribeTypes!.length > 3 ? ` 等 ${r.subscribeTypes!.length} 项` : ""}</span>
+                    : <span style={{ fontSize: "11px", color: "var(--muted-foreground)" }}>不限（全部）</span>}
+                </td>
                 <td style={S.td}>{r.source}</td>
                 <td style={S.td}><Chip status={r.status} /></td>
                 <td style={{ ...S.td, ...S.tdActions }}>
@@ -447,10 +463,48 @@ function RoleCard({ cid }: { cid: string }) {
               )
             })}
           </div>
+          <div style={{ marginBottom: "8px", marginTop: "12px" }}>
+            <label style={S.fieldLabel}>订阅事件类型（来自客户订阅事件类型集合；不选 = 不限）</label>
+          </div>
+          {subscribedCatalog.length === 0 ? (
+            <div style={{ fontSize: "11px", color: "var(--amber)", border: "1px dashed var(--border)", borderRadius: "8px", padding: "10px", lineHeight: "1.7" }}>
+              该客户尚未订阅事件类型（由平台在「客户」页开通订阅）。开通后才能在此为角色配置订阅事件类型。
+            </div>
+          ) : (
+            <>
+              <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+                <button type="button" style={S.btnLink} onClick={() => setForm((p) => ({ ...p, subscribeTypes: [...subscribedCatalog] }))}>全选</button>
+                <button type="button" style={S.btnLink} onClick={() => setForm((p) => ({ ...p, subscribeTypes: [] }))}>清空（不限）</button>
+                <span style={{ fontSize: "11px", color: "var(--muted-foreground)", marginLeft: "auto" }}>
+                  已选 {form.subscribeTypes.length}/{subscribedCatalog.length}
+                </span>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "12px" }}>
+                {subscribedCatalog.map((t) => {
+                  const on = form.subscribeTypes.includes(t)
+                  return (
+                    <button
+                      key={t} type="button"
+                      onClick={() => toggleSubscribeType(t)}
+                      style={{
+                        fontSize: "11px", padding: "4px 10px", borderRadius: "6px", cursor: "pointer",
+                        border: `1px solid ${on ? "var(--primary)" : "var(--border)"}`,
+                        backgroundColor: on ? "rgba(50,109,255,0.08)" : "var(--background)",
+                        color: on ? "var(--primary)" : "var(--foreground)",
+                      }}
+                    >
+                      {on ? "✓ " : ""}{t}
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          )}
           {err && <div style={{ fontSize: "11px", color: "var(--red)", marginTop: "6px", lineHeight: 1.7 }}>{err}</div>}
           <div style={{ fontSize: "11px", color: "var(--muted-foreground)", marginTop: "10px", lineHeight: 1.7 }}>
             步骤与菜单相互独立：步骤决定能做什么（办理权限），菜单决定能看到哪里（可见范围）。
             勾选一级菜单默认全选二级，可单独调整；二级全部取消即视为未分配该菜单。
+            订阅事件类型来自客户订阅集合（平台层客户页维护），不选 = 不限，即订阅该客户全部事件类型。
             互斥规则：处置 / 外场核查回传 不能与 事件有效审核、立案派发、核查审核、作废深化、改配置、只看 同配；
             改配置 / 只看 不能与任何办理步骤同配。事件有效审核、立案派发、核查审核、作废深化 允许同配在多个角色。
           </div>
@@ -493,7 +547,8 @@ function AccountCard({ cid, orgSynced }: { cid: string; orgSynced: boolean }) {
   const [confirmStop, setConfirmStop] = useState<string | null>(null)
 
   const roleOptions = (ledger?.roles ?? []).filter((r) => r.status === "启用")
-  const allTypes = enabledEventTypes(state.rows)
+  // 负责事件类型的可选范围 = 客户订阅事件类型集合（平台层客户页维护）
+  const subscribedCatalog = state.platform.customers.find((c) => c.id === cid)?.subscribedTypes ?? []
   const allStreets = enabledStreets(state.rows)
   const grids = gridRows(state.rows)
   const gridOptions = grids.map((g) => g.code)
@@ -558,10 +613,10 @@ function AccountCard({ cid, orgSynced }: { cid: string; orgSynced: boolean }) {
       if (f.scopeKind === "streets" && f.streets.length === 0) {
         setErr("范围选择了「指定街道」：至少勾选 1 个启用中的街道"); return
       }
-      if (f.eventTypes.length === 0) { setErr("负责的事件类型至少选 1 个（来源：事件标准里启用中的细类）"); return }
+      if (f.eventTypes.length === 0) { setErr("负责的事件类型至少选 1 个（来源：客户订阅事件类型集合）"); return }
     } else if (profile === "field") {
       if (f.grids.length === 0) { setErr("范围至少勾选 1 个网格（可多选启用中的网格）"); return }
-      if (f.eventTypes.length === 0) { setErr("负责的事件类型至少选 1 个（来源：事件标准里启用中的细类）"); return }
+      if (f.eventTypes.length === 0) { setErr("负责的事件类型至少选 1 个（来源：客户订阅事件类型集合）"); return }
     }
     const scopeKind: LedgerAccount["scopeKind"] = profile === "field" ? "grids" : profile === "audit" ? f.scopeKind : "district"
     const account: LedgerAccount = {
@@ -570,7 +625,7 @@ function AccountCard({ cid, orgSynced }: { cid: string; orgSynced: boolean }) {
       scopeKind,
       streets: scopeKind === "streets" ? [...f.streets] : [],
       grids: scopeKind === "grids" ? [...f.grids] : [],
-      eventTypes: profile === "view" ? [] : [...f.eventTypes],
+      eventTypes: profile === "view" ? [] : f.eventTypes.filter((t) => subscribedCatalog.includes(t)),
       lastLogin: prev?.lastLogin || "—",
       status: prev?.status || "启用",
     }
@@ -756,12 +811,18 @@ function AccountCard({ cid, orgSynced }: { cid: string; orgSynced: boolean }) {
           )}
           {profile !== "view" && profile !== "none" && (
             <div style={{ marginBottom: "12px" }}>
-              <label style={S.fieldLabel}>负责的事件类型（至少 1 个；来源：事件标准里启用中的细类）</label>
-              <ChipMulti
-                options={allTypes}
-                selected={f.eventTypes}
-                onToggle={(v) => setF((p) => ({ ...p, eventTypes: p.eventTypes.includes(v) ? p.eventTypes.filter((x) => x !== v) : [...p.eventTypes, v] }))}
-              />
+              <label style={S.fieldLabel}>负责的事件类型（至少 1 个；来源：客户订阅事件类型集合）</label>
+              {subscribedCatalog.length === 0 ? (
+                <div style={{ fontSize: "11px", color: "var(--amber)", border: "1px dashed var(--border)", borderRadius: "8px", padding: "10px", lineHeight: "1.7" }}>
+                  该客户尚未订阅事件类型（由平台在「客户」页开通订阅），暂不能配置负责的事件类型。
+                </div>
+              ) : (
+                <ChipMulti
+                  options={subscribedCatalog}
+                  selected={f.eventTypes}
+                  onToggle={(v) => setF((p) => ({ ...p, eventTypes: p.eventTypes.includes(v) ? p.eventTypes.filter((x) => x !== v) : [...p.eventTypes, v] }))}
+                />
+              )}
             </div>
           )}
           {err && <div style={{ fontSize: "11px", color: "var(--red)", marginBottom: "8px", lineHeight: 1.7 }}>{err}</div>}

@@ -47,6 +47,8 @@ export interface LedgerRole {
   configModules?: string[]
   /** AI实时治理二级页签（recognition/case/inspect/void）；仅在菜单含「AI实时治理」时生效 */
   liveTabs?: string[]
+  /** 订阅事件类型：来自客户订阅事件类型集合的多选；空 = 不限（订阅该客户全部事件类型） */
+  subscribeTypes?: string[]
   source: "平台预置" | "自定义"
   status: "启用" | "停用"
 }
@@ -84,6 +86,18 @@ export interface Customer {
   /** 组织同步位：false = 新开客户，组织 / 网格等待平台同步 */
   orgSynced: boolean
   createdAt: string
+  /** 客户订阅事件类型集合（平台事件目录的子集）；角色 / 账号的事件类型配置只能在此范围内选 */
+  subscribedTypes: string[]
+  /** SaaS 客户档案：联系人 / 联系电话 */
+  contactName: string
+  contactPhone: string
+  /** 所属城市（省 / 市级联，如「江苏省 / 南京市」） */
+  city: string
+  /** 相机资源配置：接入的相机来源 + 相机权限分配（按区域，同一层级多选） */
+  cameraSources: string[]
+  cameraAreas: string[]
+  /** 服务到期时间（SaaS）：YYYY-MM-DD；空 = 未设置（私有化部署无到期概念） */
+  expiresAt: string
 }
 
 /** SeeTime 功能权限只有两项，可多选，至少选 1 项；不能自造第三项 */
@@ -207,9 +221,30 @@ export function adminLedgerSkeleton(adminName: string, adminLogin: string): Ledg
 // 西城区：预置第二家客户，演示客户隔离（组织同步位为空，台账只有管理员自己）
 const LEDGER_SEED_XC: LedgerState = adminLedgerSkeleton("高建", "gaojian@seetime")
 
+// 平台事件目录 = 事件标准「字典摘录」启用中的细类；客户订阅集合是该目录的子集
+const DICT_CARD = (CARDS["eventstd"] || []).find((c) => c.id === "dict")
+const DICT_STATUS_IDX = DICT_CARD ? DICT_CARD.cols.indexOf("状态") : -1
+const DICT_TYPES: string[] = (DICT_CARD?.rows || [])
+  .filter((r) => ((DICT_STATUS_IDX >= 0 ? r[DICT_STATUS_IDX] : "启用") || "启用") !== "停用")
+  .map((r) => r[0])
+
 const CUSTOMERS_SEED: Customer[] = [
-  { id: "c-dc", name: "东城区", status: "启用", adminName: "王倩", adminLogin: "wangqian@seetime", orgSynced: true, createdAt: "2026-07-01" },
-  { id: "c-xc", name: "西城区", status: "启用", adminName: "高建", adminLogin: "gaojian@seetime", orgSynced: false, createdAt: "2026-09-20" },
+  {
+    id: "c-dc", name: "东城区", status: "启用",
+    adminName: "王倩", adminLogin: "wangqian@seetime", orgSynced: true, createdAt: "2026-07-01",
+    subscribedTypes: DICT_TYPES,
+    contactName: "王倩", contactPhone: "13801020304", city: "北京市 / 东城区",
+    cameraSources: ["东城公安一类视频", "东城管委二类视频"],
+    cameraAreas: ["东华门街道", "朝阳门街道", "东四街道"],
+    expiresAt: "2027-07-01",
+  },
+  {
+    id: "c-xc", name: "西城区", status: "启用",
+    adminName: "高建", adminLogin: "gaojian@seetime", orgSynced: false, createdAt: "2026-09-20",
+    subscribedTypes: [],
+    contactName: "高建", contactPhone: "", city: "北京市 / 西城区",
+    cameraSources: [], cameraAreas: [], expiresAt: "",
+  },
 ]
 
 const SEETIME_SEED: SeeTimeAccount[] = [
@@ -312,6 +347,8 @@ type Action =
   | { type: "platform-mode"; mode: DeployMode }
   | { type: "customer-create"; customer: Customer; ledger: LedgerState }
   | { type: "customer-status"; id: string; status: "启用" | "停用" }
+  | { type: "customer-subscribe"; cid: string; types: string[] }
+  | { type: "customer-update"; cid: string; patch: Partial<Omit<Customer, "id">> }
   | { type: "customer-admin-assign"; cid: string; name: string; login: string }
   | { type: "seetime-upsert"; account: SeeTimeAccount }
   | { type: "seetime-status"; id: string; status: "启用" | "停用" }
@@ -452,6 +489,27 @@ function reducer(state: GcState, action: Action): GcState {
       customers[i] = { ...customers[i], status: action.status }
       return { ...state, platform: { ...state.platform, customers } }
     }
+    case "customer-subscribe": {
+      const customers = state.platform.customers.slice()
+      const i = customers.findIndex((c) => c.id === action.cid)
+      if (i < 0) return state
+      // 订阅集合只能取平台事件目录（事件标准启用细类）的子集
+      const types = action.types.filter((t) => DICT_TYPES.includes(t))
+      customers[i] = { ...customers[i], subscribedTypes: types }
+      return { ...state, platform: { ...state.platform, customers } }
+    }
+    case "customer-update": {
+      const customers = state.platform.customers.slice()
+      const i = customers.findIndex((c) => c.id === action.cid)
+      if (i < 0) return state
+      const patch = { ...action.patch }
+      // 订阅集合若被更新，收敛到平台事件目录子集；id 与状态不在本动作内改
+      if (patch.subscribedTypes) patch.subscribedTypes = patch.subscribedTypes.filter((t) => DICT_TYPES.includes(t))
+      delete (patch as { id?: string }).id
+      delete (patch as { status?: string }).status
+      customers[i] = { ...customers[i], ...patch }
+      return { ...state, platform: { ...state.platform, customers } }
+    }
     case "customer-admin-assign": {
       const lg = state.ledgers[action.cid]
       if (!lg) return state
@@ -541,7 +599,23 @@ export function GcProvider({ children }: { children: ReactNode }) {
               ? {
                   ...base.platform,
                   ...parsed.platform,
-                  customers: parsed.platform.customers ?? base.platform.customers,
+                  // 迁移：老数据客户无 subscribedTypes → 东城区默认订阅全部目录，其余为空（待开通）；
+                  // 无 SaaS 档案字段（联系人/城市/相机/到期）→ 按种子默认补齐
+                  customers: (parsed.platform.customers ?? base.platform.customers).map((c) => {
+                    const seedC = base.platform.customers.find((b) => b.id === c.id)
+                    return {
+                      ...seedC,
+                      ...c,
+                      subscribedTypes: c.subscribedTypes ?? seedC?.subscribedTypes ?? [],
+                      contactName: c.contactName ?? seedC?.contactName ?? "",
+                      contactPhone: c.contactPhone || seedC?.contactPhone || "",
+                      city: c.city ?? seedC?.city ?? "",
+                      // 空值（上一版迁移写回的空档案）也回退种子，保证预置客户档案完整
+                      cameraSources: c.cameraSources?.length ? c.cameraSources : (seedC?.cameraSources ?? []),
+                      cameraAreas: c.cameraAreas?.length ? c.cameraAreas : (seedC?.cameraAreas ?? []),
+                      expiresAt: c.expiresAt || seedC?.expiresAt || "",
+                    }
+                  }),
                   seeTime: (parsed.platform.seeTime ?? base.platform.seeTime).map((s) => ({
                     ...s, perms: [...(s.perms || [])], displayCustomers: [...(s.displayCustomers || [])],
                   })),

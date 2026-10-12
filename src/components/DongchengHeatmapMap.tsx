@@ -418,6 +418,8 @@ export default function DongchengHeatmapMap({
         })
 
         setLayersReady(true)
+        // 调试出口：供线上诊断热力图层状态（图层可见性 / 数据源要素数）
+        ;(window as unknown as { __heatMap?: maplibregl.Map }).__heatMap = map
       } catch (err) {
         layersAddedRef.current = false
         setError(String(err))
@@ -559,17 +561,24 @@ export default function DongchengHeatmapMap({
     // 俯仰与网格峰显隐不依赖样式就绪，保证任何时刻切换都生效
     setPitched(heatMode === "gaussian")
     meshRef.current?.setVisible(heatMode === "gaussian")
-    if (!map || !map.isStyleLoaded() || !layersReady) return
+    if (!map) return
 
-    try {
-      map.setLayoutProperty(
-        "heatmap",
-        "visibility",
-        heatMode === "classic" ? "visible" : "none",
-      )
-    } catch {
-      // ignore
+    // visibility 必须最终生效：ArcGIS 底图瓦片在国内网络可能长时间挂起，
+    // isStyleLoaded()/idle 长期不就绪——旧逻辑直接 return 会把「切回经典热力」
+    // 的可见性设置丢掉 → 热力云消失。改为无条件执行 + 失败短重试，
+    // setLayoutProperty 在 style 对象创建后（图层已 addLayer）即可生效。
+    const applyVisibility = (attempt = 0): void => {
+      try {
+        map.setLayoutProperty(
+          "heatmap",
+          "visibility",
+          heatMode === "classic" ? "visible" : "none",
+        )
+      } catch {
+        if (attempt < 10) window.setTimeout(() => applyVisibility(attempt + 1), 500)
+      }
     }
+    applyVisibility()
   }, [heatMode, layersReady])
 
   // 3D 视角：俯仰角过渡
@@ -613,7 +622,9 @@ export default function DongchengHeatmapMap({
   // Sync metric weight
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !map.isStyleLoaded()) return
+    // 不依赖 isStyleLoaded：底图瓦片挂起时 styleLoaded 长期 false，
+    // setPaintProperty 在图层存在后即生效，守卫会导致指标切换丢失
+    if (!map) return
 
     try {
       map.setPaintProperty("heatmap", "heatmap-weight", [
@@ -639,7 +650,7 @@ export default function DongchengHeatmapMap({
   // 预测日整组点位切换为"明日预测分布"，让热力图真正呈现预测的热点)
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !map.isStyleLoaded()) return
+    if (!map) return // 不依赖 isStyleLoaded（底图瓦片挂起时长期 false，守卫会丢日切换）
 
     const isPredict = dayIndex >= PREDICT_INDEX
     try {
@@ -675,7 +686,7 @@ export default function DongchengHeatmapMap({
   // Sync lifecycle filter by rebuilding point weights
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !map.isStyleLoaded()) return
+    if (!map) return // 不依赖 isStyleLoaded（同上：守卫会丢生命周期筛选的点位重建）
 
     try {
       const source = map.getSource(

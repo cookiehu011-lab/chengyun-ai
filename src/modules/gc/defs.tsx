@@ -1,5 +1,5 @@
 // 治理配置 · 模块内容路由（标准引擎卡页 + 自定义页）
-import { CardList, S, Switch } from "./engine"
+import { CardList, CardTabs, S, Switch } from "./engine"
 import { useGc } from "./store"
 import { CARDS } from "./cards.generated"
 import { LedgerPage } from "./pages/LedgerPage"
@@ -46,7 +46,7 @@ export function ModuleContent({ id, author, cid, orgSynced }: { id: string; auth
     case "eventstd": return <CardList defs={CARDS.eventstd} nouns={NOUNS} />
     case "lifecycle": return <CardList defs={CARDS.lifecycle} nouns={NOUNS} />
     case "sla": return <SlaPage />
-    case "dispatch": return <CardList defs={CARDS.dispatch} nouns={NOUNS} />
+    case "dispatch": return <CardTabs defs={CARDS.dispatch} nouns={NOUNS} />
     case "dedup": return <CardList defs={CARDS.dedup} nouns={NOUNS} />
     case "metric": return <MetricPage />
     case "publish": return <PublishPage author={author} />

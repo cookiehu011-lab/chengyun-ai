@@ -1,10 +1,13 @@
-import { useState, useContext, createContext, useEffect, useReducer, useRef } from "react"
+import { useState, useContext, createContext, useEffect, useReducer, useRef, useMemo } from "react"
 import { assetUrl } from "./assetUrl"
 import DongchengHeatmapMap from "./components/DongchengHeatmapMap?v=cr37"
-import AIConclusion from "./components/AIConclusion?v=cr7"
-import EventCarousel from "./components/EventCarousel?v=cr50"
+import AIConclusion from "./components/AIConclusion?v=cr8"
+import EventCarousel from "./components/EventCarousel?v=cr51"
 import AIStatisticsModule from "./modules/AIStatistics"
 import GovernanceConfigNative from "./modules/gc/GovernanceConfigNative"
+import { GcProvider, useGc } from "./modules/gc/store"
+import { IdentityPicker } from "./modules/gc/IdentityPicker"
+import { loadIdentity, resolveIdentity, saveIdentity, type IdentityState } from "./modules/gc/identity"
 import {
   DAYS,
   DAY_HEAT,
@@ -19,6 +22,8 @@ import {
   streetByName,
   type HeatMetric,
 } from "./data/dongchengMapData?v=fc1"
+import { RuleChip } from "./data/dashboardRules"
+import { RT_RULES } from "./data/realtimeRules"
 
 // ─── shared light-theme tokens (modules only; sidebar uses its own dark vars) ─
 
@@ -69,6 +74,24 @@ const T = {
   glassBg: "var(--glass-bg)",
   glassBorder: "var(--glass-border)",
   glassShadow: "var(--glass-shadow)",
+}
+
+// CSS 变量色值无法直接追加透明度后缀（var(--x)AA 是非法 CSS 会被整条丢弃），
+// 统一通过 RGB 三元组生成合法 rgba
+const RGB_OF: Record<string, string> = {
+  [T.primary]: T.primaryRGB,
+  [T.accent]: T.accentRGB,
+  [T.green]: T.greenRGB,
+  [T.red]: T.redRGB,
+  [T.amber]: T.amberRGB,
+  [T.purple]: T.purpleRGB,
+  [T.orange]: T.orangeRGB,
+  [T.cyan]: T.accentRGB,
+  [T.text]: T.textRGB,
+  [T.textMuted]: T.mutedRGB,
+}
+function withAlpha(color: string, alpha: number): string {
+  return `rgba(${RGB_OF[color] ?? T.mutedRGB},${alpha})`
 }
 
 function eventImage(
@@ -342,24 +365,15 @@ function KpiCell({
 }
 
 function KpiStrip({
-  activeLifecycle,
-  onToggleTimeout,
   predict,
   activeDistrict,
 }: {
-  activeLifecycle: string | null
-  onToggleTimeout: () => void
-  /** 预测视图：切换为预测语义指标组（置信度/峰值时段/高发街道·重点网格/预置兵力） */
   predict?: boolean
   activeDistrict: string | null
 }) {
     // hooks 一律顶部无条件调用（预测/实况两种渲染分支的 hook 数量必须一致）
     const confidence = useCountUp(82)
     const total = useCountUp(282)
-    const aiShare = useCountUp(74)
-    const rate = useCountUp(93)
-    const hours = useCountUp(2.4, 1)
-    const overtime = useCountUp(13)
     // ── 预测模式：与左列预测面板同构，遵守"不输出预测数量"口径 ──
     if (predict) {
       const street = activeDistrict ? streetByName(activeDistrict) : null
@@ -424,53 +438,34 @@ function KpiStrip({
       </div>
     )
   }
+  // 实况三卡（口径见 DASH_RULES.kpi）：今日接入 / AI 自主发现 / 按期办结率。
+  // 本期无时限：AI 自主发现与按期办结率显示「—」；昨日为 0 时今日接入环比显示「—」。
+  // （示例数据：282 件为演示值，DAY_HEAT[12] 为昨日相对量）
+  const yesterdayDemo = DAY_HEAT[12] ?? 0
   const cells = [
     <KpiCell
       key="total"
       label="今日接入"
       value={total}
       unit="件"
-      delta="▲12%"
+      delta={yesterdayDemo > 0 ? "▲12%" : "—"}
       deltaColor={T.amber}
-      title="在办 211 · 闭环 71 · 折线为近14日趋势"
+      title="发现时间在当天的识别事件件数 · 折线为近14日相对趋势"
       trailing={<HeatSparkline data={DAY_HEAT} />}
     />,
     <KpiCell
       key="ai"
       label="AI 自主发现"
-      value={aiShare}
-      unit="%"
-      delta="▲6pt"
-      deltaColor={T.green}
-      title="AI 发现 209 / 共 282 件"
+      value="—"
+      plain
+      title="这一版来源几乎都是相机，比率还不能算，显示「—」"
     />,
     <KpiCell
       key="rate"
       label="按期办结率"
-      value={rate}
-      unit="%"
-      delta="▲1.8pt"
-      deltaColor={T.green}
-      title="按期办结 66 / 今日闭环 71"
-    />,
-    <KpiCell
-      key="hours"
-      label="平均处置时长"
-      value={hours}
-      unit="小时"
-      delta="▼0.3h"
-      deltaColor={T.green}
-      title="较近7日均值下降 0.3 小时"
-    />,
-    <KpiCell
-      key="overtime"
-      label="超时预警"
-      value={overtime}
-      unit="件"
-      valueColor={T.red}
-      title="临近超时 2 · 已超时 11 · 点击联动筛选待处置池"
-      onClick={onToggleTimeout}
-      active={activeLifecycle === "待处置"}
+      value="—"
+      plain
+      title="这一期没有时限，显示「—」"
     />,
   ]
   return (
@@ -491,12 +486,14 @@ function KpiStrip({
   )
 }
 
+// 生命周期脉冲五格（口径见 DASH_RULES.pulse）：此刻各状态的识别事件件数。
+// 本期没有时限：不标临近超时 / 超时 / 待外场，待核查格只显示该状态件数。
 const lifecycleData = [
-  { label: "待立案", count: 38, color: T.primary, risk: "2件临近超时" },
-  { label: "待处置", count: 94, color: T.amber, risk: "11件超时" },
-  { label: "待核查", count: 67, color: T.purple, risk: "5件待外场核查" },
-  { label: "待作废审核", count: 12, color: T.orange, risk: "" },
-  { label: "已结案(今)", count: 71, color: T.green, risk: "" },
+  { label: "待立案", count: 38, color: T.primary },
+  { label: "待处置", count: 94, color: T.amber },
+  { label: "待核查", count: 67, color: T.purple },
+  { label: "待作废审核", count: 12, color: T.orange },
+  { label: "已结案(今)", count: 71, color: T.green },
 ]
 const aiAttentionEvents = [
   {
@@ -2142,10 +2139,11 @@ function GovernanceDashboard({
   const [activeDistrict, setActiveDistrict] = useState<string | null>(null)
   const [hoveredDistrict, setHoveredDistrict] = useState<string | null>(null)
   const [activeGridId, setActiveGridId] = useState<string | null>(null)
-  const [metric, setMetric] = useState<HeatMetric>("severe")
   const [dayIndex, setDayIndex] = useState(13)
   const [playing, setPlaying] = useState(false)
   const [mapFullscreen, setMapFullscreen] = useState(false)
+  // 本期只有「发生数量」一个口径（复发入口按规则移除，见 DASH_RULES.heat）
+  const metric: HeatMetric = "severe"
   // 地图当前热力样式（由 DongchengHeatmapMap 上报，驱动图例渐变联动）
   const [mapHeatMode, setMapHeatMode] = useState<"classic" | "gaussian">(
     "classic",
@@ -2247,20 +2245,10 @@ function GovernanceDashboard({
     : []
   const carouselEvents = [...liveVisible, ...baseCarouselEvents].slice(0, 8)
 
-  const lifecycleRatio =
-    selectedDateEvents.length > 0
-      ? districtEvents.length / selectedDateEvents.length
-      : 1
-  const lifecycleDataDynamic = lifecycleData.map((item) => ({
-    ...item,
-    count: Math.max(0, Math.round(item.count * lifecycleRatio)),
-    risk: lifecycleRatio < 1 ? "" : item.risk,
-  }))
-
-  const activeStreetId = street?.id
-  const filteredTopGrids = activeStreetId
-    ? TOP_GRIDS.filter((g) => g.streetId === activeStreetId).slice(0, 5)
-    : TOP_GRIDS.slice(0, 5)
+  // 脉冲五格按账号数据范围计算（示例为固定值）：下钻街道/网格不改变脉冲，
+  // 也不展示时限类提示（见 DASH_RULES.pulse）
+  // TOP 5 按账号数据范围计算，不随下钻改小（见 DASH_RULES.top5）
+  const filteredTopGrids = TOP_GRIDS.slice(0, 5)
 
   const goAll = () => {
     setActiveDistrict(null)
@@ -2293,15 +2281,33 @@ function GovernanceDashboard({
           events={aiAttentionEvents}
           presentationMode={presentationMode}
           setPresentationMode={setPresentationMode}
+          ruleChipNode={
+            <RuleChip id="page" label="本页口径" />
+          }
           kpiSlot={
-            <KpiStrip
-              activeLifecycle={activeLifecycle}
-              predict={dayIndex >= PREDICT_INDEX}
-              activeDistrict={activeDistrict}
-              onToggleTimeout={() =>
-                setActiveLifecycle(activeLifecycle === "待处置" ? null : "待处置")
-              }
-            />
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "stretch",
+                gap: 6,
+                minWidth: 0,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <KpiStrip
+                  predict={dayIndex >= PREDICT_INDEX}
+                  activeDistrict={activeDistrict}
+                />
+                {dayIndex < PREDICT_INDEX && <RuleChip id="kpi" />}
+              </div>
+            </div>
           }
         />
       </div>
@@ -2381,6 +2387,7 @@ function GovernanceDashboard({
                   >
                     生命周期脉冲
                   </span>
+                  <RuleChip id="pulse" />
                 </div>
               </div>
               <div
@@ -2392,7 +2399,7 @@ function GovernanceDashboard({
                   gap: 4,
                 }}
               >
-                {lifecycleDataDynamic.map((item) => {
+                {lifecycleData.map((item) => {
                   const isActive = activeLifecycle === item.label
                   const pct = Math.min(100, Math.round((item.count / 94) * 100))
                   return (
@@ -2403,10 +2410,10 @@ function GovernanceDashboard({
                       }
                       style={{
                         background: isActive
-                          ? `${item.color}12`
+                          ? withAlpha(item.color, 0.07)
                           : "var(--row-bg)",
                         border: `1px solid ${
-                          isActive ? `${item.color}40` : "transparent"
+                          isActive ? withAlpha(item.color, 0.25) : "transparent"
                         }`,
                         borderRadius: 8,
                         padding: "5px 8px",
@@ -2415,7 +2422,7 @@ function GovernanceDashboard({
                         flexShrink: 0,
                         transition: "all 0.2s ease",
                         boxShadow: isActive
-                          ? `inset 0 1px 0 rgba(255,255,255,0.5), 0 4px 12px ${item.color}18`
+                          ? `inset 0 1px 0 rgba(255,255,255,0.5), 0 4px 12px ${withAlpha(item.color, 0.09)}`
                           : "none",
                       }}
                       onMouseEnter={(e) => {
@@ -2455,17 +2462,6 @@ function GovernanceDashboard({
                             gap: 6,
                           }}
                         >
-                          {item.risk && (
-                            <span
-                              style={{
-                                fontSize: 9,
-                                color: T.amber,
-                                fontWeight: 500,
-                              }}
-                            >
-                              {item.risk}
-                            </span>
-                          )}
                           <span
                             style={{
                               fontSize: 13,
@@ -2490,9 +2486,9 @@ function GovernanceDashboard({
                           style={{
                             width: `${pct}%`,
                             height: "100%",
-                            background: `linear-gradient(90deg, ${item.color}, ${item.color}DD)`,
+                            background: `linear-gradient(90deg, ${item.color}, ${withAlpha(item.color, 0.87)})`,
                             borderRadius: 3,
-                            boxShadow: `0 0 8px ${item.color}50`,
+                            boxShadow: `0 0 8px ${withAlpha(item.color, 0.32)}`,
                           }}
                         />
                       </div>
@@ -2541,6 +2537,7 @@ function GovernanceDashboard({
                   >
                     高发网格 TOP 5
                   </span>
+                  <RuleChip id="top5" />
                 </div>
               </div>
               {filteredTopGrids.length > 0 ? (
@@ -2679,6 +2676,7 @@ function GovernanceDashboard({
                   setActiveDistrict(street)
                   setActiveGridId(gridId)
                 }}
+                headerExtra={<RuleChip id="strip" />}
               />
             </div>
           </div>
@@ -2794,6 +2792,18 @@ function GovernanceDashboard({
                     · 17街道事件热力
                   </span>
                 )}
+              </div>
+              {/* 地图块算法口径（见 DASH_RULES.heat）：悬停弹出浮层 */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                  gap: 6,
+                  pointerEvents: "auto",
+                }}
+              >
+                <RuleChip id="heat" />
               </div>
             </div>
             <div style={{ display: "flex", gap: 6, pointerEvents: "auto" }}>
@@ -2974,39 +2984,31 @@ function GovernanceDashboard({
                   justifyContent: "space-between",
                 }}
               >
-                <span
-                  style={{ fontSize: 11, color: T.text, fontWeight: 700 }}
-                >
-                  热力回放与预测
-                </span>
-                <div style={{ display: "flex", gap: 5 }}>
-                  {[
-                    ["severe", "发生数量"],
-                    ["repeat", "复发"],
-                  ].map(([id, lab]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setMetric(id)}
-                      style={{
-                        height: 20,
-                        padding: "0 9px",
-                        borderRadius: 10,
-                        cursor: "pointer",
-                        fontSize: 10,
-                        fontWeight: 600,
-                        border: `1px solid ${
-                          metric === id ? T.borderStrong : T.border
-                        }`,
-                        background:
-                          metric === id ? "rgba(50,109,255,0.12)" : T.panelSolid,
-                        color: metric === id ? T.primary : T.textMuted,
-                      }}
-                    >
-                      {lab}
-                    </button>
-                  ))}
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span
+                    style={{ fontSize: 11, color: T.text, fontWeight: 700 }}
+                  >
+                    热力回放与预测
+                  </span>
+                  <RuleChip id="replay" />
                 </div>
+                {/* 本期仅「发生数量」一个口径；复发入口按规则移除（DASH_RULES.heat） */}
+                <span
+                  style={{
+                    height: 20,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    padding: "0 9px",
+                    borderRadius: 10,
+                    fontSize: 10,
+                    fontWeight: 600,
+                    border: `1px solid ${T.borderStrong}`,
+                    background: "rgba(50,109,255,0.12)",
+                    color: T.primary,
+                  }}
+                >
+                  发生数量
+                </span>
               </div>
               <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
                 <button
@@ -3049,7 +3051,7 @@ function GovernanceDashboard({
                         : dayIndex === PREDICT_INDEX
                           ? " · 明日预测"
                           : " · 历史窗"}{" "}
-                      · {metric === "repeat" ? "复发" : "发生数量"}
+                      · 发生数量
                     </span>
                   </div>
                   <div
@@ -3176,7 +3178,7 @@ const pendingCaseEvents: BatchEvent[] = [
     suggestedGrid: "东直门街道网格",
     hasRisk: true,
     imgUrls: [eventImage("施工占道", "during")],
-    situation: { text: "空间匹配失败", type: "warning" },
+    situation: { text: "未能匹配网格", type: "warning" },
   },
   {
     id: "DC-2026-20560",
@@ -3201,7 +3203,7 @@ const pendingCaseEvents: BatchEvent[] = [
     agentStatus: "已完成查重、空间匹配、取证",
     suggestedGrid: "北新桥街道网格",
     imgUrls: [eventImage("占道经营", "during")],
-    situation: { text: "重复上报：不新建", type: "warning" },
+    situation: { text: "重复上报 · 不新建", type: "warning" },
   },
   {
     id: "DC-2026-20559",
@@ -3213,7 +3215,7 @@ const pendingCaseEvents: BatchEvent[] = [
     agentStatus: "已完成查重、空间匹配",
     suggestedGrid: "东四街道网格",
     imgUrls: [eventImage("疑似堆物", "during")],
-    situation: { text: "自然消散：只读", type: "readonly" },
+    situation: { text: "自然消散 · 只读", type: "readonly" },
   },
 ]
 const pendingInspectEvents: BatchEvent[] = [
@@ -3245,7 +3247,7 @@ const pendingInspectEvents: BatchEvent[] = [
     suggestedGrid: "东直门街道网格",
     hasRisk: true,
     imgUrls: [eventImage("乱堆垃圾", "during")],
-    situation: { text: "空间匹配失败", type: "warning" },
+    situation: { text: "未能匹配网格", type: "warning" },
     aiReview: {
       conclusion: "建议退回",
       basis: "处置后图拍摄角度偏移较大，无法确认原堆放点位已清理，需重新上传同机位照片",
@@ -3602,7 +3604,7 @@ const pendingVoidEvents: BatchEvent[] = [
     agentStatus: "监督员提交复核建议作废",
     suggestedGrid: "东四街道网格",
     imgUrls: [eventImage("店外经营占道", "during")],
-    situation: { text: "重复上报：不新建", type: "warning" },
+    situation: { text: "正常作废审核", type: "normal" },
   },
   {
     id: "DC-2026-20567",
@@ -3615,12 +3617,14 @@ const pendingVoidEvents: BatchEvent[] = [
     suggestedGrid: "景山街道网格",
     hasRisk: true,
     imgUrls: [eventImage("无证户外广告", "during")],
-    situation: { text: "重复上报：不新建", type: "warning" },
+    situation: { text: "正常作废审核", type: "normal" },
   },
 ]
 
-// ─── Agent 处理池：固定四态（对存续事件的按需追溯视图，非人工待办）────────────
-type PoolStateId = "unassigned" | "feedback" | "inspection" | "watching"
+// ─── Agent 处理池：五态对齐业务流程（Agent 监控全量事件，按业务状态分组）──────
+// 状态与事件处理业务一一对应：等待立案→等待处置反馈→等待核查→等待外场核查→持续监控
+// 等待立案 / 等待核查 数量与「我的待办」队列一致，用户在两处看到同一口径
+type PoolStateId = "case" | "feedback" | "verify" | "inspection" | "watching"
 
 interface PoolStateMeta {
   id: PoolStateId
@@ -3639,15 +3643,15 @@ interface PoolStateMeta {
 
 const agentPoolStats: PoolStateMeta[] = [
   {
-    id: "unassigned",
-    label: "待分配",
-    count: 12,
+    id: "case",
+    label: "等待立案",
+    count: 38,
     color: T.primary,
     rgb: T.primaryRGB,
-    hint: "已具备进入下一责任方的条件，责任分配尚未完成",
-    firstScreen: "当前卡点、缺什么条件、待分配给谁或何种角色",
-    agentAction: "查重比对、类型与描述预填、空间与责任候选匹配、生成行动草案",
-    humanDecision: "责任主体是否采纳 Agent 候选，或改由人工指派",
+    hint: "AI 已完成识别与预审，等立案审核员确认立案（对应「待立案」队列）",
+    firstScreen: "当前卡点、缺什么条件、候选责任网格与角色",
+    agentAction: "查重比对、类型与描述预填、空间与责任候选匹配、生成立案草案",
+    humanDecision: "是否立案、责任主体是否采纳 Agent 候选",
   },
   {
     id: "feedback",
@@ -3655,22 +3659,44 @@ const agentPoolStats: PoolStateMeta[] = [
     count: 94,
     color: T.amber,
     rgb: T.amberRGB,
-    hint: "已派给网格责任人，等待现场处置结果",
+    hint: "已派给网格责任人，等待现场处置结果回传",
     firstScreen: "当前责任人、已等待多久、时限风险、下一触发条件",
     agentAction: "派单衔接、时限监测、接近时限自动催办、归集外部反馈",
     humanDecision: "处置结果是否成立，是否升级为外场核查",
     riskNote: "已超时 11 件 · 临近超时 2 件",
   },
   {
-    id: "inspection",
-    label: "等待外场核查",
-    count: 7,
+    id: "verify",
+    label: "等待核查",
+    count: 67,
     color: T.purple,
     rgb: T.purpleRGB,
-    hint: "已向监督员派发外场核查，等待反馈",
+    hint: "处置已完成，AI 复核中，等核查岗确认结论（对应「待核查」队列）",
+    firstScreen: "AI 复核结论、处置前后对照、需人工确认的疑点",
+    agentAction: "处置前后影像对照、生成核查结论草案、标记疑点",
+    humanDecision: "核查结论是否成立：结案、退回重处或转外场核查",
+  },
+  {
+    id: "inspection",
+    label: "等待外场核查",
+    count: 5,
+    color: T.orange,
+    rgb: T.orangeRGB,
+    hint: "证据不足或需现场确认，已派监督员外场核查，等待反馈",
     firstScreen: "监督员、辖区匹配、已等待多久、需要的证据",
-    agentAction: "处置前后影像对照、证据充分性比对、整理外场核查要求",
+    agentAction: "整理外场核查要求、监督员回传后自动比对复核",
     humanDecision: "外场证据是否充分，是否确认闭环",
+  },
+  {
+    id: "void",
+    label: "等待作废审核",
+    count: 9,
+    color: T.red,
+    rgb: T.redRGB,
+    hint: "已提出作废申请（重复 / 误报），等作废审核岗确认（对应「待作废审核」队列）",
+    firstScreen: "作废理由、重复事件对照、申请人与其申请时间",
+    agentAction: "查重比对、整理作废理由与证据、生成作废审核清单",
+    humanDecision: "是否同意作废：作废后流程终止并归档",
   },
   {
     id: "watching",
@@ -3705,54 +3731,26 @@ const HUMAN_HOLDS = [
   "是否中止 / 争议接管",
 ]
 
-// 组织长期价值：把流程劳动变成可追溯的治理资产
-const AGENT_EFFECT = [
-  {
-    label: "预填准确率",
-    value: "94.2%",
-    note: "类型 / 描述预填被人工采纳",
-    color: T.primary,
-    rgb: T.primaryRGB,
-  },
-  {
-    label: "建议一致率",
-    value: "88.6%",
-    note: "行动草案与人工判断一致",
-    color: T.accent,
-    rgb: T.accentRGB,
-  },
-  {
-    label: "流程减负",
-    value: "62%",
-    note: "流程劳动由 Agent 承担占比",
-    color: T.purple,
-    rgb: T.purpleRGB,
-  },
-  {
-    label: "衔接提速",
-    value: "3.4h",
-    note: "平均每件衔接耗时缩短",
-    color: T.green,
-    rgb: T.greenRGB,
-  },
-]
-
 // 本态 Agent 已备齐的交付物：人只在准备好的材料上做决定
 const poolPrepared = (id: PoolStateId): string[] =>
-  id === "unassigned"
+  id === "case"
     ? [
         "查重结论",
         "类型与描述预填",
         "空间与责任候选",
         "证据包（发生中）",
         "风险提示",
-        "可审查行动草案",
+        "可审查立案草案",
       ]
     : id === "feedback"
       ? ["派单与责任人记录", "发生中影像", "时限与催办规则", "下一触发条件"]
-      : id === "inspection"
-        ? ["处置后影像", "处置前后对照", "证据充分性比对结论", "外场核查要求"]
-        : ["结案留痕", "复发识别规则订阅", "观察期运行记录"]
+      : id === "verify"
+        ? ["处置后影像", "AI 复核结论", "处置前后对照要点", "核查结论草案"]
+        : id === "inspection"
+          ? ["外场核查要求", "监督员回传影像", "证据充分性比对结论"]
+          : id === "void"
+            ? ["查重命中记录", "作废理由与证据", "申请人信息", "作废审核清单"]
+            : ["结案留痕", "复发识别规则订阅", "观察期运行记录"]
 
 interface PoolTrailStep {
   t: string
@@ -3788,7 +3786,7 @@ type PoolSeed = Omit<
 >
 
 const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
-  unassigned: [
+  case: [
     {
       type: "违规户外广告",
       level: "一般",
@@ -3798,7 +3796,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       waitedH: 1.3,
       deadlineH: 8,
       blocker: "空间匹配命中两个相邻网格，责任主体待确认",
-      owner: "待分配",
+      owner: "待立案确认",
       ownerRole: "候选：街道值守岗 / 城管执法队",
       nextTrigger: "责任主体确认后自动派发；超时未确认则升级至街道值守岗",
     },
@@ -3811,7 +3809,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       waitedH: 2.9,
       deadlineH: 8,
       blocker: "查重结果待人工确认（疑似与 DC-2026-20588 相近）",
-      owner: "待分配",
+      owner: "待立案确认",
       ownerRole: "候选：网格责任人",
       nextTrigger: "确认非重复上报后进入派发",
     },
@@ -3824,7 +3822,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       waitedH: 4.4,
       deadlineH: 8,
       blocker: "处置力量排班未覆盖该点位，等待责任方认领",
-      owner: "待分配",
+      owner: "待立案确认",
       ownerRole: "候选：共享单车运维 / 街道值守岗",
       nextTrigger: "责任方认领；或超时后按规则指派",
     },
@@ -3837,7 +3835,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       waitedH: 5.7,
       deadlineH: 8,
       blocker: "事件等级为一般，按规则进入批次派发而非即时派发",
-      owner: "待分配",
+      owner: "待立案确认",
       ownerRole: "候选：城管执法队",
       nextTrigger: "批次生成后随批次派发",
     },
@@ -3850,7 +3848,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       waitedH: 7.8,
       deadlineH: 8,
       blocker: "严重等级已置顶，但施工方责任人信息缺失",
-      owner: "待分配",
+      owner: "待立案确认",
       ownerRole: "候选：施工方 / 住建专责",
       nextTrigger: "补齐责任人信息后即时派发",
     },
@@ -3863,9 +3861,63 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       waitedH: 18.3,
       deadlineH: 8,
       blocker: "夜间事件，责任主体信息需次日核验",
-      owner: "待分配",
+      owner: "待立案确认",
       ownerRole: "候选：环卫作业队",
       nextTrigger: "转日核验后派发",
+    },
+  ],
+  verify: [
+    {
+      type: "乱堆垃圾",
+      level: "较重",
+      location: "东直门内二条胡同入口",
+      grid: "东直门街道-网格F03",
+      time: "08-18 09:40",
+      waitedH: 2.1,
+      deadlineH: 12,
+      blocker: "处置后图已回传，AI 复核置信度 0.68，整改效果待人工确认",
+      owner: "待核查确认",
+      ownerRole: "核查岗：立案审核 / 监督员",
+      nextTrigger: "确认核查结论后结案；证据不足转外场核查",
+    },
+    {
+      type: "占道经营",
+      level: "一般",
+      location: "东华门大街35号",
+      grid: "东华门街道-网格A11",
+      time: "08-18 10:15",
+      waitedH: 1.4,
+      deadlineH: 12,
+      blocker: "处置后图与发生中图同机位比对通过，AI 判定整改完成，待人工复核",
+      owner: "待核查确认",
+      ownerRole: "核查岗：立案审核",
+      nextTrigger: "人工确认后自动结案并留存对照记录",
+    },
+    {
+      type: "共享单车占道",
+      level: "一般",
+      location: "北新桥路口东北角",
+      grid: "北新桥街道-网格B03",
+      time: "08-18 08:50",
+      waitedH: 3.2,
+      deadlineH: 12,
+      blocker: "清运已完成，AI 比对发现残留车辆，疑点待人工确认",
+      owner: "待核查确认",
+      ownerRole: "核查岗：监督员",
+      nextTrigger: "确认残留即退回重处；无残留则结案",
+    },
+    {
+      type: "无证户外广告",
+      level: "较重",
+      location: "建国门外大街16号",
+      grid: "建国门街道-网格E04",
+      time: "08-18 07:25",
+      waitedH: 4.6,
+      deadlineH: 12,
+      blocker: "拆除后影像已回传，AI 无法确认是否拆除彻底，需人工判断",
+      owner: "待核查确认",
+      ownerRole: "核查岗：立案审核 / 监督员",
+      nextTrigger: "人工判定后结案或转外场核查",
     },
   ],
   feedback: [
@@ -4074,6 +4126,47 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       needEvidence: "需清运后地面照片",
     },
   ],
+  void: [
+    {
+      type: "暴露垃圾",
+      level: "一般",
+      location: "朝阳门北大街6号",
+      grid: "朝阳门街道-网格C02",
+      time: "08-18 09:05",
+      waitedH: 1.8,
+      deadlineH: 12,
+      blocker: "查重命中 DC-2026-20588（同点位 40 分钟前已立案），疑似重复上报",
+      owner: "待作废审核确认",
+      ownerRole: "作废审核岗：立案审核",
+      nextTrigger: "确认作废后归档并并入原事件；驳回则正常派发",
+    },
+    {
+      type: "乱堆垃圾",
+      level: "一般",
+      location: "东四北大街267号",
+      grid: "东四街道-网格D05",
+      time: "08-18 08:20",
+      waitedH: 2.9,
+      deadlineH: 12,
+      blocker: "AI 判定为装修施工合规围挡内堆放，建议按误报作废，待人工确认",
+      owner: "待作废审核确认",
+      ownerRole: "作废审核岗：立案审核",
+      nextTrigger: "确认误报作废；驳回则补充立案信息后派发",
+    },
+    {
+      type: "道路遗撒",
+      level: "较重",
+      location: "安定门东大街58号",
+      grid: "安定门街道-网格B07",
+      time: "08-18 07:45",
+      waitedH: 3.6,
+      deadlineH: 12,
+      blocker: "与已结案事件同点位同类，复发规则建议并入观察而非新立案",
+      owner: "待作废审核确认",
+      ownerRole: "作废审核岗：立案审核 / 监督员",
+      nextTrigger: "确认后并入原事件观察；驳回则正常立案派发",
+    },
+  ],
   watching: [
     {
       type: "占道经营",
@@ -4172,20 +4265,30 @@ const poolTrails: Record<
   PoolStateId,
   { dh: number; actor: string; text: string }[]
 > = {
-  unassigned: [
-    { dh: 0, actor: "Agent", text: "完成查重、空间匹配与取证，事件具备进入下一责任方的条件" },
-    { dh: 0.3, actor: "Agent", text: "责任匹配出现冲突，转入待分配并保留候选责任主体" },
-    { dh: 1, actor: "系统", text: "等待责任主体确认，超时按规则升级至街道值守岗" },
+  case: [
+    { dh: 0, actor: "Agent", text: "完成查重、空间匹配与取证，生成立案草案并推荐责任候选" },
+    { dh: 0.3, actor: "Agent", text: "识别到定责疑点，标记待人工确认后立案" },
+    { dh: 1, actor: "系统", text: "等待立案审核确认，超时按规则提醒立案审核岗" },
   ],
   feedback: [
     { dh: 0, actor: "Agent", text: "自动派发至网格责任人，附发生中图与定位" },
     { dh: 0.4, actor: "网格责任人", text: "已接单并到场，现场处置中" },
     { dh: 1.2, actor: "Agent", text: "等待处置后图回传，接近时限时自动催办" },
   ],
+  verify: [
+    { dh: 0, actor: "网格责任人", text: "提交处置反馈，上传处置后图" },
+    { dh: 0.3, actor: "Agent", text: "AI 复核生成核查结论草案，标记需人工确认的疑点" },
+    { dh: 1, actor: "系统", text: "等待核查结论确认，超时按规则提醒核查岗" },
+  ],
   inspection: [
     { dh: 0, actor: "网格责任人", text: "提交处置反馈，上传处置后图" },
     { dh: 0.5, actor: "Agent", text: "复核比对发现证据不足，建议外场核查" },
     { dh: 1.5, actor: "Agent", text: "已派发监督员外场核查，等待回传同机位照片" },
+  ],
+  void: [
+    { dh: 0, actor: "Agent", text: "查重命中疑似重复 / 误报，整理作废理由与证据并生成审核清单" },
+    { dh: 0.2, actor: "立案审核岗", text: "发起作废申请，事件转入待作废审核" },
+    { dh: 1, actor: "系统", text: "等待作废审核确认，超时按规则提醒作废审核岗" },
   ],
   watching: [
     { dh: 0, actor: "Agent", text: "事件已结案，按规则进入持续观察" },
@@ -4200,31 +4303,44 @@ const POOL_LIST_LIMIT = 6
 // 入口驱动：Agent 已备好、等人拍板的件数 vs Agent 仍在推进监控的件数
 const poolCount = (id: PoolStateId) =>
   agentPoolStats.find((s) => s.id === id)?.count || 0
-const POOL_READY = poolCount("unassigned") + poolCount("inspection")
-const POOL_AGENT_RUNNING = poolCount("feedback") + poolCount("watching")
+const POOL_READY = poolCount("case") + poolCount("verify") + poolCount("void")
+const POOL_AGENT_RUNNING =
+  poolCount("feedback") + poolCount("inspection") + poolCount("watching")
 
-// 池内四态 → 对应的人工办理队列（处理池只做去向指引，写操作一律在待办队列）
+// 池内六态 → 对应的人工办理队列（处理池只做去向指引，写操作一律在待办队列）
+// 等待处置反馈 / 等待外场核查：还在等现场反馈，未到人工处理环节，不展示办理去向
 const POOL_DISPATCH: Record<
   PoolStateId,
   { tab: "case" | "inspect" | "void"; label: string } | null
 > = {
-  // 待分配：责任主体确认在「待立案」队列完成
-  unassigned: { tab: "case", label: "去「待立案」队列办理" },
-  // 等待处置反馈 / 等待外场核查：结论确认与证据核验都在「待核查」队列完成
-  feedback: { tab: "inspect", label: "去「待核查」队列办理" },
-  inspection: { tab: "inspect", label: "去「待核查」队列办理" },
+  // 等待立案：立案与定责在「待立案」队列完成
+  case: { tab: "case", label: "去「待立案」队列办理" },
+  feedback: null,
+  // 等待核查：结论确认在「待核查」队列完成
+  verify: { tab: "inspect", label: "去「待核查」队列办理" },
+  inspection: null,
+  // 等待作废审核：作废确认在「待作废审核」队列完成
+  void: { tab: "void", label: "去「待作废审核」队列办理" },
   // 持续监控：本态无人工办理入口，由 Agent 盯复发
   watching: null,
 }
 
+// 无办理去向时的展示文案：等反馈的态说明 Agent 在盯，观察态说明无人工入口
+const poolHoldLabel = (id: PoolStateId) =>
+  id === "watching" ? "无人工入口" : "Agent 盯反馈中"
+
 // Agent 依据已完成的流程劳动给出的建议动作（只作草案，采纳与否由人决定）
 const poolSuggestion = (e: PoolEvent): string => {
-  if (e.state === "unassigned")
-    return `建议采纳候选责任主体「${e.owner}」；采纳后由 Agent 自动派发并衔接责任人`
+  if (e.state === "case")
+    return `建议确认立案并采纳候选责任方（${e.ownerRole}）；采纳后由 Agent 自动派发`
   if (e.state === "feedback")
-    return "建议按其归集的处置反馈确认结果是否成立；证据不足再升级为外场核查"
+    return "暂无需人工处理：Agent 盯处置反馈与时限，接近时限自动催办，回传后转入待核查"
+  if (e.state === "verify")
+    return "建议核对处置前后影像与 AI 复核疑点；确认即结案，证据不足转外场核查"
   if (e.state === "inspection")
-    return "建议核对处置前后同机位影像；证据充分即确认闭环"
+    return "暂无需人工处理：Agent 盯监督员外场进度，证据回传后自动比对并转入待核查"
+  if (e.state === "void")
+    return "建议核对查重命中与作废理由；确认作废即归档，驳回则回到正常派发流程"
   return "建议维持观察；命中复发条件会自动创建新事件并回流处理池"
 }
 
@@ -4250,9 +4366,11 @@ const poolTimeKey = (ts: string) => {
 }
 
 const POOL_ID_BASE: Record<PoolStateId, number> = {
-  unassigned: 20600,
+  case: 20600,
   feedback: 20640,
+  verify: 20680,
   inspection: 20700,
+  void: 20710,
   watching: 20760,
 }
 
@@ -4275,7 +4393,7 @@ function buildPoolEvents(): PoolEvent[] {
                 : null,
         evidence: {
           during: eventImage(s.type, "during"),
-          after: st.id === "unassigned" ? undefined : eventImage(s.type, "after"),
+          after: st.id === "case" ? undefined : eventImage(s.type, "after"),
         },
         trail: poolTrails[st.id].map((step) => ({
           t: poolDayShift(s.time, step.dh),
@@ -4355,10 +4473,22 @@ function CaseDecisionPage({
   event: BatchEvent
   onBack: () => void
 }) {
-  const [submitted, setSubmitted] = useState(false)
+  // 「当前情况」驱动详情动作（MD《AI实时治理》§3）：
+  // 自然消散 · 只读 → 仅查看；重复上报 · 不新建 → 只记到已有事件；
+  // 未能匹配网格 → 派发不可用，改点/定网格后可用；规则预告 → 派发后自动结案提示
+  const [submitted, setSubmitted] = useState<null | "dispatch" | "repeat">(
+    null,
+  )
   const [selectedGrid, setSelectedGrid] = useState(event.suggestedGrid || "")
   const [editLevel, setEditLevel] = useState(event.level)
   const [editLocation, setEditLocation] = useState(event.location)
+  const sitType = event.situation.type
+  const sitText = event.situation.text
+  const isReadonlySit = sitType === "readonly"
+  const isRepeatSit = sitText === "重复上报 · 不新建"
+  const isNoGridSit = sitText === "未能匹配网格"
+  const isRulePreviewSit = sitType === "info"
+  const gridMoved = selectedGrid !== (event.suggestedGrid || "")
   if (submitted)
     return (
       <div
@@ -4377,8 +4507,11 @@ function CaseDecisionPage({
             width: 52,
             height: 52,
             borderRadius: "50%",
-            backgroundColor: "rgba(53,185,133,0.1)",
-            border: `2px solid ${T.green}`,
+            backgroundColor:
+              submitted === "repeat"
+                ? "rgba(255,122,66,0.1)"
+                : "rgba(53,185,133,0.1)",
+            border: `2px solid ${submitted === "repeat" ? T.amber : T.green}`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -4389,7 +4522,7 @@ function CaseDecisionPage({
             height="24"
             viewBox="0 0 24 24"
             fill="none"
-            stroke={T.green}
+            stroke={submitted === "repeat" ? T.amber : T.green}
             strokeWidth="2.5"
           >
             <polyline points="20 6 9 17 4 12" />
@@ -4400,14 +4533,16 @@ function CaseDecisionPage({
             style={{
               fontSize: 15,
               fontWeight: 600,
-              color: T.green,
+              color: submitted === "repeat" ? T.amber : T.green,
               marginBottom: 6,
             }}
           >
-            已确认立案并派发
+            {submitted === "repeat" ? "已记录到已有事件" : "已确认立案并派发"}
           </div>
           <div style={{ fontSize: 12, color: T.textMuted }}>
-            事件 {event.id} 已派至{selectedGrid} · 责任人：李建国
+            {submitted === "repeat"
+              ? `事件 ${event.id} 判为重复上报 · 不新建：已记到在办事件上，未新建、未派发`
+              : `事件 ${event.id} 已派至${selectedGrid} · 责任人：李建国`}
           </div>
         </div>
         <button
@@ -4761,46 +4896,98 @@ function CaseDecisionPage({
             padding: 16,
           }}
         >
-          <div
-            style={{
-              padding: 12,
-              border: `1px solid ${T.border}`,
-              borderRadius: 8,
-              backgroundColor: T.card2,
-              marginBottom: 12,
-            }}
-          >
+          {isReadonlySit ? (
             <div
               style={{
-                fontSize: 12,
-                fontWeight: 500,
-                color: T.text,
-                marginBottom: 5,
+                padding: 12,
+                border: `1px solid ${T.border}`,
+                borderRadius: 8,
+                backgroundColor: T.card2,
+                marginBottom: 12,
               }}
             >
-              这是否属于需要立案的城市治理事件？
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: T.text,
+                  marginBottom: 5,
+                }}
+              >
+                自然消散 · 只读
+              </div>
+              <div style={{ fontSize: 11, color: T.textMuted, lineHeight: 1.6 }}>
+                发生状态已是「已消散」：不立案、不判无效、不进档案。本页仅支持查看；这一期仍留在待立案，不计入页签数字与「待你决定」。
+              </div>
             </div>
-            <div style={{ fontSize: 11, color: T.textMuted, lineHeight: 1.6 }}>
-              若是，请确认字段后立案。若否，选择"不属于事件范围"，事件进入已无效档案。
+          ) : isRepeatSit ? (
+            <div
+              style={{
+                padding: 12,
+                border: `1px solid ${T.border}`,
+                borderRadius: 8,
+                backgroundColor: T.card2,
+                marginBottom: 12,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: T.text,
+                  marginBottom: 5,
+                }}
+              >
+                重复上报 · 不新建
+              </div>
+              <div style={{ fontSize: 11, color: T.textMuted, lineHeight: 1.6 }}>
+                与一件仍在办的事件判为同一件事：记到已有事件上，不新建、不派发。
+              </div>
             </div>
-          </div>
-          <textarea
-            style={{
-              width: "100%",
-              padding: "8px 10px",
-              backgroundColor: T.card2,
-              border: `1px solid ${T.border}`,
-              borderRadius: 6,
-              color: T.text,
-              fontSize: 12,
-              resize: "none",
-              height: 70,
-              fontFamily: "inherit",
-              marginBottom: 12,
-              boxSizing: "border-box",
-            }}
-            placeholder="添加说明或备注..."
-          />
+          ) : (
+            <div
+              style={{
+                padding: 12,
+                border: `1px solid ${T.border}`,
+                borderRadius: 8,
+                backgroundColor: T.card2,
+                marginBottom: 12,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: T.text,
+                  marginBottom: 5,
+                }}
+              >
+                这是否属于需要立案的城市治理事件？
+              </div>
+              <div style={{ fontSize: 11, color: T.textMuted, lineHeight: 1.6 }}>
+                若是，请确认字段后立案。若否，选择"不属于事件范围"，事件进入已无效档案。
+              </div>
+            </div>
+          )}
+          {!isReadonlySit && !isRepeatSit && (
+            <textarea
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                backgroundColor: T.card2,
+                border: `1px solid ${T.border}`,
+                borderRadius: 6,
+                color: T.text,
+                fontSize: 12,
+                resize: "none",
+                height: 70,
+                fontFamily: "inherit",
+                marginBottom: 12,
+                boxSizing: "border-box",
+              }}
+              placeholder="添加说明或备注..."
+            />
+          )}
           <div
             style={{
               display: "flex",
@@ -4809,37 +4996,88 @@ function CaseDecisionPage({
               marginTop: "auto",
             }}
           >
-            <button
-              onClick={() => setSubmitted(true)}
-              disabled={!selectedGrid}
-              style={{
-                width: "100%",
-                padding: 11,
-                backgroundColor: selectedGrid ? T.primary : T.border,
-                color: T.cardSolid,
-                border: "none",
-                borderRadius: 6,
-                cursor: selectedGrid ? "pointer" : "not-allowed",
-                fontSize: 13,
-                fontWeight: 600,
-              }}
-            >
-              确认立案并派发
-            </button>
-            <button
-              style={{
-                width: "100%",
-                padding: 10,
-                backgroundColor: "transparent",
-                color: T.red,
-                border: "1px solid rgba(228,94,88,0.25)",
-                borderRadius: 6,
-                cursor: "pointer",
-                fontSize: 13,
-              }}
-            >
-              不属于事件范围（无效）
-            </button>
+            {isReadonlySit ? null : isRepeatSit ? (
+              <button
+                onClick={() => setSubmitted("repeat")}
+                style={{
+                  width: "100%",
+                  padding: 11,
+                  backgroundColor: T.amber,
+                  color: T.cardSolid,
+                  border: "none",
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                记到已有事件（不新建）
+              </button>
+            ) : (
+              <>
+                {isNoGridSit && !gridMoved && (
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: T.amber,
+                      lineHeight: 1.6,
+                      padding: "0 2px",
+                    }}
+                  >
+                    未能匹配网格：坐标未落入辖区网格（或落在网格边界上）。请先在左侧地图改点或定网格，再派发。
+                  </div>
+                )}
+                {isRulePreviewSit && (
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: T.primary,
+                      lineHeight: 1.6,
+                      padding: "0 2px",
+                    }}
+                  >
+                    规则预告：已发布的自动结案规则会在本次派发成功后命中，事件将直接已结案，不经处置和核查。
+                  </div>
+                )}
+                <button
+                  onClick={() => setSubmitted("dispatch")}
+                  disabled={!selectedGrid || (isNoGridSit && !gridMoved)}
+                  style={{
+                    width: "100%",
+                    padding: 11,
+                    backgroundColor:
+                      selectedGrid && !(isNoGridSit && !gridMoved)
+                        ? T.primary
+                        : T.border,
+                    color: T.cardSolid,
+                    border: "none",
+                    borderRadius: 6,
+                    cursor:
+                      selectedGrid && !(isNoGridSit && !gridMoved)
+                        ? "pointer"
+                        : "not-allowed",
+                    fontSize: 13,
+                    fontWeight: 600,
+                  }}
+                >
+                  确认立案并派发
+                </button>
+                <button
+                  style={{
+                    width: "100%",
+                    padding: 10,
+                    backgroundColor: "transparent",
+                    color: T.red,
+                    border: "1px solid rgba(228,94,88,0.25)",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    fontSize: 13,
+                  }}
+                >
+                  不属于事件范围（无效）
+                </button>
+              </>
+            )}
           </div>
         </Card>
       </div>
@@ -5420,9 +5658,15 @@ function CompareLayer({
 function InspectDecisionPage({
   event,
   onBack,
+  hasFieldReturnStep = false,
+  supervisorMissing = false,
 }: {
   event: BatchEvent
   onBack: () => void
+  /** 当前账号步骤含处置 / 外场核查回传 → 不能「确认完成并结案」（MD《AI实时治理》§4） */
+  hasFieldReturnStep?: boolean
+  /** 该网格协同监督为空或负责类型不含 → 「发送监督员核查」不可用 */
+  supervisorMissing?: boolean
 }) {
   const [submitted, setSubmitted] = useState(false)
   const [cmpMode, setCmpMode] = useState<"side" | "overlay" | null>(null)
@@ -6064,14 +6308,20 @@ function InspectDecisionPage({
           >
             <button
               onClick={() => setSubmitted(true)}
+              disabled={hasFieldReturnStep}
+              title={
+                hasFieldReturnStep
+                  ? "含处置或外场核查回传步骤的账号不能结案（MD《AI实时治理》§4）"
+                  : undefined
+              }
               style={{
                 width: "100%",
                 padding: 11,
-                backgroundColor: T.green,
+                backgroundColor: hasFieldReturnStep ? T.border : T.green,
                 color: T.cardSolid,
                 border: "none",
                 borderRadius: 6,
-                cursor: "pointer",
+                cursor: hasFieldReturnStep ? "not-allowed" : "pointer",
                 fontSize: 13,
                 fontWeight: 600,
               }}
@@ -6097,12 +6347,18 @@ function InspectDecisionPage({
                 width: "100%",
                 padding: 10,
                 backgroundColor: "transparent",
-                color: T.purple,
-                border: "1px solid rgba(117,104,216,0.25)",
+                color: supervisorMissing ? T.textMuted : T.purple,
+                border: `1px solid ${supervisorMissing ? T.border : "rgba(117,104,216,0.25)"}`,
                 borderRadius: 6,
-                cursor: "pointer",
+                cursor: supervisorMissing ? "not-allowed" : "pointer",
                 fontSize: 13,
+                opacity: supervisorMissing ? 0.6 : 1,
               }}
+              title={
+                supervisorMissing
+                  ? "该网格协同监督为空或其负责类型不含这件，暂不可派（MD《AI实时治理》§4）"
+                  : undefined
+              }
             >
               证据不足，发送监督员核查
             </button>
@@ -6399,7 +6655,7 @@ function VoidDecisionPage({
               作废审核
             </div>
             <div style={{ fontSize: 11, color: T.textMuted, lineHeight: 1.6 }}>
-              若批准，事件进入已无效档案。若驳回，事件继续流转至下一处置步骤。
+              若批准，事件进入已作废（终态）。若驳回，事件回到待处置，主责仍是派发快照上的责任人。
             </div>
           </div>
           <textarea
@@ -6466,35 +6722,27 @@ function VoidDecisionPage({
 
 // ─── 全量识别（立案前的相机识别全量清单） ─────────────────────────────────────
 
-type RecognitionStatus = "待立案" | "已立案" | "重复过滤" | "待人工复核"
+type RecognitionStatus = "发生中" | "已消散"
 
 interface RecognitionEvent extends BatchEvent {
   status: RecognitionStatus
+  /** 事件描述（AI 识别的详细描述） */
+  description: string
 }
 
 const REC_STATUS_META: Record<
   RecognitionStatus,
   { color: string; bg: string; border: string }
 > = {
-  待立案: {
-    color: "var(--primary)",
-    bg: "rgba(50,109,255,0.10)",
-    border: "rgba(50,109,255,0.30)",
+  发生中: {
+    color: "var(--red)",
+    bg: "rgba(228,94,88,0.10)",
+    border: "rgba(228,94,88,0.30)",
   },
-  已立案: {
+  已消散: {
     color: "var(--green)",
     bg: "rgba(53,185,133,0.10)",
     border: "rgba(53,185,133,0.30)",
-  },
-  重复过滤: {
-    color: "var(--amber)",
-    bg: "rgba(255,122,66,0.10)",
-    border: "rgba(255,122,66,0.30)",
-  },
-  待人工复核: {
-    color: "var(--purple)",
-    bg: "rgba(117,104,216,0.10)",
-    border: "rgba(117,104,216,0.30)",
   },
 }
 
@@ -6572,7 +6820,7 @@ const recognitionEvents: RecognitionEvent[] = [
     agentStatus: "已完成查重（命中主事件 DC-2026-20561）",
     suggestedGrid: "北新桥街道网格",
     imgUrls: [eventImage("无证户外广告", "during")],
-    situation: { text: "重复上报：不新建", type: "warning" },
+    situation: { text: "重复上报 · 不新建", type: "warning" },
     status: "重复过滤",
   },
   {
@@ -6678,7 +6926,7 @@ const recognitionEvents: RecognitionEvent[] = [
     agentStatus: "已完成查重（命中主事件 DC-2026-20555）",
     suggestedGrid: "东华门街道网格",
     imgUrls: [eventImage("店外经营占道", "during")],
-    situation: { text: "重复上报：不新建", type: "warning" },
+    situation: { text: "重复上报 · 不新建", type: "warning" },
     status: "重复过滤",
   },
   {
@@ -6757,7 +7005,7 @@ const recognitionEvents: RecognitionEvent[] = [
     agentStatus: "已完成查重（命中主事件 DC-2026-20404）",
     suggestedGrid: "安定门街道网格",
     imgUrls: [eventImage("无照经营", "during")],
-    situation: { text: "重复上报：不新建", type: "warning" },
+    situation: { text: "重复上报 · 不新建", type: "warning" },
     status: "重复过滤",
   },
   {
@@ -6822,10 +7070,31 @@ const recognitionEvents: RecognitionEvent[] = [
     agentStatus: "已完成查重（命中主事件 DC-2026-20408）",
     suggestedGrid: "东四街道网格",
     imgUrls: [eventImage("共享单车占道", "during")],
-    situation: { text: "重复上报：不新建", type: "warning" },
+    situation: { text: "重复上报 · 不新建", type: "warning" },
     status: "重复过滤",
   },
 ]
+
+// 批量补齐事件描述 + 归一化状态为「发生中 / 已消散」
+{
+  const descMap: Record<string, string> = {
+    占道经营: "AI 识别到人行道区域有流动摊贩占道经营，摊位占据约 2/3 人行通道，影响行人正常通行。识别置信度 0.92。",
+    乱堆垃圾: "AI 识别到街角存在暴露垃圾堆，包含塑料袋、纸箱与餐厨废弃物，堆放面积约 2.5 ㎡，存在异味与市容影响。识别置信度 0.88。",
+    共享单车占道: "AI 识别到共享单车无序停放占据盲道与人行道，约 12 辆车堆积，阻碍行人通行。识别置信度 0.95。",
+    店外经营占道: "AI 识别到沿街商铺将商品摆出门店外墙经营，占用公共人行空间约 1.8 米宽。识别置信度 0.87。",
+    无证户外广告: "AI 识别到建筑物外墙上存在未审批的户外广告喷绘，面积约 6 ㎡，存在视觉污染。识别置信度 0.81。",
+    违规停放机动车: "AI 识别到机动车在禁停区域停放，车辆占用非机动车道，影响通行安全。识别置信度 0.76。",
+    无照经营: "AI 识别到流动摊贩无营业执照从事经营活动，摊位位于人行横道附近。识别置信度 0.83。",
+    施工占道: "AI 识别到道路施工未按审批范围作业，超出围挡占用机动车道约 1.5 米，存在交通隐患。识别置信度 0.90。",
+  }
+  recognitionEvents.forEach((evt, i) => {
+    ;(evt as RecognitionEvent & { description: string }).description =
+      descMap[evt.type] ?? `AI 识别到${evt.type}事件，具体情况需现场核实。`
+    // 前 16 件 = 发生中，后 8 件 = 已消散
+    ;(evt as RecognitionEvent & { status: RecognitionStatus }).status =
+      i < 16 ? "发生中" : "已消散"
+  })
+}
 
 // ─── 全量识别 · 人工审核与详情 ────────────────────────────────────────────────
 // 审核结果只有「有效 / 无效」两项；判无效必须手填原因。
@@ -7208,15 +7477,48 @@ function ReviewModal({
 function RecDetailDrawer({
   evt,
   onClose,
-  onReview,
   onViewImg,
+  onSubmitReview,
 }: {
   evt: RecognitionEvent
   onClose: () => void
-  onReview: () => void
   onViewImg: (img: string) => void
+  onSubmitReview: (result: ReviewResult, reason?: string) => void
 }) {
   const log = [...(reviewLogs[evt.id] ?? [])].reverse()
+  const latest = latestReview(evt.id)
+
+  // 三阶段图片
+  const imgBefore = eventImage(evt.type, "before")
+  const imgDuring = eventImage(evt.type, "during")
+  const imgAfter = eventImage(evt.type, "after")
+  const afterLabel = evt.status === "已消散" ? "已消散" : "当前"
+
+  const [imgTab, setImgTab] = useState<"before" | "during" | "after">("during")
+  const tabs: { key: "before" | "during" | "after"; label: string; src: string }[] = [
+    { key: "before", label: "发生前", src: imgBefore },
+    { key: "during", label: "发生中", src: imgDuring },
+    { key: "after", label: afterLabel, src: imgAfter },
+  ]
+  const currentImg = tabs.find((t) => t.key === imgTab)!.src
+
+  // 底部审核面板状态
+  const [reviewResult, setReviewResult] = useState<ReviewResult | null>(null)
+  const [reviewReason, setReviewReason] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+
+  function handleSubmit() {
+    if (!reviewResult) return
+    if (reviewResult === "无效" && !reviewReason.trim()) return
+    setSubmitting(true)
+    setTimeout(() => {
+      onSubmitReview(reviewResult, reviewResult === "无效" ? reviewReason.trim() : undefined)
+      setSubmitting(false)
+      setReviewResult(null)
+      setReviewReason("")
+    }, 200)
+  }
+
   const info: [string, string][] = [
     ["事件编号", evt.id],
     ["事件类型", evt.type],
@@ -7225,9 +7527,8 @@ function RecDetailDrawer({
     ["发生时间", evt.time],
     ["识别相机", evt.camera],
     ["AI 处理状态", evt.agentStatus],
-    ["建议网格", evt.suggestedGrid || "—"],
-    ["当前情况", evt.situation.text],
   ]
+
   return (
     <div
       onClick={onClose}
@@ -7275,166 +7576,510 @@ function RecDetailDrawer({
               border: "none",
               background: "none",
               color: T.textMuted,
-              fontSize: 16,
+              fontSize: 18,
               cursor: "pointer",
               lineHeight: 1,
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "var(--hover-bg, rgba(50,109,255,0.06))"
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "transparent"
             }}
           >
             ×
           </button>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "14px 20px 20px" }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 8 }}>基础信息</div>
-          <div
-            style={{
-              border: `1px solid ${T.border}`,
-              borderRadius: 10,
-              backgroundColor: "var(--card-2)",
-              padding: "4px 14px",
-              marginBottom: 16,
-            }}
-          >
-            {info.map(([k, v]) => (
-              <div
-                key={k}
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  padding: "7px 0",
-                  borderBottom: `1px dashed ${T.border}`,
-                  fontSize: 12,
-                  alignItems: "baseline",
-                }}
-              >
-                <span style={{ width: 84, flexShrink: 0, color: T.textMuted }}>{k}</span>
-                <span style={{ color: T.text, fontWeight: 500, lineHeight: 1.5 }}>{v}</span>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 8 }}>现场图片</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
-            {evt.imgUrls.map((img, i) => (
-              <img
-                key={i}
-                src={img}
-                alt={`${evt.type} 现场图 ${i + 1}`}
-                onClick={() => onViewImg(img)}
-                title="点击查看大图"
-                style={{
-                  width: "100%",
-                  aspectRatio: "4/3",
-                  objectFit: "cover",
-                  borderRadius: 10,
-                  border: `1px solid ${T.border}`,
-                  cursor: "pointer",
-                }}
-              />
-            ))}
-          </div>
-
-          <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 8 }}>
-            审核记录（{log.length}）
-          </div>
-          {log.length === 0 ? (
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          {/* ── 图片区（顶部，tab 切换 + 点击放大 + 发生中有识别框） ── */}
+          <div style={{ padding: "14px 20px 0" }}>
             <div
               style={{
-                padding: "18px 0",
-                textAlign: "center",
-                fontSize: 12,
-                color: T.textMuted,
-                border: `1px dashed ${T.border}`,
+                position: "relative",
+                width: "100%",
+                maxHeight: 220,
+                aspectRatio: "16 / 10",
                 borderRadius: 10,
+                overflow: "hidden",
+                border: `1px solid ${T.border}`,
+                backgroundColor: "#000",
+                cursor: "zoom-in",
               }}
+              onClick={() => onViewImg(currentImg)}
+              title="点击查看大图"
             >
-              暂无审核记录 —— 点击下方「去审核」提交第一条审核
-            </div>
-          ) : (
-            log.map((r, idx) => {
-              const c = r.result === "有效" ? T.green : T.red
-              const no = (reviewLogs[evt.id]?.length ?? 0) - idx
-              return (
+              <img
+                src={currentImg}
+                alt={`${evt.type} ${tabs.find((t) => t.key === imgTab)?.label}`}
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              />
+              {/* 发生中阶段的识别框 */}
+              {imgTab === "during" && (
                 <div
-                  key={idx}
                   style={{
-                    border: `1px solid ${T.border}`,
-                    borderRadius: 10,
-                    padding: "10px 12px",
-                    marginBottom: 8,
-                    backgroundColor: "var(--card-2)",
+                    position: "absolute",
+                    left: "22%",
+                    top: "35%",
+                    width: "58%",
+                    height: "48%",
+                    border: `2px solid ${T.red}`,
+                    borderRadius: 4,
+                    boxShadow: `0 0 0 1px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(255,255,255,0.25)`,
+                    pointerEvents: "none",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMuted }}>#{no}</span>
-                    <span
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: -1,
+                      left: -1,
+                      transform: "translateY(-100%)",
+                      backgroundColor: T.red,
+                      color: "#fff",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      padding: "2px 8px",
+                      borderRadius: "4px 4px 0 0",
+                      letterSpacing: 0.3,
+                    }}
+                  >
+                    {evt.type}
+                  </div>
+                  {/* 四角装饰 */}
+                  {[
+                    { left: -1, top: -1, borderTop: "3px solid #fff", borderLeft: "3px solid #fff" },
+                    { right: -1, top: -1, borderTop: "3px solid #fff", borderRight: "3px solid #fff" },
+                    { left: -1, bottom: -1, borderBottom: "3px solid #fff", borderLeft: "3px solid #fff" },
+                    { right: -1, bottom: -1, borderBottom: "3px solid #fff", borderRight: "3px solid #fff" },
+                  ].map((s, i) => (
+                    <div
+                      key={i}
                       style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: c,
-                        backgroundColor: r.result === "有效" ? "rgba(53,185,133,0.10)" : "rgba(228,94,88,0.10)",
-                        border: `1px solid ${r.result === "有效" ? "rgba(53,185,133,0.32)" : "rgba(228,94,88,0.32)"}`,
-                        padding: "2px 8px",
-                        borderRadius: 5,
+                        position: "absolute",
+                        width: 12,
+                        height: 12,
+                        ...s,
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+              {/* 时间角标 */}
+              <div
+                style={{
+                  position: "absolute",
+                  left: 12,
+                  bottom: 12,
+                  backgroundColor: "rgba(0,0,0,0.55)",
+                  color: "#fff",
+                  fontSize: 11,
+                  padding: "3px 10px",
+                  borderRadius: 6,
+                  backdropFilter: "blur(4px)",
+                }}
+              >
+                {evt.camera} · {evt.time}
+              </div>
+            </div>
+
+            {/* tab 切换 */}
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                marginTop: 10,
+              }}
+            >
+              {tabs.map((t) => {
+                const active = imgTab === t.key
+                return (
+                  <button
+                    key={t.key}
+                    onClick={() => setImgTab(t.key)}
+                    style={{
+                      flex: 1,
+                      padding: "8px 0",
+                      border: `1px solid ${active ? T.primary : T.border}`,
+                      borderRadius: 8,
+                      backgroundColor: active ? "rgba(50,109,255,0.08)" : "transparent",
+                      color: active ? T.primary : T.textSub,
+                      fontSize: 12,
+                      fontWeight: active ? 700 : 500,
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {t.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* ── 事件基本信息 ── */}
+          <div style={{ padding: "18px 20px 0" }}>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: T.text,
+                marginBottom: 10,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <span
+                style={{
+                  width: 3,
+                  height: 14,
+                  borderRadius: 2,
+                  background: `linear-gradient(180deg, ${T.primary} 0%, #7EA8FF 100%)`,
+                }}
+              />
+              事件基本信息
+            </div>
+            <div
+              style={{
+                border: `1px solid ${T.border}`,
+                borderRadius: 10,
+                backgroundColor: "var(--card-2)",
+                padding: "2px 14px",
+              }}
+            >
+              {info.map(([k, v], idx) => (
+                <div
+                  key={k}
+                  style={{
+                    display: "flex",
+                    gap: 12,
+                    padding: "9px 0",
+                    borderBottom: idx < info.length - 1 ? `1px dashed ${T.border}` : "none",
+                    fontSize: 12,
+                    alignItems: "baseline",
+                  }}
+                >
+                  <span style={{ width: 84, flexShrink: 0, color: T.textMuted }}>{k}</span>
+                  <span style={{ color: T.text, fontWeight: 500, lineHeight: 1.55, flex: 1 }}>
+                    {v}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── 事件描述 ── */}
+          <div style={{ padding: "18px 20px 0" }}>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: T.text,
+                marginBottom: 10,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <span
+                style={{
+                  width: 3,
+                  height: 14,
+                  borderRadius: 2,
+                  background: `linear-gradient(180deg, #FF7A42 0%, #FFB37A 100%)`,
+                }}
+              />
+              事件描述
+            </div>
+            <div
+              style={{
+                border: `1px solid ${T.border}`,
+                borderRadius: 10,
+                backgroundColor: "var(--card-2)",
+                padding: "12px 14px",
+                fontSize: 12,
+                lineHeight: 1.7,
+                color: T.text,
+              }}
+            >
+              {evt.description}
+            </div>
+          </div>
+
+          {/* ── 事件审核信息 ── */}
+          <div style={{ padding: "18px 20px 24px" }}>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: T.text,
+                marginBottom: 10,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <span
+                style={{
+                  width: 3,
+                  height: 14,
+                  borderRadius: 2,
+                  background: `linear-gradient(180deg, ${T.green} 0%, #67E0A3 100%)`,
+                }}
+              />
+              事件审核信息
+              {log.length > 0 && (
+                <span style={{ fontSize: 11, color: T.textMuted, fontWeight: 400, marginLeft: "auto" }}>
+                  共 {log.length} 条记录
+                </span>
+              )}
+            </div>
+
+            {/* 最新审核结果摘要卡 */}
+            {latest ? (
+              <div
+                style={{
+                  border: `1px solid ${latest.result === "有效" ? "rgba(53,185,133,0.30)" : "rgba(228,94,88,0.30)"}`,
+                  borderRadius: 10,
+                  padding: "12px 14px",
+                  marginBottom: 10,
+                  background:
+                    latest.result === "有效"
+                      ? "linear-gradient(135deg, rgba(53,185,133,0.08) 0%, rgba(53,185,133,0.02) 100%)"
+                      : "linear-gradient(135deg, rgba(228,94,88,0.08) 0%, rgba(228,94,88,0.02) 100%)",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: latest.result === "有效" ? T.green : T.red,
+                      backgroundColor:
+                        latest.result === "有效" ? "rgba(53,185,133,0.14)" : "rgba(228,94,88,0.14)",
+                      border: `1px solid ${latest.result === "有效" ? "rgba(53,185,133,0.35)" : "rgba(228,94,88,0.35)"}`,
+                      padding: "3px 10px",
+                      borderRadius: 6,
+                    }}
+                  >
+                    {latest.result}
+                  </span>
+                  <span style={{ fontSize: 11, color: T.textMuted, marginLeft: "auto" }}>
+                    审核人 {latest.by}
+                  </span>
+                </div>
+                {latest.reason && (
+                  <div style={{ fontSize: 12, color: T.text, marginTop: 9, lineHeight: 1.6 }}>
+                    <span style={{ color: T.textMuted }}>无效原因：</span>
+                    {latest.reason}
+                  </div>
+                )}
+                <div style={{ fontSize: 11, color: T.textMuted, marginTop: 8, fontFamily: T.mono }}>
+                  审核时间：{latest.at}
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  padding: "22px 0",
+                  textAlign: "center",
+                  fontSize: 12,
+                  color: T.textMuted,
+                  border: `1px dashed ${T.border}`,
+                  borderRadius: 10,
+                  marginBottom: 10,
+                  backgroundColor: "var(--card-2)",
+                }}
+              >
+                待审核 —— 点击下方「去审核」提交审核结果
+              </div>
+            )}
+
+            {/* 历史审核记录 */}
+            {log.length > 1 && (
+              <>
+                <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 6, marginTop: 4 }}>
+                  历史记录
+                </div>
+                {log.slice(1).map((r, idx) => {
+                  const c = r.result === "有效" ? T.green : T.red
+                  const no = (reviewLogs[evt.id]?.length ?? 0) - idx - 1
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        border: `1px solid ${T.border}`,
+                        borderRadius: 8,
+                        padding: "8px 12px",
+                        marginBottom: 6,
+                        backgroundColor: "var(--card-2)",
+                        opacity: 0.75,
                       }}
                     >
-                      {r.result}
-                    </span>
-                    <span style={{ fontSize: 11, color: T.textMuted, marginLeft: "auto", fontFamily: T.mono }}>
-                      审核人 {r.by} · {r.at}
-                    </span>
-                  </div>
-                  {r.reason && (
-                    <div style={{ fontSize: 12, color: T.text, marginTop: 7, lineHeight: 1.6 }}>
-                      无效原因：{r.reason}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMuted }}>#{no}</span>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: c,
+                            backgroundColor:
+                              r.result === "有效" ? "rgba(53,185,133,0.10)" : "rgba(228,94,88,0.10)",
+                            border: `1px solid ${r.result === "有效" ? "rgba(53,185,133,0.30)" : "rgba(228,94,88,0.30)"}`,
+                            padding: "1px 7px",
+                            borderRadius: 4,
+                          }}
+                        >
+                          {r.result}
+                        </span>
+                        <span
+                          style={{ fontSize: 10, color: T.textMuted, marginLeft: "auto", fontFamily: T.mono }}
+                        >
+                          {r.by} · {r.at}
+                        </span>
+                      </div>
+                      {r.reason && (
+                        <div style={{ fontSize: 11, color: T.textSub, marginTop: 5, lineHeight: 1.55 }}>
+                          原因：{r.reason}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              )
-            })
-          )}
+                  )
+                })}
+              </>
+            )}
+          </div>
         </div>
 
         <div
           style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 8,
-            padding: "12px 20px",
+            padding: "14px 20px 18px",
             borderTop: `1px solid ${T.border}`,
             flexShrink: 0,
+            backgroundColor: "var(--panel-solid, var(--card))",
           }}
         >
-          <button
-            onClick={onClose}
-            style={{
-              padding: "8px 16px",
-              borderRadius: 8,
-              border: `1px solid ${T.border}`,
-              backgroundColor: "transparent",
-              color: T.textSub,
-              fontSize: 12,
-              cursor: "pointer",
-            }}
-          >
-            关闭
-          </button>
-          <button
-            onClick={onReview}
-            style={{
-              padding: "8px 18px",
-              borderRadius: 8,
-              border: "none",
-              background: `linear-gradient(135deg, ${T.primary} 0%, #5A8BFF 100%)`,
-              color: "#fff",
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: "pointer",
-              boxShadow: "0 4px 12px rgba(50,109,255,0.25)",
-            }}
-          >
-            去审核
-          </button>
+          <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 10 }}>
+            审核操作
+          </div>
+          <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+            <button
+              onClick={() => setReviewResult("有效")}
+              style={{
+                flex: 1,
+                padding: "9px 0",
+                borderRadius: 8,
+                border: `1px solid ${reviewResult === "有效" ? "rgba(53,185,133,0.50)" : T.border}`,
+                backgroundColor:
+                  reviewResult === "有效" ? "rgba(53,185,133,0.10)" : "var(--card-2)",
+                color: reviewResult === "有效" ? T.green : T.text,
+                fontSize: 12,
+                fontWeight: reviewResult === "有效" ? 700 : 500,
+                cursor: "pointer",
+                transition: "all 0.15s",
+              }}
+            >
+              ✓ 有效
+            </button>
+            <button
+              onClick={() => setReviewResult("无效")}
+              style={{
+                flex: 1,
+                padding: "9px 0",
+                borderRadius: 8,
+                border: `1px solid ${reviewResult === "无效" ? "rgba(228,94,88,0.50)" : T.border}`,
+                backgroundColor:
+                  reviewResult === "无效" ? "rgba(228,94,88,0.10)" : "var(--card-2)",
+                color: reviewResult === "无效" ? T.red : T.text,
+                fontSize: 12,
+                fontWeight: reviewResult === "无效" ? 700 : 500,
+                cursor: "pointer",
+                transition: "all 0.15s",
+              }}
+            >
+              ✕ 无效
+            </button>
+          </div>
+          {reviewResult === "无效" && (
+            <textarea
+              value={reviewReason}
+              onChange={(e) => setReviewReason(e.target.value)}
+              placeholder="请填写无效原因…"
+              rows={2}
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                padding: "8px 12px",
+                borderRadius: 8,
+                border: `1px solid ${T.border}`,
+                backgroundColor: "var(--card-2)",
+                color: T.text,
+                fontSize: 12,
+                lineHeight: 1.5,
+                resize: "none",
+                outline: "none",
+                marginBottom: 10,
+                fontFamily: "inherit",
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = T.primary
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = T.border
+              }}
+            />
+          )}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: "8px 18px",
+                borderRadius: 8,
+                border: `1px solid ${T.border}`,
+                backgroundColor: "transparent",
+                color: T.textSub,
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              关闭
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={!reviewResult || (reviewResult === "无效" && !reviewReason.trim()) || submitting}
+              style={{
+                flex: 1,
+                padding: "8px 20px",
+                borderRadius: 8,
+                border: "none",
+                background:
+                  reviewResult && !(reviewResult === "无效" && !reviewReason.trim())
+                    ? `linear-gradient(135deg, ${T.primary} 0%, #5A8BFF 100%)`
+                    : "#B8C4D6",
+                color: "#fff",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor:
+                  reviewResult && !(reviewResult === "无效" && !reviewReason.trim()) && !submitting
+                    ? "pointer"
+                    : "not-allowed",
+                opacity: submitting ? 0.7 : 1,
+                boxShadow:
+                  reviewResult && !(reviewResult === "无效" && !reviewReason.trim())
+                    ? "0 4px 12px rgba(50,109,255,0.25)"
+                    : "none",
+              }}
+            >
+              {submitting ? "提交中…" : "提交审核"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -7443,14 +8088,16 @@ function RecDetailDrawer({
 
 function RecognitionInbox({
   onView,
+  onFilteredCount,
 }: {
   onView: (img: string) => void
+  /** 页签数字 = 当前筛选下的识别条数（MD《AI实时治理》§1）：筛选结果上报给页签栏 */
+  onFilteredCount?: (n: number) => void
 }) {
   const [query, setQuery] = useState("")
   const [typeSel, setTypeSel] = useState<string[]>([])
   const [reviewSel, setReviewSel] = useState<string[]>([])
   const [range, setRange] = useState("all")
-  const [reviewEvt, setReviewEvt] = useState<RecognitionEvent | null>(null)
   const [detailEvt, setDetailEvt] = useState<RecognitionEvent | null>(null)
   const [toast, setToast] = useState("")
   const [, tick] = useReducer((n: number) => n + 1, 0)
@@ -7500,21 +8147,18 @@ function RecognitionInbox({
     }
     setReviewSel((prev) => (prev.includes(o) ? prev.filter((x) => x !== o) : [...prev, o]))
   }
-  function submitReview(result: ReviewResult, reason: string) {
-    if (!reviewEvt) return
-    const log = reviewLogs[reviewEvt.id] ?? (reviewLogs[reviewEvt.id] = [])
+  function submitReview(eventId: string, result: ReviewResult, reason?: string) {
+    const log = reviewLogs[eventId] ?? (reviewLogs[eventId] = [])
     const now = new Date()
     const p = (n: number) => String(n).padStart(2, "0")
     log.push({
       result,
       by: "张晓琳",
       at: `${p(now.getMonth() + 1)}-${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())}`,
-      ...(result === "无效" ? { reason } : {}),
+      ...(result === "无效" && reason ? { reason } : {}),
     })
     tick()
-    setToast(`已提交审核：${reviewEvt.id} 判定为「${result}」，立即生效`)
-    setDetailEvt(null)
-    setReviewEvt(null)
+    setToast(`已提交审核：${eventId} 判定为「${result}」，立即生效`)
   }
 
   const controlStyle: React.CSSProperties = {
@@ -7527,6 +8171,10 @@ function RecognitionInbox({
     fontSize: 12,
     outline: "none",
   }
+
+  useEffect(() => {
+    onFilteredCount?.(filtered.length)
+  }, [filtered.length, onFilteredCount])
 
   return (
     <div
@@ -7562,8 +8210,10 @@ function RecognitionInbox({
           </span>{" "}
           条。
         </span>
-        <span style={{ fontSize: 11, color: T.textMuted }}>
+        <span style={{ fontSize: 11, color: T.textMuted, display: "inline-flex", alignItems: "center", gap: 8 }}>
           Agent 已完成查重与空间匹配 · 立案决定由人工确认
+          {/* 全量识别规则（RT_RULES.recognition）：悬停浮出 */}
+          <RuleChip rules={RT_RULES} id="recognition" label="规则" />
         </span>
       </div>
 
@@ -7850,7 +8500,7 @@ function RecognitionInbox({
                       详情
                     </button>
                     <button
-                      onClick={() => setReviewEvt(evt)}
+                      onClick={() => setDetailEvt(evt)}
                       style={{
                         fontSize: 12,
                         fontWeight: 600,
@@ -7891,19 +8541,14 @@ function RecognitionInbox({
         </div>
       </div>
 
-      {reviewEvt && (
-        <ReviewModal
-          evt={reviewEvt}
-          onClose={() => setReviewEvt(null)}
-          onSubmit={submitReview}
-        />
-      )}
       {detailEvt && (
         <RecDetailDrawer
           evt={detailEvt}
           onClose={() => setDetailEvt(null)}
-          onReview={() => setReviewEvt(detailEvt)}
           onViewImg={onView}
+          onSubmitReview={(result, reason) => {
+            submitReview(detailEvt.id, result, reason)
+          }}
         />
       )}
       {toast && (
@@ -7931,12 +8576,69 @@ function RecognitionInbox({
   )
 }
 
-function RealtimeGovernance() {
+function RealtimeGovernance({ identity }: { identity: IdentityState }) {
+  // 治理配置全局状态：领取批次的「默认领取量 / 状态」驱动待办队列的获取事件发牌
+  const { state: gcState } = useGc()
+  // 当前身份 → 台账角色步骤：页签可见性（没有对应步骤的页签不出现）与按钮门禁
+  const identityView = resolveIdentity(gcState, identity)
+  const roleSteps: string[] =
+    identityView.ledger?.roles.find((r) => r.id === identityView.roleKey)
+      ?.steps ?? []
+  // 步骤 → 页签：全量识别=事件有效审核，待立案=立案派发，待核查=核查审核，待作废审核=作废深化
+  const stepOfTab: Record<"recognition" | "case" | "inspect" | "void", string> =
+    {
+      recognition: "事件有效审核",
+      case: "立案派发",
+      inspect: "核查审核",
+      void: "作废深化",
+    }
+  // SeeTime 身份与「步骤盖不住任何页签」的账号（如只看/改配置）放开全部页签
+  const matchedSteps = (Object.values(stepOfTab) as string[]).filter((s) =>
+    roleSteps.includes(s),
+  )
+  const tabAllowed = (tab: "recognition" | "case" | "inspect" | "void") =>
+    identityView.persona.kind === "seetime" ||
+    matchedSteps.length === 0 ||
+    roleSteps.includes(stepOfTab[tab])
+  // 待核查按钮门禁：含处置或外场核查回传步骤的账号不能「确认完成并结案」
+  const hasFieldReturnStep =
+    roleSteps.includes("处置") || roleSteps.includes("外场核查回传")
+  // 「发送监督员核查」门禁：事件所属网格在网格责任表中协同监督为空 → 不可派
+  function supervisorMissingFor(evt: BatchEvent): boolean {
+    const rows = gcState.rows["space"] ?? []
+    const hit = rows.find((r) => {
+      const street = (r.values[1] ?? "").trim()
+      return (
+        street !== "" &&
+        (evt.location.includes(street) ||
+          (evt.suggestedGrid ?? "").includes(street))
+      )
+    })
+    if (!hit) return false
+    const sup = (hit.values[4] ?? "").trim()
+    return sup === "" || sup.includes("—")
+  }
   const [view, setView] = useState<RtView>("overview")
   const [selectedEvent, setSelectedEvent] = useState<BatchEvent | null>(null)
+  // 默认落在待立案（MD《AI实时治理》§1）；该步骤不在当前账号步骤内时，
+  // 依次回退到第一个「步骤覆盖」的页签（没有对应步骤的页签不出现）
+  const firstAllowedTab = (): "recognition" | "case" | "inspect" | "void" =>
+    tabAllowed("case")
+      ? "case"
+      : tabAllowed("inspect")
+        ? "inspect"
+        : tabAllowed("void")
+          ? "void"
+          : "recognition"
   const [activeTab, setActiveTab] = useState<
     "recognition" | "case" | "inspect" | "void"
-  >("case")
+  >(firstAllowedTab)
+  // 切换身份/角色后，当前页签可能不再被步骤覆盖 → 回落到第一个可见页签
+  const identitySig = `${identity.personaId}|${identity.cid}|${identity.roleKey}`
+  useEffect(() => {
+    setActiveTab((cur) => (tabAllowed(cur) ? cur : firstAllowedTab()))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [identitySig])
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [extraCaseEvents, setExtraCaseEvents] = useState<BatchEvent[]>([])
   const [extraInspectEvents, setExtraInspectEvents] = useState<BatchEvent[]>(
@@ -7944,9 +8646,9 @@ function RealtimeGovernance() {
   )
   const [extraVoidEvents, setExtraVoidEvents] = useState<BatchEvent[]>([])
   const [isDealing, setIsDealing] = useState(false)
-  // Agent 处理池：默认进入「待你决定」决策流（unassigned + inspection）
-  // 完整追溯模式才按四态展示事件列表
-  const [poolStateId, setPoolStateId] = useState<PoolStateId>("unassigned")
+  // Agent 处理池：默认进入「待你决定」决策流（等待立案 / 等待核查 / 等待外场核查）
+  // 完整追溯模式才按五态展示事件列表
+  const [poolStateId, setPoolStateId] = useState<PoolStateId>("case")
   const [poolViewMode, setPoolViewMode] = useState<"decision" | "trace">(
     "decision",
   )
@@ -7983,6 +8685,27 @@ function RealtimeGovernance() {
         : extraVoidEvents
   const events = [...baseEvents, ...extraEvents]
 
+  // 页签数字 = 当前这批里还要人决定的件数；自然消散 · 只读不计入（MD《AI实时治理》§1/§3）
+  const caseDecisionCount = useMemo(
+    () =>
+      [...pendingCaseEvents, ...extraCaseEvents].filter(
+        (e) => e.situation.type !== "readonly",
+      ).length,
+    [extraCaseEvents],
+  )
+  const inspectCount = pendingInspectEvents.length + extraInspectEvents.length
+  const voidCount = pendingVoidEvents.length + extraVoidEvents.length
+  // 顶上「待你决定」= 待立案 + 待核查 + 待作废审核里待这个账号决定的件数
+  // （不含全量识别，不含自然消散 · 只读；步骤盖不住的页签对该账号不存在，不计入）
+  const todoDecisionCount =
+    (tabAllowed("case") ? caseDecisionCount : 0) +
+    (tabAllowed("inspect") ? inspectCount : 0) +
+    (tabAllowed("void") ? voidCount : 0)
+  // 全量识别页签数字 = 当前筛选下的识别条数（RecognitionInbox 上报）
+  const [recFilteredCount, setRecFilteredCount] = useState(
+    recognitionEvents.length,
+  )
+
   function generateBatchEvents(
     type: "case" | "inspect" | "void",
     count: number,
@@ -8012,7 +8735,8 @@ function RealtimeGovernance() {
     > = {
       case: { text: "正常立案", type: "normal" },
       inspect: { text: "正常立案", type: "normal" },
-      void: { text: "重复上报：不新建", type: "warning" },
+      // 附件 §5：待作废审核「当前情况」只有一句「正常作废审核」
+      void: { text: "正常作废审核", type: "normal" },
     }
     const inspectReviews = [
       { conclusion: "正常结案" as const, basis: "处置后图与发生中图同机位对比，原违规情况已消除" },
@@ -8038,8 +8762,30 @@ function RealtimeGovernance() {
     })
   }
 
+  // 治理配置 → Agent 派工与认领 → 领取批次：默认领取量即「获取事件」单次发牌数；
+  // 批次行「停用」= 关闭该页签的领取入口（与配置语义一致）
+  type RtTab = "recognition" | "case" | "inspect" | "void"
+  const batchKeyOf = (tab: RtTab) =>
+    tab === "case" ? "待立案" : tab === "inspect" ? "待核查" : "待作废审核"
+  function claimBatchInfo(tab: RtTab) {
+    const rows = gcState.rows["dc-batch"] ?? []
+    const key = batchKeyOf(tab)
+    const row =
+      rows.find((r) => (r.values[0] || "").includes(key)) ?? rows[0]
+    const parsed = parseInt(row?.values[2] ?? "10", 10)
+    const quota = Number.isFinite(parsed) ? Math.max(1, Math.min(30, parsed)) : 10
+    return {
+      quota,
+      enabled: row ? row.status !== "停用" : true,
+      batchName: row?.values[0] || `${key}批次`,
+    }
+  }
+
   function handleFetchEvents() {
     if (isDealing) return
+    // 发牌数量来自治理配置 → Agent 派工与认领 → 领取批次的「默认领取量」
+    const batch = claimBatchInfo(activeTab)
+    if (!batch.enabled) return
     setIsDealing(true)
     setTimeout(() => {
       const startIdx =
@@ -8050,7 +8796,7 @@ function RealtimeGovernance() {
             : pendingVoidEvents.length + extraVoidEvents.length
       const newEvents = generateBatchEvents(
         activeTab as "case" | "inspect" | "void",
-        10,
+        batch.quota,
         startIdx,
       )
       if (activeTab === "case") {
@@ -8139,6 +8885,8 @@ function RealtimeGovernance() {
       <InspectDecisionPage
         event={selectedEvent}
         onBack={() => setView("overview")}
+        hasFieldReturnStep={hasFieldReturnStep}
+        supervisorMissing={supervisorMissingFor(selectedEvent)}
       />
     )
   if (view === "void-decision" && selectedEvent)
@@ -8152,9 +8900,15 @@ function RealtimeGovernance() {
   if (view === "agent-pool") {
     const poolAll = buildPoolEvents()
     const poolTotal = agentPoolStats.reduce((sum, s) => sum + s.count, 0)
-    // 决策流：只呈现需要人拍板的两种状态（unassigned + inspection）
+    // 决策流：只呈现需要人拍板的三种状态（等待立案 / 等待核查 / 等待作废审核）
+    // 等待处置反馈 / 等待外场核查还在等现场反馈，由 Agent 盯办，未到人工处理环节
     const decisionEvents = poolAll
-      .filter((e) => e.state === "unassigned" || e.state === "inspection")
+      .filter(
+        (e) =>
+          e.state === "case" ||
+          e.state === "verify" ||
+          e.state === "void",
+      )
       .sort((a, b) => b.waitedH - a.waitedH)
     const decisionMeta = {
       id: "decision" as const,
@@ -8197,7 +8951,7 @@ function RealtimeGovernance() {
       )
       .sort((a, b) => b.waitedH - a.waitedH)
     const poolShown = matched.slice(0, poolVisible)
-    const POOL_COLS = "64px 112px 104px 1.4fr 78px 80px 1.6fr 60px"
+    const POOL_COLS = "64px 112px 104px 1.4fr 78px 80px 1.6fr 150px"
     const riskMeta = (r: PoolEvent["risk"]) =>
       r === "overtime"
         ? {
@@ -8241,11 +8995,11 @@ function RealtimeGovernance() {
       if (next) setPoolEvent(next)
     }
     const detailFields = poolEvent
-      ? poolEvent.state === "unassigned"
+      ? poolEvent.state === "case"
         ? [
             { k: "当前卡点", v: poolEvent.blocker },
             { k: "缺什么条件", v: `责任主体未定：${poolEvent.ownerRole}` },
-            { k: "待分配给谁", v: poolEvent.owner },
+            { k: "候选责任方", v: poolEvent.owner },
             { k: "下一触发条件", v: poolEvent.nextTrigger },
           ]
         : poolEvent.state === "feedback"
@@ -8328,7 +9082,7 @@ function RealtimeGovernance() {
             Agent 处理池
           </span>
           <span style={{ fontSize: 11, color: T.textMuted }}>
-            · Agent 备好证据与草案，你只做关键治理决定 · 非人工待办
+            · Agent 监控全量事件状态 · 按业务环节分组 · 非人工待办
           </span>
           <span
             style={{
@@ -8368,6 +9122,7 @@ function RealtimeGovernance() {
                 fontWeight: 600,
                 letterSpacing: "0.02em",
                 padding: "2px 2px 0",
+                flexShrink: 0,
               }}
             >
               Agent 工作分布 · 点击任一状态查看该态明细
@@ -8396,6 +9151,7 @@ function RealtimeGovernance() {
                   }}
                   style={{
                     position: "relative",
+                    flexShrink: 0,
                     padding: "13px 16px 12px",
                     borderRadius: 14,
                     cursor: "pointer",
@@ -8576,80 +9332,17 @@ function RealtimeGovernance() {
             })}
             <div
               style={{
-                padding: "11px 12px",
-                borderRadius: 12,
-                border: `1px solid ${T.border}`,
-                backgroundColor: T.card2,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: T.text,
-                  letterSpacing: "0.01em",
-                }}
-              >
-                Agent 持续成效
-              </div>
-              <div style={{ fontSize: 10, color: T.textMuted, marginTop: 3 }}>
-                把流程劳动沉淀成可追溯的治理资产
-              </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 6,
-                  marginTop: 9,
-                }}
-              >
-                {AGENT_EFFECT.map((m) => (
-                  <div
-                    key={m.label}
-                    style={{
-                      padding: "7px 8px",
-                      borderRadius: 8,
-                      border: `1px solid ${T.border}`,
-                      backgroundColor: "var(--row-bg)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 9.5,
-                        color: T.textMuted,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {m.label}
-                    </div>
-                    <div
-                      style={{
-                        fontFamily: T.mono,
-                        fontSize: 15,
-                        fontWeight: 800,
-                        color: m.color,
-                        lineHeight: 1.2,
-                        marginTop: 2,
-                      }}
-                    >
-                      {m.value}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div
-              style={{
                 fontSize: 10.5,
                 color: T.textMuted,
                 lineHeight: 1.65,
                 padding: "2px 2px 6px",
+                flexShrink: 0,
               }}
             >
               标 <span style={{ color: T.accent, fontWeight: 700 }}>AGENT</span> 的行为 Agent 正在承担的流程劳动，标{" "}
               <span style={{ color: T.primary, fontWeight: 700 }}>人</span> 的一行是留给你承担的治理判断。
               <span style={{ fontWeight: 800, color: T.text }}> 原则：AI 不替代最终责任。</span>
-              右侧默认只展示需你决定的事件；点击左列任一状态或“完整追溯”，可按四态查看全部 Agent 监控事件。
+              右侧默认只展示需你决定的事件；点击左列任一状态或“完整追溯”，可按六态查看全部 Agent 监控事件。
             </div>
           </div>
           {poolEvent ? (
@@ -9277,6 +9970,8 @@ function RealtimeGovernance() {
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
+                alignSelf: "start",
+                maxHeight: "100%",
               }}
             >
               <div
@@ -9356,7 +10051,7 @@ function RealtimeGovernance() {
                   onClick={() => {
                     if (poolViewMode === "decision") {
                       setPoolViewMode("trace")
-                      setPoolStateId("unassigned")
+                      setPoolStateId("case")
                       setPoolEvent(null)
                       setPoolQuery("")
                       setPoolTypeFilter("all")
@@ -9364,7 +10059,7 @@ function RealtimeGovernance() {
                       setPoolVisible(POOL_LIST_LIMIT)
                     } else {
                       setPoolViewMode("decision")
-                      setPoolStateId("unassigned")
+                      setPoolStateId("case")
                       setPoolEvent(null)
                       setPoolQuery("")
                       setPoolTypeFilter("all")
@@ -9495,7 +10190,14 @@ function RealtimeGovernance() {
                   </button>
                 )}
               </div>
-              <div style={{ flex: 1, overflow: "auto", padding: 12 }}>
+              <div
+                style={{
+                  flex: "0 1 auto",
+                  minHeight: 0,
+                  overflow: "auto",
+                  padding: 12,
+                }}
+              >
                 {poolShown.length === 0 ? (
                   <div
                     style={{
@@ -9535,30 +10237,11 @@ function RealtimeGovernance() {
                       return (
                         <div
                           key={evt.id}
-                          onClick={() => setPoolEvent(evt)}
-                          role="button"
-                          tabIndex={0}
-                          aria-label={`${evt.id} ${evt.type}，进入只读运行详情`}
-                          onKeyDown={(e) => {
-                            if (e.target !== e.currentTarget) return
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault()
-                              setPoolEvent(evt)
-                            }
-                          }}
-                          onFocus={(e) => {
-                            e.currentTarget.style.outline = `2px solid rgba(${stateMeta.rgb},0.5)`
-                            e.currentTarget.style.outlineOffset = "-2px"
-                          }}
-                          onBlur={(e) => {
-                            e.currentTarget.style.outline = "none"
-                          }}
                           style={{
                             border: `1px solid ${T.border}`,
                             borderRadius: 12,
                             padding: 12,
                             backgroundColor: "var(--row-bg)",
-                            cursor: "pointer",
                             transition: "all 0.2s ease",
                             display: "flex",
                             flexDirection: "column",
@@ -9759,7 +10442,7 @@ function RealtimeGovernance() {
                                   color: T.textMuted,
                                 }}
                               >
-                                无人工入口
+                                {poolHoldLabel(evt.state)}
                               </span>
                             )}
                           </div>
@@ -9799,38 +10482,19 @@ function RealtimeGovernance() {
                       <span>已等待</span>
                       <span>时限风险</span>
                       <span>当前卡点</span>
-                      <span style={{ textAlign: "center" }}>追溯</span>
+                      <span style={{ textAlign: "center" }}>办理去向</span>
                     </div>
                     {poolShown.map((evt) => {
                       const r = riskMeta(evt.risk)
                       return (
                         <div
                           key={evt.id}
-                          onClick={() => setPoolEvent(evt)}
-                          role="button"
-                          tabIndex={0}
-                          aria-label={`${evt.id} ${evt.type}，进入只读运行详情`}
-                          onKeyDown={(e) => {
-                            if (e.target !== e.currentTarget) return
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault()
-                              setPoolEvent(evt)
-                            }
-                          }}
-                          onFocus={(e) => {
-                            e.currentTarget.style.outline = `2px solid rgba(${activePool.rgb},0.5)`
-                            e.currentTarget.style.outlineOffset = "-2px"
-                          }}
-                          onBlur={(e) => {
-                            e.currentTarget.style.outline = "none"
-                          }}
                           style={{
                             display: "grid",
                             gridTemplateColumns: POOL_COLS,
                             alignItems: "center",
                             padding: "10px 16px",
                             borderBottom: `1px solid ${T.border}`,
-                            cursor: "pointer",
                             transition: "all 0.2s ease",
                             backgroundColor: "transparent",
                           }}
@@ -9961,19 +10625,37 @@ function RealtimeGovernance() {
                             {evt.blocker}
                           </span>
                           <div style={{ textAlign: "center" }}>
-                            <span
-                              style={{
-                                fontSize: 11.5,
-                                fontWeight: 700,
-                                color: activePool.color,
-                                border: `1px solid ${activePool.color}`,
-                                borderRadius: 7,
-                                padding: "3px 9px",
-                                display: "inline-block",
-                              }}
-                            >
-                              查看
-                            </span>
+                            {POOL_DISPATCH[evt.state] ? (
+                              <button
+                                onClick={() => {
+                                  const d = POOL_DISPATCH[evt.state]!
+                                  setActiveTab(d.tab)
+                                  setView("overview")
+                                }}
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  color: "#fff",
+                                  backgroundColor: T.primary,
+                                  border: "none",
+                                  borderRadius: 7,
+                                  padding: "4px 8px",
+                                  cursor: "pointer",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {POOL_DISPATCH[evt.state]!.label}
+                              </button>
+                            ) : (
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  color: T.textMuted,
+                                }}
+                              >
+                                {poolHoldLabel(evt.state)}
+                              </span>
+                            )}
                           </div>
                         </div>
                       )
@@ -10010,8 +10692,8 @@ function RealtimeGovernance() {
                   }}
                 >
                   {poolViewMode === "decision"
-                    ? "决策流只含待分配与待外场核查"
-                    : "列表为按需追溯样本，与四态总量口径不同"}
+                    ? "决策流只含等待立案、等待核查与等待作废审核"
+                    : "列表为按需追溯样本，与六态总量口径不同"}
                 </span>
                 {poolVisible < matched.length ? (
                   <button
@@ -10053,11 +10735,12 @@ function RealtimeGovernance() {
     recognition: {
       label: "全量识别",
       color: T.accent,
+      rgb: T.accentRGB,
       desc: "相机识别全量事件",
     },
-    case: { label: "待立案", color: T.primary, desc: "待立案当前批次还有" },
-    inspect: { label: "待核查", color: T.purple, desc: "待核查当前批次还有" },
-    void: { label: "待作废审核", color: T.orange, desc: "待作废审核当前批次还有" },
+    case: { label: "待立案", color: T.primary, rgb: T.primaryRGB, desc: "待立案当前批次还有" },
+    inspect: { label: "待核查", color: T.purple, rgb: T.purpleRGB, desc: "待核查当前批次还有" },
+    void: { label: "待作废审核", color: T.orange, rgb: T.orangeRGB, desc: "待作废审核当前批次还有" },
   }
   const activeMeta = tabMeta[activeTab]
 
@@ -10100,9 +10783,12 @@ function RealtimeGovernance() {
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          <span style={{ fontWeight: 800, fontSize: 16, color: T.text, letterSpacing: "0.02em" }}>
-            {activeTab === "recognition" ? "全量识别" : "我的待办"}
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontWeight: 800, fontSize: 16, color: T.text, letterSpacing: "0.02em" }}>
+              {activeTab === "recognition" ? "全量识别" : "我的待办"}
+            </span>
+            <RuleChip rules={RT_RULES} id="page" label="本页规则" />
+          </div>
           <span style={{ fontSize: 11, color: T.textMuted, marginTop: 1 }}>
             {activeTab === "recognition"
               ? "相机实时识别全量事件 · 支持位置 / 事件类型 / 时间段检索"
@@ -10111,7 +10797,7 @@ function RealtimeGovernance() {
         </div>
         <button
           onClick={() => setView("agent-pool")}
-          title="Agent 处理池：Agent 已备好证据与草案的存续事件，只读追溯"
+          title="Agent 处理池：Agent 监控全量事件，按业务状态分组，只读追溯"
           style={{
             color: T.accent,
             border: "1px solid rgba(36,214,210,0.30)",
@@ -10168,7 +10854,7 @@ function RealtimeGovernance() {
                   lineHeight: 1.1,
                 }}
               >
-                {POOL_READY}
+                {todoDecisionCount}
               </span>
               件待你决定
             </span>
@@ -10182,7 +10868,7 @@ function RealtimeGovernance() {
                 whiteSpace: "nowrap",
               }}
             >
-              待你决定 {POOL_READY} 件 · 其余 {POOL_AGENT_RUNNING} 件 Agent 监控中
+              待你决定 {todoDecisionCount} 件 · 其余 {POOL_AGENT_RUNNING} 件 Agent 监控中
             </span>
           </span>
           <span
@@ -10224,32 +10910,38 @@ function RealtimeGovernance() {
               gap: 4,
             }}
           >
-            {[
+            {([
               {
                 id: "recognition" as const,
                 label: "全量识别",
-                count: recognitionEvents.length,
+                count: recFilteredCount,
                 color: T.accent,
+                rgb: T.accentRGB,
               },
               {
                 id: "case" as const,
                 label: "待立案",
-                count: pendingCaseEvents.length,
+                count: caseDecisionCount,
                 color: T.primary,
+                rgb: T.primaryRGB,
               },
               {
                 id: "inspect" as const,
                 label: "待核查",
-                count: pendingInspectEvents.length,
+                count: inspectCount,
                 color: T.purple,
+                rgb: T.purpleRGB,
               },
               {
                 id: "void" as const,
                 label: "待作废审核",
-                count: pendingVoidEvents.length,
+                count: voidCount,
                 color: T.orange,
+                rgb: T.orangeRGB,
               },
-            ].map((tab) => (
+            ] as const)
+              .filter((tab) => tabAllowed(tab.id))
+              .map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
@@ -10259,7 +10951,7 @@ function RealtimeGovernance() {
                   cursor: "pointer",
                   backgroundColor:
                     activeTab === tab.id
-                      ? `${tab.color}10`
+                      ? `rgba(${tab.rgb},0.06)`
                       : "transparent",
                   display: "flex",
                   alignItems: "center",
@@ -10286,12 +10978,12 @@ function RealtimeGovernance() {
                     padding: "1px 7px",
                     borderRadius: 10,
                     backgroundColor:
-                      activeTab === tab.id ? `${tab.color}14` : T.card2,
+                      activeTab === tab.id ? `rgba(${tab.rgb},0.08)` : T.card2,
                     color: activeTab === tab.id ? tab.color : T.textMuted,
                     fontWeight: activeTab === tab.id ? 700 : 500,
                     boxShadow:
                       activeTab === tab.id
-                        ? `0 0 10px ${tab.color}30`
+                        ? `0 0 10px rgba(${tab.rgb},0.19)`
                         : "none",
                   }}
                 >
@@ -10299,6 +10991,17 @@ function RealtimeGovernance() {
                 </span>
               </button>
             ))}
+            {/* 页签数字口径与页签顺序（RT_RULES.tabs）：悬停浮出 */}
+            <div
+              style={{
+                marginLeft: "auto",
+                display: "flex",
+                alignItems: "center",
+                paddingRight: 8,
+              }}
+            >
+              <RuleChip rules={RT_RULES} id="tabs" label="规则" />
+            </div>
           </div>
 
           {activeTab !== "recognition" && (
@@ -10309,11 +11012,29 @@ function RealtimeGovernance() {
                 display: "flex",
                 alignItems: "center",
                 flexShrink: 0,
+                gap: 8,
               }}
             >
               <span style={{ fontSize: 12, color: T.text }}>
-                {activeMeta.desc} {events.length} 件待审核。
+                {activeMeta.desc}{" "}
+                {activeTab === "case" ? caseDecisionCount : events.length}{" "}
+                件待审核。
               </span>
+              {activeTab === "case" && (
+                <span style={{ fontSize: 11, color: T.textMuted }}>
+                  自然消散 · 只读不计入
+                </span>
+              )}
+              <div
+                style={{
+                  marginLeft: "auto",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                {/* 当前页签的规则（RT_RULES.case / inspect / void）：悬停浮出 */}
+                <RuleChip rules={RT_RULES} id={activeTab} label="规则" />
+              </div>
             </div>
           )}
 
@@ -10321,6 +11042,7 @@ function RealtimeGovernance() {
             {activeTab === "recognition" ? (
               <RecognitionInbox
                 onView={(img) => setPreviewImage(img)}
+                onFilteredCount={setRecFilteredCount}
               />
             ) : (
               <>
@@ -10548,7 +11270,7 @@ function RealtimeGovernance() {
                           onMouseEnter={(e) => {
                             e.currentTarget.style.backgroundColor = activeMeta.color
                             e.currentTarget.style.color = "#fff"
-                            e.currentTarget.style.boxShadow = `0 4px 14px ${activeMeta.color}40`
+                            e.currentTarget.style.boxShadow = `0 4px 14px rgba(${activeMeta.rgb},0.25)`
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.backgroundColor = "transparent"
@@ -10564,64 +11286,86 @@ function RealtimeGovernance() {
                 })}
               </div>
             )}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                paddingTop: 12,
-                flexShrink: 0,
-              }}
-            >
-              <button
-                onClick={handleFetchEvents}
-                disabled={isDealing}
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: isDealing ? T.textMuted : "#fff",
-                  border: "none",
-                  background: isDealing
-                    ? T.card2
-                    : `linear-gradient(135deg, ${activeMeta.color} 0%, ${activeMeta.color}DD 100%)`,
-                  borderRadius: 10,
-                  padding: "8px 24px",
-                  cursor: isDealing ? "not-allowed" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  boxShadow: isDealing
-                    ? "none"
-                    : `0 4px 16px ${activeMeta.color}50`,
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isDealing) {
-                    e.currentTarget.style.transform = "translateY(-1px)"
-                    e.currentTarget.style.boxShadow = `0 6px 22px ${activeMeta.color}65`
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isDealing) {
-                    e.currentTarget.style.transform = "translateY(0)"
-                    e.currentTarget.style.boxShadow = `0 4px 16px ${activeMeta.color}50`
-                  }
-                }}
-              >
-                {isDealing && (
-                  <span
+              {(() => {
+                const batch = claimBatchInfo(activeTab)
+                return (
+                  <div
                     style={{
-                      width: 12,
-                      height: 12,
-                      border: "2px solid rgba(255,255,255,0.35)",
-                      borderTopColor: "#fff",
-                      borderRadius: "50%",
-                      animation: "deal-spin 0.8s linear infinite",
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "22px 0 8px",
                     }}
-                  />
-                )}
-                {isDealing ? "Agent 派发中..." : "获取事件"}
-              </button>
-            </div>
+                  >
+                    <button
+                      onClick={() => batch.enabled && handleFetchEvents()}
+                      disabled={isDealing || !batch.enabled}
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: isDealing || !batch.enabled ? T.textMuted : "#fff",
+                        border: "none",
+                        background: isDealing || !batch.enabled
+                          ? T.card2
+                          : activeMeta.color,
+                        borderRadius: 10,
+                        padding: "9px 28px",
+                        cursor: isDealing || !batch.enabled ? "not-allowed" : "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        boxShadow: isDealing || !batch.enabled
+                          ? "none"
+                          : `0 4px 16px rgba(${activeMeta.rgb},0.32)`,
+                        transition: "all 0.2s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isDealing && batch.enabled) {
+                          e.currentTarget.style.transform = "translateY(-1px)"
+                          e.currentTarget.style.boxShadow = `0 6px 22px rgba(${activeMeta.rgb},0.4)`
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isDealing && batch.enabled) {
+                          e.currentTarget.style.transform = "translateY(0)"
+                          e.currentTarget.style.boxShadow = `0 4px 16px rgba(${activeMeta.rgb},0.32)`
+                        }
+                      }}
+                    >
+                      {isDealing && (
+                        <span
+                          style={{
+                            width: 12,
+                            height: 12,
+                            border: "2px solid rgba(255,255,255,0.35)",
+                            borderTopColor: "#fff",
+                            borderRadius: "50%",
+                            animation: "deal-spin 0.8s linear infinite",
+                          }}
+                        />
+                      )}
+                      {isDealing
+                        ? "Agent 派发中..."
+                        : !batch.enabled
+                          ? "获取事件（已停用）"
+                          : "获取事件"}
+                    </button>
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        color: batch.enabled ? T.textMuted : "var(--red)",
+                      }}
+                    >
+                      {batch.enabled
+                        ? `Agent 按「${batch.batchName}」默认领取量 ${batch.quota} 件发牌`
+                        : "该批次已在治理配置中停用，领取入口已关闭"}
+                    </span>
+                    {/* 获取事件规则（RT_RULES.fetch）：悬停浮出 */}
+                    <RuleChip rules={RT_RULES} id="fetch" label="规则" />
+                  </div>
+                )
+              })()}
               </>
             )}
           </div>
@@ -10629,7 +11373,7 @@ function RealtimeGovernance() {
 
         {isDealing && (
           <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9998 }}>
-            {Array.from({ length: 10 }).map((_, i) => {
+            {Array.from({ length: claimBatchInfo(activeTab).quota }).map((_, i) => {
               const angle = -20 + i * 4
               const spreadX = -80 - i * 35
               const spreadY = 120 + i * 28
@@ -11922,7 +12666,7 @@ function EventArchive() {
                             borderRadius: "50%",
                             backgroundColor: step.color,
                             border: `2px solid ${T.cardSolid}`,
-                            boxShadow: `0 0 0 1px ${step.color}80, 0 0 10px ${step.color}50`,
+                            boxShadow: `0 0 0 1px ${withAlpha(step.color, 0.5)}, 0 0 10px ${withAlpha(step.color, 0.32)}`,
                           }}
                         />
                         <div
@@ -11958,10 +12702,10 @@ function EventArchive() {
                                 fontSize: 10,
                                 padding: "2px 7px",
                                 borderRadius: 8,
-                                backgroundColor: `${step.color}14`,
+                                backgroundColor: withAlpha(step.color, 0.08),
                                 color: step.color,
                                 fontWeight: 700,
-                                border: `1px solid ${step.color}25`,
+                                border: `1px solid ${withAlpha(step.color, 0.15)}`,
                               }}
                             >
                               {step.actor}
@@ -12147,7 +12891,7 @@ function HBarChart({
                   height: "100%",
                   backgroundImage: `linear-gradient(90deg, ${color} 0%, ${T.cyan} 100%)`,
                   borderRadius: 9,
-                  boxShadow: `0 2px 8px ${color}40`,
+                  boxShadow: `0 2px 8px ${withAlpha(color, 0.25)}`,
                 }}
               />
             </div>
@@ -12322,8 +13066,9 @@ const statData = {
     { label: "待作废审核", value: 2, color: T.orange },
   ],
   processPool: [
-    { label: "待分配", value: 1 },
+    { label: "等待立案", value: 1 },
     { label: "等待处置反馈", value: 1 },
+    { label: "等待核查", value: 1 },
     { label: "等待外场核查", value: 1 },
     { label: "持续监控", value: 1 },
   ],
@@ -14805,6 +15550,8 @@ function TopNav({
   onSkinChange,
   navList,
   onOpenMenuManager,
+  identity,
+  onIdentityChange,
 }: {
   activeModule: ModuleId
   onModuleChange: (id: ModuleId) => void
@@ -14812,6 +15559,8 @@ function TopNav({
   onSkinChange: (s: "light" | "tech") => void
   navList: MenuAdminItem[]
   onOpenMenuManager: () => void
+  identity: IdentityState
+  onIdentityChange: (next: IdentityState) => void
 }) {
   return (
     <header
@@ -15084,52 +15833,8 @@ function TopNav({
             )
           })}
         </div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 9,
-            cursor: "pointer",
-            padding: "3px 12px 3px 3px",
-            borderRadius: 22,
-            border: `1px solid ${T.border}`,
-            backgroundColor: "var(--chip-bg)",
-            boxShadow: "inset 0 1px 0 var(--inset-hi), 0 4px 14px rgba(22,45,77,0.04)",
-            transition: "all 0.2s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "var(--chip-bg-hover)"
-            e.currentTarget.style.boxShadow = "inset 0 1px 0 var(--inset-hi), 0 6px 18px rgba(22,45,77,0.08)"
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "var(--chip-bg)"
-            e.currentTarget.style.boxShadow = "inset 0 1px 0 var(--inset-hi), 0 4px 14px rgba(22,45,77,0.04)"
-          }}
-        >
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              background: `linear-gradient(135deg,${T.primary} 0%,${T.accent} 100%)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 12,
-              fontWeight: 700,
-              color: T.cardSolid,
-              boxShadow: "0 2px 10px rgba(50,109,255,0.35)",
-            }}
-          >
-            张
-          </div>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: T.text }}>
-              张晓琳
-            </div>
-            <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 500 }}>立案审核</div>
-          </div>
-        </div>
+        {/* 全局身份：账号 / 客户 / 角色（平台全局右上角选择器，与治理配置页共用同一份状态） */}
+        <IdentityPicker identity={identity} onChange={onIdentityChange} />
       </div>
     </header>
   )
@@ -15650,7 +16355,25 @@ function CustomModulePlaceholder({ label }: { label: string }) {
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 
+// 平台全局身份（账号 → 客户上下文 → 活动角色）：由根组件持有并持久化，
+// 顶栏右上角与治理配置页共用同一份状态；GcProvider 提升到根，为选择器提供
+// 客户 / SeeTime 账号 / 台账角色数据（gc 状态仅治理配置页内变更，不影响其他模块渲染）。
 export default function App() {
+  return (
+    <GcProvider>
+      <AppShell />
+    </GcProvider>
+  )
+}
+
+function AppShell() {
+  // 默认以「赵敏 · 东城区」进入（账号配置了 2 个角色，可直接演示角色切换）
+  const [identity, setIdentity] = useState<IdentityState>(
+    () => loadIdentity() ?? { personaId: "p-zm", cid: "", roleKey: "" },
+  )
+  useEffect(() => {
+    saveIdentity(identity)
+  }, [identity])
   const [activeModule, setActiveModule] = useState<ModuleId>("dashboard")
   // 功能栏菜单配置（菜单管理创建/编辑/删除），localStorage 持久化
   const [navConfig, setNavConfig] = useState<MenuAdminItem[]>(loadNavConfig)
@@ -15704,6 +16427,8 @@ export default function App() {
           onSkinChange={setSkin}
           navList={navConfig}
           onOpenMenuManager={() => setMenuMgrOpen(true)}
+          identity={identity}
+          onIdentityChange={setIdentity}
           onModuleChange={(id) => {
             setActiveModule(id)
             setPresentationMode(false)
@@ -15724,11 +16449,13 @@ export default function App() {
             setPresentationMode={setPresentationMode}
           />
         )}
-        {activeModule === "realtime" && <RealtimeGovernance />}
+        {activeModule === "realtime" && <RealtimeGovernance identity={identity} />}
         {activeModule === "archive" && <EventArchive />}
         {activeModule === "statistics" && <AIStatistics skin={skin} />}
         {activeModule === "workbench" && <AIWorkbench />}
-        {activeModule === "config" && <GovernanceConfigNative />}
+        {activeModule === "config" && (
+          <GovernanceConfigNative identity={identity} onIdentityChange={setIdentity} />
+        )}
         {/* 自定义菜单（菜单管理创建）：渲染占位页 */}
         {(() => {
           const custom = navConfig.find(

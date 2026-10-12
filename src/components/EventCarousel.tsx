@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 
 // 颜色全部走 CSS 变量：科技皮肤（html[data-skin="tech"]）下自动切换深色玻璃
 const T = {
@@ -36,6 +36,8 @@ interface EventCarouselProps {
   emptyText?: string
   /** 新事件接入中的事件 id：卡片红光脉冲 + 该事件挂 NEW 徽标 */
   arrivingId?: string | null
+  /** 头部右侧扩展（如「算法」悬停浮层圆标） */
+  headerExtra?: ReactNode
 }
 
 export default function EventCarousel({
@@ -45,6 +47,7 @@ export default function EventCarousel({
   interval = 5000,
   emptyText = "该范围/日期下暂无事件",
   arrivingId,
+  headerExtra,
 }: EventCarouselProps) {
   const [index, setIndex] = useState(0)
   const [dragStart, setDragStart] = useState<number | null>(null)
@@ -177,6 +180,7 @@ export default function EventCarousel({
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {headerExtra}
           {arrivingId && (
             <span
               style={{
@@ -199,7 +203,6 @@ export default function EventCarousel({
           </div>
         </div>
       </div>
-
       <div
         ref={containerRef}
         onPointerDown={handlePointerDown}

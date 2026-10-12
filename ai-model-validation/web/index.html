@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>实体建模 · 全链路验证</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <div class="brand">
+        <div class="brand-mark">ST</div>
+        <div>
+          <h1>实体建模 · 全链路验证</h1>
+          <p class="sub">xuanwu_camera → 价值筛选 → 实体分类 → 建模…</p>
+        </div>
+      </div>
+      <div class="top-stats" id="topStats">加载中…</div>
+      <div class="actions" style="margin-left:12px">
+        <button class="btn secondary" id="btnBatchStep2">批量跑第2步</button>
+        <button class="btn secondary" id="btnBatchStep3">跑第3步·聚实体</button>
+        <button class="btn" id="btnBatchStep5">跑第5步·画面标签</button>
+        <span id="batchHint" class="sub"></span>
+      </div>
+    </header>
+
+    <section class="pipeline" id="pipeline">
+      <!-- filled by JS -->
+    </section>
+
+    <main class="main">
+      <aside class="rail">
+        <div class="filters">
+          <input id="q" type="search" placeholder="搜名称 / camera_id" />
+          <select id="stratum">
+            <option value="">全部分层</option>
+          </select>
+          <select id="worth">
+            <option value="">价值：全部</option>
+            <option value="pending">待跑第2步</option>
+            <option value="yes">有价值</option>
+            <option value="no">无价值</option>
+          </select>
+          <select id="edge">
+            <option value="">构成边：全部</option>
+            <option value="edge_pending">待校验构成</option>
+            <option value="part_pending">待校验·场所构成</option>
+            <option value="segment_pending">待校验·路段</option>
+            <option value="edge_approved">已校验构成</option>
+            <option value="no_edge">无构成边</option>
+          </select>
+          <select id="step5">
+            <option value="">画面标签：全部</option>
+            <option value="pending">待跑第5步</option>
+            <option value="done">已打标签</option>
+          </select>
+        </div>
+        <div class="list-meta"><span id="listCount">0</span> 路</div>
+        <div class="list" id="list"></div>
+      </aside>
+
+      <section class="detail" id="detail">
+        <div class="empty">从左侧选择一路相机</div>
+      </section>
+    </main>
+  </div>
+
+  <div class="lightbox" id="lightbox" hidden>
+    <button type="button" class="lb-close" id="lbClose" aria-label="关闭">×</button>
+    <button type="button" class="lb-nav lb-prev" id="lbPrev" aria-label="上一张">‹</button>
+    <figure class="lb-stage">
+      <img id="lbImg" alt="" referrerpolicy="no-referrer" />
+      <figcaption id="lbCap"></figcaption>
+    </figure>
+    <button type="button" class="lb-nav lb-next" id="lbNext" aria-label="下一张">›</button>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -223,9 +223,11 @@ export interface CrudCardProps {
   newStatus?: RowStatus
   /** 抽屉标题名词（如 机构 / 账号） */
   noun?: string
+  /** 内嵌模式（用于 Tab 面板）：卡头只保留说明，不重复显示标题 */
+  embedded?: boolean
 }
 
-export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun }: CrudCardProps) {
+export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun, embedded }: CrudCardProps) {
   const key = cardKey || def.id
   const { state, dispatch } = useGc()
   const toast = useToast()
@@ -280,8 +282,8 @@ export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun 
 
   return (
     <section style={{ ...S.card, marginBottom: "14px" }} aria-label={def.title}>
-      <header style={S.cardHead}>
-        <h3 style={S.cardTitle}>{def.title}</h3>
+      <header style={{ ...S.cardHead, alignItems: embedded ? "center" : "baseline" }}>
+        {!embedded && <h3 style={S.cardTitle}>{def.title}</h3>}
         <span style={S.cardNote}>{def.note}</span>
       </header>
       <div style={S.toolbar}>
@@ -395,6 +397,80 @@ export function CardList({ defs, rowButtons, nouns }: {
       {defs.map((def) => (
         <CrudCard key={def.id} def={def} rowButtons={rowButtons?.[def.id]} noun={nouns?.[def.id]} />
       ))}
+    </>
+  )
+}
+
+// ─── CardTabs：多卡 Tab 切换（如 Agent 派工与认领：领取批次 / 回收与提醒 / 紧急置顶条件） ───
+// Tab 栏展示各卡的行数徽标；面板内为内嵌引擎卡（说明 + 搜索/新增 + 表格 + 抽屉表单）。
+// 切换 Tab 会重置该卡的搜索与抽屉状态（卸载重挂）。
+
+export function CardTabs({ defs, rowButtons, nouns }: {
+  defs: GeneratedCard[]
+  rowButtons?: Record<string, (row: GcRow, index: number) => ReactNode>
+  nouns?: Record<string, string>
+}) {
+  const { state } = useGc()
+  const [activeId, setActiveId] = useState(defs[0]?.id ?? "")
+  const active = defs.find((d) => d.id === activeId) ?? defs[0]
+  if (!active) return null
+  return (
+    <>
+      <div
+        role="tablist"
+        aria-label={`${defs.map((d) => d.title).join("、")}切换`}
+        style={{
+          display: "flex", alignItems: "center", gap: "2px", padding: "3px",
+          width: "fit-content", marginBottom: "12px", borderRadius: "10px",
+          border: "1px solid var(--border)", backgroundColor: "var(--card-2)",
+          boxShadow: "inset 0 1px 0 var(--inset-hi, rgba(255,255,255,0.4))",
+        }}
+      >
+        {defs.map((d) => {
+          const on = d.id === active.id
+          const count = state.rows[d.id]?.length ?? 0
+          return (
+            <button
+              key={d.id}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              onClick={() => setActiveId(d.id)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: "6px",
+                padding: "6px 14px", borderRadius: "7px", cursor: "pointer",
+                border: `1px solid ${on ? "var(--primary)" : "transparent"}`,
+                backgroundColor: on ? "rgba(50,109,255,0.1)" : "transparent",
+                color: on ? "var(--primary)" : "var(--muted-foreground)",
+                fontSize: "12px", fontWeight: on ? 600 : 500,
+                transition: "background 0.15s ease",
+              }}
+              onMouseEnter={(e) => { if (!on) e.currentTarget.style.backgroundColor = "var(--chip-bg-hover, rgba(148,163,184,0.14))" }}
+              onMouseLeave={(e) => { if (!on) e.currentTarget.style.backgroundColor = "transparent" }}
+            >
+              {d.title}
+              <span
+                style={{
+                  fontSize: "10px", lineHeight: "16px", padding: "0 6px", borderRadius: "999px",
+                  border: "1px solid var(--border)", backgroundColor: "var(--card)",
+                  color: on ? "var(--primary)" : "var(--muted-foreground)",
+                }}
+              >
+                {count}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+      <div role="tabpanel" aria-label={active.title}>
+        <CrudCard
+          key={active.id}
+          def={active}
+          embedded
+          rowButtons={rowButtons?.[active.id]}
+          noun={nouns?.[active.id]}
+        />
+      </div>
     </>
   )
 }

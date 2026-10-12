@@ -1,15 +1,23 @@
 // 治理配置 · 原生版壳（替代 iframe 集成的 29 页静态原型）
-// 左导航：平台（SaaS 专属）+ 治理基础 + 规则模块分组 + 内容区 + 身份切换
+// 左导航：平台（SaaS 专属）+ 治理基础 + 规则模块分组 + 内容区 + 全局身份选择器
 // 产品规则（PRD 2026-09-22）：
 // - 部署模式安装时确定（演示环境提供切换仅作演示）：SaaS=客户+SeeTime 用户；私有化=唯一客户、无 SeeTime
-// - 客户身份按「角色 → 功能菜单权限」看治理配置子模块；SeeTime 身份只见平台模块（超管）或无权限空态（客户展示）
+// - 身份模型（平台全局）：账号 → 客户上下文 → 活动角色；由 App 顶栏统一持有，本页只消费
+// - 客户身份按「当前所选角色 → 功能菜单权限」看治理配置子模块（非角色并集）；
+//   SeeTime 身份：超管 → 平台模块；客户展示 → 无权限空态
 // - 业务规则模块只写草稿，发布在「发布与审计」；责任台账（治理基础 / 平台）保存即生效
 import { useEffect, useMemo, useState } from "react"
-import { GcProvider, ToastProvider, useGc } from "./store"
+import { ToastProvider, useGc } from "./store"
 import { ModuleContent } from "./defs"
-import { GROUPS, MODULES, PERSONAS } from "./meta"
+import { GROUPS, MODULES } from "./meta"
 import { S } from "./engine"
-import { menusOf, configModulesOf } from "./ledger"
+import { isCustomerExpired } from "./identity"
+import {
+  availablePersonas,
+  identityForPersona,
+  resolveIdentity,
+  type IdentityState,
+} from "./identity"
 
 function StatusChip({ status }: { status: "已发布" | "草稿" | "即时生效" }) {
   const style =
@@ -38,51 +46,46 @@ function ModeChip({ mode }: { mode: "saas" | "private" }) {
   )
 }
 
-function Shell() {
+function Shell({
+  identity,
+  onIdentityChange,
+}: {
+  identity: IdentityState
+  onIdentityChange: (next: IdentityState) => void
+}) {
   const { state, dispatch } = useGc()
   const mode = state.platform.mode
   const [activeId, setActiveId] = useState("org")
-  const [personaId, setPersonaId] = useState<string>(PERSONAS[0].id)
-  const [personaOpen, setPersonaOpen] = useState(false)
-  const persona = PERSONAS.find((p) => p.id === personaId) ?? PERSONAS[0]
 
-  // 当前身份的台账上下文
-  const cid = persona.kind === "customer" ? persona.cid! : "c-dc"
-  const customer = state.platform.customers.find((c) => c.id === cid)
-  const ledger = state.ledgers[cid]
+  // 全局身份解析：账号 / 客户上下文 / 活动角色（失效自动校正）
+  const view = useMemo(() => resolveIdentity(state, identity), [state, identity])
+  const { persona, cid, customer, ledger, roleKey, roleName, accountMissing } = view
   const meta = MODULES.find((m) => m.id === activeId)!
+  const author = accountMissing ? persona.label : `${persona.name} · ${roleName || "未关联角色"}`
 
-  // ─── 导航与权限 ────────────────────────────────────────────────────────────
-  // 客户身份：按角色功能菜单看治理配置子模块（映射到台账同名账号）；账号不存在则不限制
-  // SeeTime 身份：超管 → 平台两页；仅客户展示 → 治理配置内无可用页面
+  // ─── 导航与权限（按「当前所选角色」计算，非角色并集） ────────────────────────
+  // 客户身份：所选角色的功能菜单决定治理配置子模块；台账无同名账号 → 不限制（历史行为）
+  // SeeTime 身份：超管 → 平台两页；客户展示 → 治理配置内无可用页面
   const { visibleIds, navGroups } = useMemo(() => {
     if (persona.kind === "seetime") {
-      const st = state.platform.seeTime.find((s) => s.id === persona.sid)
-      const ids = st && st.perms.includes("super")
-        ? MODULES.filter((m) => m.platform).map((m) => m.id)
-        : []
+      const ids = roleKey === "super" ? MODULES.filter((m) => m.platform).map((m) => m.id) : []
       return { visibleIds: ids, navGroups: ["平台"] as const }
     }
-    const account = ledger?.accounts.find((a) => a.name === persona.name)
-    const pMenus = account ? menusOf(ledger!, account) : null
-    const hasConfig = pMenus === null || pMenus.includes("config")
-    let ids = pMenus === null
-      ? MODULES.filter((m) => !m.platform).map((m) => m.id)
-      : hasConfig
-        ? configModulesOf(ledger!, account!).filter((id) => !MODULES.find((m) => m.id === id)?.platform)
-        : []
+    if (accountMissing || !ledger) {
+      return { visibleIds: MODULES.filter((m) => !m.platform).map((m) => m.id), navGroups: null }
+    }
+    const role = ledger.roles.find((r) => r.id === roleKey)
+    if (!role || role.status !== "启用") return { visibleIds: [] as string[], navGroups: null }
+    const hasConfig = (role.menus ?? []).includes("config")
+    const ids = hasConfig
+      ? (role.configModules ?? []).filter((id) => !MODULES.find((m) => m.id === id)?.platform)
+      : []
     return { visibleIds: ids, navGroups: null }
-  }, [persona, ledger, state.platform.seeTime])
+  }, [persona, ledger, roleKey, accountMissing])
 
   const platformPersona = persona.kind === "seetime"
   const noAccess = !platformPersona && (visibleIds.length === 0 || !visibleIds.includes(activeId))
   const displayOnlyNoAccess = platformPersona && visibleIds.length === 0
-
-  // 可选身份：私有化只保留唯一客户（东城区）的身份，不出现 SeeTime / 第二家客户
-  const personaOptions = useMemo(() => {
-    if (mode === "private") return PERSONAS.filter((p) => p.kind === "customer" && p.cid === "c-dc")
-    return PERSONAS
-  }, [mode])
 
   // 切换身份 / 部署模式后，落在第一个可见模块上
   useEffect(() => {
@@ -93,14 +96,14 @@ function Shell() {
     }
     if (visibleIds.length > 0 && !visibleIds.includes(activeId)) setActiveId(visibleIds[0])
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [personaId, mode])
+  }, [identity.personaId, identity.roleKey, identity.cid, mode])
 
-  // 演示切换部署模式：私有化下 SeeTime 身份自动落回客户管理员
+  // 演示切换部署模式：私有化下仅保留东城区客户身份，当前身份不可用则自动落回
   function switchMode(next: "saas" | "private") {
     if (next === mode) return
     dispatch({ type: "platform-mode", mode: next })
-    if (next === "private" && persona.kind === "seetime") {
-      setPersonaId(PERSONAS[0].id)
+    if (next === "private" && !availablePersonas("private").some((p) => p.id === persona.id)) {
+      onIdentityChange(identityForPersona(state, "p-wq"))
     }
   }
 
@@ -196,7 +199,7 @@ function Shell() {
 
       {/* 内容区 */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {/* 面包屑 + 身份切换 */}
+        {/* 面包屑 + 全局身份（与主应用顶栏共用同一份状态） */}
         <div
           aria-label="面包屑"
           style={{
@@ -217,38 +220,24 @@ function Shell() {
               {customer.name}{customer.status === "停用" ? "（已停用）" : ""}
             </span>
           )}
-          <div style={{ marginLeft: "auto", position: "relative" }}>
-            <button
-              type="button"
-              style={{ ...S.btnSecondary, height: "28px", fontSize: "11px" }}
-              onClick={() => setPersonaOpen((v) => !v)}
-            >
-              {persona.label} ▾
-            </button>
-            {personaOpen && (
-              <div style={{
-                position: "absolute", right: 0, top: "32px", zIndex: 50, minWidth: "200px",
-                border: "1px solid var(--border)", borderRadius: "8px", backgroundColor: "var(--panel-solid, var(--card))",
-                boxShadow: "var(--shadow-lg)", padding: "4px",
-              }}>
-                {personaOptions.map((p) => (
-                  <button
-                    key={p.id} type="button"
-                    onClick={() => { setPersonaId(p.id); setPersonaOpen(false) }}
-                    style={{
-                      display: "block", width: "100%", textAlign: "left", padding: "7px 10px",
-                      fontSize: "12px", border: "none", background: "none", cursor: "pointer",
-                      borderRadius: "6px", color: p.id === personaId ? "var(--primary)" : "var(--foreground)",
-                      fontWeight: p.id === personaId ? 600 : 400,
-                    }}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
+
+        {/* SaaS 服务到期横幅：当前客户上下文的服务已到期（含超管进入到期客户） */}
+        {isCustomerExpired(customer) && (
+          <div
+            aria-label="服务到期提示"
+            style={{
+              display: "flex", alignItems: "center", gap: "8px", margin: "10px 20px 0",
+              padding: "8px 12px", borderRadius: "8px", fontSize: "11px", lineHeight: 1.6,
+              color: "var(--red)", backgroundColor: "rgba(228,94,88,0.08)", border: "1px solid rgba(228,94,88,0.3)",
+            }}
+          >
+            <span style={{ fontWeight: 700 }}>服务已到期</span>
+            <span>
+              客户「{customer?.name}」服务已于 {customer?.expiresAt} 到期：该客户全部账号暂停登录，当前会话为到期只读状态；请由 SeeTime 平台在「客户」页续期后恢复。
+            </span>
+          </div>
+        )}
 
         {/* 滚动内容 */}
         <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px 20px" }}>
@@ -303,7 +292,7 @@ function Shell() {
                 <br />
                 不能新建客户、管理 SeeTime 账号，也不能改任何一家的治理基础。
                 <br />
-                切换到「系统运营 · SeeTime 超管」演示平台管理。
+                在右上角切换账号到「系统运营」（SeeTime 超管）演示平台管理。
               </div>
             </div>
           ) : noAccess ? (
@@ -314,13 +303,13 @@ function Shell() {
               <div style={{ fontSize: "26px", marginBottom: "10px" }}>🔒</div>
               <div style={{ fontSize: "14px", fontWeight: 600, marginBottom: "8px" }}>暂无访问权限</div>
               <div style={{ fontSize: "12px", color: "var(--muted-foreground)", lineHeight: 1.8 }}>
-                当前身份「{persona.label}」的角色未分配「{meta.name}」的功能菜单权限。
+                当前身份「{author}」的角色未分配「{meta.name}」的功能菜单权限。
                 <br />
-                由客户管理员在「组织、账号与角色 → 角色」中为角色勾选功能菜单，保存后立即生效。
+                可在右上角切换该账号的其他角色，或由客户管理员在「组织、账号与角色 → 角色」中为角色勾选功能菜单，保存后立即生效。
               </div>
             </div>
           ) : (
-            <ModuleContent id={activeId} author={persona.label} cid={cid} orgSynced={customer?.orgSynced ?? true} />
+            <ModuleContent id={activeId} author={author} cid={cid} orgSynced={customer?.orgSynced ?? true} />
           )}
         </div>
       </div>
@@ -359,12 +348,16 @@ function NavBtn({ m, on, onClick, chip, ledgerMode }: {
 
 const T_BG = "var(--background)"
 
-export default function GovernanceConfigNative() {
+export default function GovernanceConfigNative({
+  identity,
+  onIdentityChange,
+}: {
+  identity: IdentityState
+  onIdentityChange: (next: IdentityState) => void
+}) {
   return (
-    <GcProvider>
-      <ToastProvider>
-        <Shell />
-      </ToastProvider>
-    </GcProvider>
+    <ToastProvider>
+      <Shell identity={identity} onIdentityChange={onIdentityChange} />
+    </ToastProvider>
   )
 }

@@ -3,3 +3,8 @@ dist
 .vite
 .DS_Store
 *.log
+.venv
+.venv-db
+ai-model-validation/.venv
+ai-model-validation/.env
+**/.env

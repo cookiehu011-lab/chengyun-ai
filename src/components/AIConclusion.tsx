@@ -35,6 +35,8 @@ interface AIConclusionProps {
   setPresentationMode?: (v: boolean) => void
   /** 右侧扩展槽：核心指标紧凑条（App 传入，与本卡融合为一行，节省纵向空间） */
   kpiSlot?: ReactNode
+  /** 卡片右上扩展（如「本页口径」悬停浮层圆标），渲染于汇报按钮左侧 */
+  ruleChipNode?: ReactNode
 }
 
 const levelOrder: Record<string, number> = { 严重: 3, 较重: 2, 一般: 1 }
@@ -207,6 +209,7 @@ export default function AIConclusion({
   presentationMode,
   setPresentationMode,
   kpiSlot,
+  ruleChipNode,
 }: AIConclusionProps) {
   const { title, body, meta } = useMemo(
     () => computeConclusion(activeDistrict, metric, dayIndex, events),
@@ -359,6 +362,7 @@ export default function AIConclusion({
           {kpiSlot}
         </div>
       )}
+      {ruleChipNode}
       {setPresentationMode && (
         <button
           onClick={() => setPresentationMode(!presentationMode)}
