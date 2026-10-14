@@ -1,5 +1,6 @@
-// 空间与责任 · 原生版（PRD 2026-09-22 责任台账口径）
-// - 网格来自同步：编码/名称/街道/社区只读；禁止新增、删除网格；可停用/启用
+// 空间与责任 · 原生版（PRD 2026-09-22 责任台账口径；双来源修订 2026-10-12）
+// - 网格双来源：平台同步（编码/街道/社区只读）+ 手动创建（本系统维护，可编辑街道/社区；编码创建后不可改）
+// - 两种来源都可停用/启用与定责；不提供删除（编码是派发快照与账号范围的引用键）
 // - 网格三态派生：停用优先；无主责或主责账号已停用 → 待定责（派发不可用）
 // - 定责抽屉：主责候选人 = 启用账号 + 步骤含处置 + 范围含该网格；协同监督 = 外场核查回传 + 范围含该网格；
 //   一格一名主责、一名协同监督（可空）；变更原因必填并写入审计留痕
@@ -9,9 +10,11 @@ import { useMemo, useState } from "react"
 import { useGc, useToast, type GcRow } from "../store"
 import { Chip, Drawer, S } from "../engine"
 import {
-  enabledEventTypes, gridEffectiveStatus, gridRows, ownerCandidates,
-  ownerNameIsSet, stepsOf, supCandidates, type GridRowView,
+  communitiesOfStreet, enabledEventTypes, enabledStreets, gridEffectiveStatus, gridRows,
+  ownerCandidates, ownerNameIsSet, stepsOf, supCandidates, type GridRowView,
 } from "../ledger"
+
+const GRID_MANUAL = "手动创建"
 
 function today(): string {
   const d = new Date()
@@ -40,6 +43,14 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
   const [bindIdx, setBindIdx] = useState<number | null>(null)
   const [bForm, setBForm] = useState({ owner: "", sup: "", reason: "" })
   const [err, setErr] = useState("")
+  // 新建 / 编辑网格（手动来源）
+  const [gridDrawer, setGridDrawer] = useState<{ mode: "add" | "edit"; index: number } | null>(null)
+  const [gForm, setGForm] = useState({ code: "", name: "", street: "", community: "", reason: "" })
+  const [gErr, setGErr] = useState("")
+  // 批量导入（街道名称、网格名称两列）
+  const [importOpen, setImportOpen] = useState(false)
+  const [importText, setImportText] = useState("")
+  const [importReason, setImportReason] = useState("")
 
   // 试算
   const [simGrid, setSimGrid] = useState("")
@@ -47,6 +58,7 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
 
   const allGrids = gridRows(state.rows)
   const types = enabledEventTypes(state.rows)
+  const streetOptions = enabledStreets(state.rows)
 
   const filtered = useMemo(() => {
     const q = query.trim()
@@ -80,6 +92,7 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
     }
     if (!bForm.reason.trim()) { setErr("「变更原因」为必填项：设置 / 更换主责与协同监督必须留痕"); return }
     const values = [...row.values]
+    while (values.length < 7) values.push("平台同步")
     values[3] = owner
     values[4] = sup
     let status: GcRow["status"] = row.status
@@ -116,6 +129,120 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
     }
     dispatch({ type: "set-status", cardKey: "space.grid", index: g.index, status: "启用" })
     toast(`已启用网格「${g.code}」，立即生效：新事件可匹配到此格。`)
+  }
+
+  // ─── 新建 / 编辑网格（手动来源） ────────────────────────────────────────────
+  /** 下一个可用网格编码：G-0NNN 递增，全表唯一 */
+  function nextGridCode(): string {
+    let max = 400
+    for (const g of allGrids) {
+      const m = /^G-(\d+)$/.exec(g.code)
+      if (m) max = Math.max(max, parseInt(m[1], 10))
+    }
+    return `G-${String(max + 1).padStart(4, "0")}`
+  }
+  function openGridAdd() {
+    setGErr("")
+    setGForm({ code: "", name: "", street: "", community: "", reason: "" })
+    setGridDrawer({ mode: "add", index: -1 })
+  }
+  function openGridEdit(i: number) {
+    const g = allGrids[i]
+    if (!g) return
+    setGErr("")
+    setGForm({ code: g.code, name: g.name === g.code ? "" : g.name, street: g.street, community: g.community === "—" ? "" : g.community, reason: "" })
+    setGridDrawer({ mode: "edit", index: i })
+  }
+  /** 新建时选街道：自动建议编码（基于全表递增） */
+  function onAddStreetChange(street: string) {
+    setGForm((p) => ({ ...p, street, community: "", code: p.code && /^G-\d+$/.test(p.code) ? p.code : nextGridCode() }))
+  }
+
+  // ─── 批量导入：街道名称、网格名称两列 ──────────────────────────────────────
+  interface ImportRow { street: string; name: string; ok: boolean; why?: string }
+  const importParsed: ImportRow[] = useMemo(() => {
+    if (!importOpen) return []
+    return importText.split("\n").map((raw) => {
+      const line = raw.trim()
+      if (!line) return null
+      const parts = line.split(/[,，、\t]/).map((p) => p.trim()).filter(Boolean)
+      if (parts.length < 2) return { street: line, name: "", ok: false, why: "格式错误：需要「街道名称,网格名称」两列" }
+      const [street, name] = parts
+      if (!streetOptions.includes(street)) return { street, name, ok: false, why: "街道不存在或已停用" }
+      if (allGrids.some((g) => g.street === street && (g.name === name || g.community === name)))
+        return { street, name, ok: false, why: "该街道下已有同名网格" }
+      return { street, name, ok: true }
+    }).filter(Boolean) as ImportRow[]
+  }, [importOpen, importText, allGrids, streetOptions])
+
+  function confirmImport() {
+    const okRows = importParsed.filter((r) => r.ok)
+    if (!okRows.length) { toast("没有可导入的行：请检查格式与街道名称。"); return }
+    if (!importReason.trim()) { toast("「变更原因」为必填项：批量导入必须留痕。"); return }
+    const authorName = author.split(" · ")[0] || author
+    const startNum = parseInt(nextGridCode().replace("G-", ""), 10)
+    okRows.forEach((r, i) => {
+      const values = [`G-${String(startNum + i).padStart(4, "0")}`, r.street, "—", "—（空）", "—", "—", GRID_MANUAL, r.name]
+      dispatch({ type: "upsert", cardKey: "space.grid", index: rows.length + i, values, status: "待定责" })
+    })
+    dispatch({
+      type: "ledger-note",
+      entry: {
+        version: "—", date: today(), author: authorName,
+        modules: ["空间与责任关系"], note: `批量导入 ${okRows.length} 个网格：${okRows.map((r) => `${r.name}（${r.street}）`).slice(0, 5).join("、")}${okRows.length > 5 ? " 等" : ""}（原因：${importReason.trim()}）`, immediate: true,
+      },
+    })
+    const skip = importParsed.length - okRows.length
+    toast(`已导入 ${okRows.length} 个网格（${skip ? `跳过 ${skip} 行` : "无跳过"}），均为「待定责」：请逐格定责后派发才可用。`)
+    setImportOpen(false)
+    setImportText("")
+    setImportReason("")
+  }
+
+  function saveGrid() {
+    if (!gridDrawer) return
+    const code = gForm.code.trim()
+    const name = gForm.name.trim()
+    const street = gForm.street.trim()
+    const community = gForm.community.trim() || "—"
+    if (!name) { setGErr("「网格名称」为必填项"); return }
+    if (!/^[A-Za-z0-9\-_]+$/.test(code)) { setGErr("网格编码只允许字母、数字、连字符和下划线"); return }
+    if (allGrids.some((g, i) => g.code === code && i !== gridDrawer.index)) { setGErr(`网格编码「${code}」已存在`); return }
+    if (!street) { setGErr("「所属街道」为必选项：请先选择街道"); return }
+    if (!gForm.reason.trim()) { setGErr("「变更原因」为必填项：创建 / 编辑网格必须留痕"); return }
+    const authorName = author.split(" · ")[0] || author
+    if (gridDrawer.mode === "add") {
+      // 新网格无主责 → 三态派生为「待定责」；保存后引导去定责
+      const values = [code, street, community, "—（空）", "—", "—", GRID_MANUAL, name]
+      dispatch({ type: "upsert", cardKey: "space.grid", index: rows.length, values, status: "待定责" })
+      dispatch({
+        type: "ledger-note",
+        entry: {
+          version: "—", date: today(), author: authorName,
+          modules: ["空间与责任关系"], note: `手动创建网格 ${name}（${code}，${street} · ${community}）（原因：${gForm.reason.trim()}）`, immediate: true,
+        },
+      })
+      toast(`已创建网格「${name}」（${code}），当前为「待定责」：请立即在操作列点「定责」指定主责，指定后派发才可用。`)
+    } else {
+      const g = allGrids[gridDrawer.index]
+      const row = rows[g.index]
+      const values = [...row.values]
+      while (values.length < 7) values.push("平台同步")
+      if (values.length < 8) values.push(name || g.code)
+      values[1] = street
+      values[2] = community
+      values[7] = name || g.code
+      dispatch({ type: "upsert", cardKey: "space.grid", index: g.index, values, status: row.status })
+      dispatch({
+        type: "ledger-note",
+        entry: {
+          version: "—", date: today(), author: authorName,
+          modules: ["空间与责任关系"], note: `编辑网格 ${g.code}：${g.street}·${g.community} → ${street}·${community}（原因：${gForm.reason.trim()}）`, immediate: true,
+        },
+      })
+      toast(`已保存网格「${name || g.code}」，立即生效：此后新事件按新的街道 / 社区归属；已派发事件保留原快照。`)
+    }
+    setGridDrawer(null)
   }
 
   // ─── 试算 ────────────────────────────────────────────────────────────────
@@ -176,46 +303,63 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
       <section style={{ ...S.card, marginBottom: "14px" }} aria-label="网格责任表">
         <header style={S.cardHead}>
           <h3 style={S.cardTitle}>网格责任表</h3>
-          <span style={S.cardNote}>网格来自外部平台同步：编码、名称、街道、社区、边界只读；禁止新增 / 删除；可启停与定责——每格一名主责、一名协同监督（可空）</span>
+          <span style={S.cardNote}>
+            双来源：平台同步（编码、街道、社区只读）＋ 手动创建（本系统维护，可编辑街道 / 社区，编码创建后不可改）；两种来源都可启停与定责——每格一名主责、一名协同监督（可空）
+          </span>
         </header>
         <div style={S.toolbar}>
           <input style={S.search} value={query} placeholder="搜索网格、街道或责任人" onChange={(e) => setQuery(e.target.value)} />
+          <button type="button" style={{ ...S.btnSecondary, marginLeft: "auto" }} onClick={() => { setImportText(""); setImportReason(""); setImportOpen(true) }}>⇪ 批量导入</button>
+          <button type="button" style={S.btnPrimary} onClick={openGridAdd}>＋ 新建网格</button>
         </div>
         <div style={{ overflowX: "auto" }}>
           <table style={S.table}>
             <thead>
               <tr>
-                {["网格编码", "所属街道", "社区", "网格主责", "协同监督", "生效日期"].map((c) => <th key={c} style={S.th}>{c}</th>)}
+                {["网格", "所属街道", "社区", "网格主责", "协同监督", "生效日期", "来源"].map((c) => <th key={c} style={S.th}>{c}</th>)}
                 <th style={S.th}>状态</th>
                 <th style={{ ...S.th, textAlign: "right" }}>操作</th>
               </tr>
             </thead>
             <tbody>
-              {!orgSynced && (
+              {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} style={S.empty}>
-                    网格同步位为空：新客户开立后等待平台同步网格；同步完成后在此定责。
+                  <td colSpan={9} style={S.empty}>
+                    {query
+                      ? "没有匹配的网格"
+                      : orgSynced
+                        ? "暂无网格数据：等待平台同步，或点击右上角手动创建。"
+                        : "网格同步位为空：等待平台同步，或点击右上角手动创建，创建后定责即可派发。"}
                   </td>
                 </tr>
               )}
-              {orgSynced && filtered.length === 0 && (
-                <tr><td colSpan={8} style={S.empty}>{query ? "没有匹配的网格" : "暂无网格数据"}</td></tr>
-              )}
-              {orgSynced && filtered.map((g) => {
+              {filtered.map((g) => {
                 const eff = gridEffectiveStatus(g, ledger)
                 const ownerAcc = ownerNameIsSet(g.owner) ? ownerAccount(g.owner) : undefined
                 const ownerDead = ownerNameIsSet(g.owner) && (!ownerAcc || ownerAcc.status !== "启用")
+                const manual = g.source === GRID_MANUAL
                 return (
                   <tr key={g.code}>
-                    <td style={{ ...S.td, ...S.tdName }}>{g.code}</td>
+                    <td style={{ ...S.td, ...S.tdName }}>
+                      {g.name && g.name !== g.code ? (
+                        <>
+                          {g.name}
+                          <span style={{ color: "var(--muted-foreground)", fontWeight: 400, fontSize: "11px", marginLeft: "5px" }}>{g.code}</span>
+                        </>
+                      ) : g.code}
+                    </td>
                     <td style={S.td}>{g.street}</td>
                     <td style={S.td}>{g.community}</td>
                     <td style={S.td}>{g.owner}{ownerDead ? "（主责已停用）" : ""}</td>
                     <td style={S.td}>{g.sup}</td>
                     <td style={S.td}>{g.effDate}</td>
+                    <td style={S.td}>{manual
+                      ? <span style={{ fontSize: "10px", padding: "1px 6px", borderRadius: "999px", backgroundColor: "rgba(50,109,255,0.1)", color: "var(--primary)" }}>{GRID_MANUAL}</span>
+                      : "平台同步"}</td>
                     <td style={S.td}><Chip status={eff} /></td>
                     <td style={{ ...S.td, ...S.tdActions }}>
                       <button type="button" style={S.btnLink} onClick={() => openBind(g.index)}>定责</button>
+                      {manual && <button type="button" style={S.btnLink} onClick={() => openGridEdit(g.index)}>编辑</button>}
                       <button type="button" style={S.btnLink} onClick={() => toggle(g.index)}>
                         {g.stored === "启用" ? "停用" : "启用"}
                       </button>
@@ -309,6 +453,136 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
           {err && <div style={{ fontSize: "11px", color: "var(--red)", marginBottom: "8px" }}>{err}</div>}
           <div style={{ fontSize: "11px", color: "var(--muted-foreground)", lineHeight: 1.7 }}>
             更换主责 / 协同监督只影响此后新的派发与外场任务：已经派发、尚未退回的事件仍是原主责；已派出、尚未回传的任务仍是原监督员。
+          </div>
+        </Drawer>
+      )}
+
+      {gridDrawer && (
+        <Drawer
+          title={gridDrawer.mode === "add" ? "新建网格" : `编辑网格「${gForm.name || gForm.code || "…"}」`}
+          onClose={() => setGridDrawer(null)}
+          foot={
+            <>
+              <button type="button" style={S.btnSecondary} onClick={() => setGridDrawer(null)}>取消</button>
+              <button type="button" style={S.btnPrimary} onClick={saveGrid}>保存（立即生效）</button>
+            </>
+          }
+        >
+          {/* ① 先选街道 */}
+          <div style={{ marginBottom: "12px" }}>
+            <label style={S.fieldLabel}>① 所属街道（必选，启用中的街道；含手动创建的街道）</label>
+            <select
+              style={{ ...S.input, ...(gridDrawer.mode === "add" && !gForm.street ? { borderColor: "rgba(50,109,255,0.45)" } : null) }}
+              value={gForm.street}
+              onChange={(e) => {
+                if (gridDrawer.mode === "add") onAddStreetChange(e.target.value)
+                else setGForm((p) => ({ ...p, street: e.target.value, community: "" }))
+              }}
+            >
+              <option value="">请先选择所属街道…</option>
+              {(gridDrawer.mode === "edit" && gForm.street && !streetOptions.includes(gForm.street)
+                ? [gForm.street, ...streetOptions]
+                : streetOptions
+              ).map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+          {/* ② 基于街道：名称 / 编码 / 社区（联动） */}
+          <div style={{
+            opacity: gForm.street ? 1 : 0.45,
+            pointerEvents: gForm.street ? "auto" : "none",
+            display: "grid", gap: "12px",
+          }}>
+            <div>
+              <label style={S.fieldLabel}>② 网格名称（必填，表格里优先显示名称）</label>
+              <input style={S.input} value={gForm.name} placeholder="如 朝内大街北网格" onChange={(e) => setGForm((p) => ({ ...p, name: e.target.value }))} />
+            </div>
+            <div>
+              <label style={S.fieldLabel}>网格编码（必填，字母 / 数字 / 连字符 / 下划线，全表唯一；已按街道自动建议{gridDrawer.mode === "edit" ? "；创建后不可改" : "，可修改"}）</label>
+              <input
+                style={{ ...S.input, ...(gridDrawer.mode === "edit" ? { backgroundColor: "var(--card-2)", color: "var(--muted-foreground)" } : null) }}
+                value={gForm.code}
+                placeholder="选择街道后自动建议，如 G-0422"
+                readOnly={gridDrawer.mode === "edit"}
+                onChange={(e) => setGForm((p) => ({ ...p, code: e.target.value }))}
+              />
+              <div style={{ fontSize: "10px", color: "var(--muted-foreground)", marginTop: "6px" }}>
+                编码是账号范围与派发快照的引用键，创建后不可修改；删除不提供，停用即可让新事件不再匹配。
+              </div>
+            </div>
+            <div>
+              <label style={S.fieldLabel}>社区（选填；仅显示「{gForm.street || "所选街道"}」下的社区）</label>
+              <select style={S.input} value={gForm.community} onChange={(e) => setGForm((p) => ({ ...p, community: e.target.value }))}>
+                <option value="">不指定社区…</option>
+                {communitiesOfStreet(state.rows, gForm.street).map((n) => <option key={n} value={n}>{n}</option>)}
+                {gridDrawer.mode === "edit" && gForm.community && !communitiesOfStreet(state.rows, gForm.street).includes(gForm.community) && (
+                  <option value={gForm.community}>{gForm.community}（原值）</option>
+                )}
+              </select>
+              {gForm.street && communitiesOfStreet(state.rows, gForm.street).length === 0 && (
+                <div style={{ fontSize: "10px", color: "var(--muted-foreground)", marginTop: "6px" }}>
+                  「{gForm.street}」下暂无启用中的社区：可在「组织、账号与角色」中手动创建，或留空。
+                </div>
+              )}
+            </div>
+          </div>
+          <div style={{ marginBottom: "12px", marginTop: "12px" }}>
+            <label style={S.fieldLabel}>变更原因（必填，写入审计留痕）</label>
+            <textarea style={S.textarea} value={gForm.reason} placeholder="如 外部平台尚未同步，先建网格承接新片区" onChange={(e) => setGForm((p) => ({ ...p, reason: e.target.value }))} />
+          </div>
+          {gErr && <div style={{ fontSize: "11px", color: "var(--red)", marginBottom: "8px", lineHeight: 1.7 }}>{gErr}</div>}
+          <div style={{ fontSize: "11px", color: "var(--muted-foreground)", lineHeight: 1.7 }}>
+            新建网格初始为「待定责」（无主责）：派发不可用，需在操作列点「定责」指定一名主责后才可承接派发。
+            手动创建的网格与同步网格同权：可启停、可定责；平台同步网格仍以外部平台为权威源，编码与归属只读。
+          </div>
+        </Drawer>
+      )}
+
+      {importOpen && (
+        <Drawer
+          title="批量导入网格"
+          onClose={() => setImportOpen(false)}
+          foot={
+            <>
+              <button type="button" style={S.btnSecondary} onClick={() => setImportOpen(false)}>取消</button>
+              <button type="button" style={S.btnPrimary} onClick={confirmImport}>
+                确认导入{importParsed.filter((r) => r.ok).length ? `（${importParsed.filter((r) => r.ok).length} 个网格）` : ""}
+              </button>
+            </>
+          }
+        >
+          <div style={{ marginBottom: "12px" }}>
+            <label style={S.fieldLabel}>粘贴数据：每行一个网格，格式「街道名称,网格名称」（支持逗号 / 顿号 / Tab 分隔）</label>
+            <textarea
+              style={{ ...S.textarea, minHeight: "140px", fontFamily: "var(--mono, monospace)", fontSize: "12px" }}
+              value={importText}
+              placeholder={"朝阳门街道,朝内大街北网格\n朝阳门街道,朝内大街南网格\n东四街道,东四北大街网格\n前门街道,西打磨厂网格"}
+              onChange={(e) => setImportText(e.target.value)}
+            />
+          </div>
+          {importText.trim() && (
+            <div style={{ marginBottom: "12px", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px 12px", maxHeight: "180px", overflowY: "auto" }}>
+              <div style={{ fontSize: "11px", fontWeight: 700, marginBottom: "6px" }}>
+                预览：可导入 <span style={{ color: "var(--green)" }}>{importParsed.filter((r) => r.ok).length}</span> 个
+                {importParsed.some((r) => !r.ok) && <>，跳过 <span style={{ color: "var(--red)" }}>{importParsed.filter((r) => !r.ok).length}</span> 行</>}
+              </div>
+              {importParsed.map((r, i) => (
+                <div key={i} style={{ fontSize: "11px", lineHeight: 1.8, color: r.ok ? "var(--foreground)" : "var(--red)", display: "flex", gap: 8 }}>
+                  <span style={{ flexShrink: 0 }}>{r.ok ? "✓" : "✕"}</span>
+                  <span>
+                    {r.street}{r.name ? ` · ${r.name}` : ""}
+                    {r.why ? `（${r.why}）` : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ marginBottom: "12px" }}>
+            <label style={S.fieldLabel}>变更原因（必填，写入审计留痕）</label>
+            <textarea style={S.textarea} value={importReason} placeholder="如 外部平台按片区新增网格，批量导入" onChange={(e) => setImportReason(e.target.value)} />
+          </div>
+          <div style={{ fontSize: "11px", color: "var(--muted-foreground)", lineHeight: 1.7 }}>
+            导入后编码自动生成（G-0NNN 递增、全表唯一），来源为「手动创建」，可编辑；每个网格初始「待定责」，需逐格定责后派发才可用。
+            街道必须已存在且启用（含手动创建的街道）；同街道下名称重复的行会跳过，不会覆盖已有网格。
           </div>
         </Drawer>
       )}

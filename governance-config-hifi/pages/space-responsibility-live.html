@@ -946,6 +946,7 @@ html.light body {
 .gc-foot-sub { margin-left: 12px; color: var(--gc-disabled-text); }
 .gc-chip--green { background: var(--gc-func-green-soft); color: var(--gc-func-green); font-size: 11px; font-weight: 500; border-radius: 9999px; padding: 1px 8px; white-space: nowrap; }
 .gc-chip--muted { background: var(--gc-bg-active); color: var(--gc-muted); font-size: 11px; font-weight: 500; border-radius: 9999px; padding: 1px 8px; white-space: nowrap; }
+.gc-chip--manual { background: var(--gc-accent-soft); color: var(--gc-accent); font-size: 11px; font-weight: 500; border-radius: 9999px; padding: 1px 8px; white-space: nowrap; }
 .gc-th-actions { text-align: right; }
 .gc-td-actions { text-align: right; }
 </style>
@@ -1150,44 +1151,53 @@ html.light body {
   <section class="gc-card" aria-labelledby="gc-grid-title">
     <header class="gc-card-head">
       <h2 class="gc-card-title" id="gc-grid-title">网格责任表</h2>
+      <span class="gc-card-note">双来源：平台同步（只读）＋ 手动创建（先选街道再命名，或按「街道名称,网格名称」批量导入）</span>
     </header>
 <div class="gc-toolbar">
       <div class="gc-search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input type="text" id="gc-q-grid" placeholder="搜索网格编码 / 街道 / 社区 / 主责 / 监督" aria-label="搜索网格责任表">
+        <input type="text" id="gc-q-grid" placeholder="搜索网格名称 / 编码 / 街道 / 社区 / 主责 / 监督" aria-label="搜索网格责任表">
         <button type="button" class="gc-btn-ghost" data-gc-search>查询</button>
       </div>
+      <a class="gc-btn-ghost" href="space-responsibility-draft.html?import=1" title="进入草稿，按「街道名称,网格名称」批量导入">⇪ 批量导入</a>
       <a class="gc-btn-primary" href="space-responsibility-draft.html?create=1" title="进入草稿，新增网格">＋ 新增网格</a>
     </div>
         <div class="gc-table-scroll">
       <table class="gc-table gc-table--grid">
         <thead>
-          <tr><th>网格编码</th><th>所属街道</th><th>社区</th><th>网格主责</th><th>协同监督</th><th>状态</th><th>生效日期</th><th class="gc-th-actions">操作</th></tr>
+          <tr><th>网格</th><th>所属街道</th><th>社区</th><th>网格主责</th><th>协同监督</th><th>状态</th><th>生效日期</th><th>来源</th><th class="gc-th-actions">操作</th></tr>
         </thead>
         <tbody>
           <tr>
-            <td class="gc-td-code">G-0418</td><td>朝阳门街道</td><td>某社区</td><td class="gc-td-name">刘洋</td><td>陈督</td>
-            <td><span class="gc-chip gc-chip--green">启用</span></td><td class="gc-td-code">2026-08-01</td>
+            <td><span class="gc-grid-name">朝阳门南小街网格</span><span class="gc-td-sub">G-0418</span></td><td>朝阳门街道</td><td>某社区</td><td class="gc-td-name">刘洋</td><td>陈督</td>
+            <td><span class="gc-chip gc-chip--green">启用</span></td><td class="gc-td-code">2026-08-01</td><td>平台同步</td>
             <td class="gc-td-actions"><a class="gc-btn-link" href="space-responsibility-draft.html?edit=G-0418" title="进入草稿，编辑网格 G-0418">编辑</a></td>
           </tr>
           <tr>
-            <td class="gc-td-code">G-0417</td><td>朝阳门街道</td><td>某社区</td><td class="gc-td-name">张强</td><td class="gc-td-dash">—</td>
-            <td><span class="gc-chip gc-chip--green">启用</span></td><td class="gc-td-code">2026-08-01</td>
+            <td><span class="gc-grid-name">朝内大街网格</span><span class="gc-td-sub">G-0417</span></td><td>朝阳门街道</td><td>某社区</td><td class="gc-td-name">张强</td><td class="gc-td-dash">—</td>
+            <td><span class="gc-chip gc-chip--green">启用</span></td><td class="gc-td-code">2026-08-01</td><td>平台同步</td>
             <td class="gc-td-actions"><a class="gc-btn-link" href="space-responsibility-draft.html?edit=G-0417" title="进入草稿，编辑网格 G-0417">编辑</a></td>
           </tr>
           <tr>
-            <td class="gc-td-code">G-0419</td><td>朝阳门街道</td><td>东花市社区</td><td class="gc-td-name">周琳</td><td class="gc-td-dash">—</td>
-            <td><span class="gc-chip gc-chip--green">启用</span></td><td class="gc-td-code">2026-08-01</td>
+            <td><span class="gc-grid-name">东花市大街网格</span><span class="gc-td-sub">G-0419</span></td><td>朝阳门街道</td><td>东花市社区</td><td class="gc-td-name">周琳</td><td class="gc-td-dash">—</td>
+            <td><span class="gc-chip gc-chip--green">启用</span></td><td class="gc-td-code">2026-08-01</td><td>平台同步</td>
             <td class="gc-td-actions"><a class="gc-btn-link" href="space-responsibility-draft.html?edit=G-0419" title="进入草稿，编辑网格 G-0419">编辑</a></td>
           </tr>
           <tr>
-            <td class="gc-td-code">G-0421</td><td>东华门街道</td><td>金宝街社区</td><td class="gc-td-dash">—（空）</td><td class="gc-td-dash">—</td>
-            <td><span class="gc-chip gc-chip--muted">待定责</span></td><td class="gc-td-dash">—</td>
+            <td><span class="gc-grid-name">金宝街北网格</span><span class="gc-td-sub">G-0421</span></td><td>东华门街道</td><td>金宝街社区</td><td class="gc-td-dash">—（空）</td><td class="gc-td-dash">—</td>
+            <td><span class="gc-chip gc-chip--muted">待定责</span></td><td class="gc-td-dash">—</td><td>平台同步</td>
             <td class="gc-td-actions"><a class="gc-btn-link" href="space-responsibility-draft.html?edit=G-0421" title="进入草稿，编辑网格 G-0421">编辑</a></td>
+          </tr>
+          <tr>
+            <td><span class="gc-grid-name">西打磨厂网格</span><span class="gc-td-sub">G-0422</span></td><td>前门街道</td><td class="gc-td-dash">—</td><td class="gc-td-dash">—（空）</td><td class="gc-td-dash">—</td>
+            <td><span class="gc-chip gc-chip--muted">待定责</span></td><td class="gc-td-dash">—</td>
+            <td><span class="gc-chip gc-chip--manual">手动</span></td>
+            <td class="gc-td-actions"><a class="gc-btn-link" href="space-responsibility-draft.html?edit=G-0422" title="进入草稿，编辑网格 G-0422">编辑</a></td>
           </tr>
         </tbody>
       </table>
     </div>
+    <p class="gc-card-foot">手动创建网格：编码创建后不可改，创建后为「待定责」，指定主责后派发才可用；不提供删除，停用后新事件不再匹配。平台同步网格仍以外部平台为权威源。</p>
     <p class="gc-card-foot">一个事件同一时刻只对应一个网格责任人。</p>
     <p class="gc-card-foot">空间匹配失败不能直接立案派发，也不等于不予立案。（预览立案侧处理：<a class="gc-btn-link" href="space-match-success.html">匹配成功</a> · <a class="gc-btn-link" href="space-match-fail.html">匹配失败</a>）</p>
   </section>
@@ -1235,6 +1245,7 @@ html.light body {
 </script>
 <style id="gc-rev17-css">
 .gc-toolbar { margin-bottom: 14px; }
+.gc-td-sub { display: block; margin-top: 2px; font-size: 11px; color: var(--gc-muted); font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace; }
 </style>
 </body>
 </html>

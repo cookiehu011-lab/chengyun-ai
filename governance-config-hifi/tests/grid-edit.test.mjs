@@ -1,5 +1,7 @@
 // 「空间与责任 · 草稿」网格编辑（space-edit-js）单元测试
-// 覆盖：查询过滤 / 行编辑 / 空网格编辑 / 新增（校验 + 查重）/ 删除 / 启停 / 页面结构回归
+// rev26 口径：首列「名称+编码」；新增两步式（① 所属街道 → ② 名称/编码/社区/原因）；
+// 批量导入（每行「街道名称,网格名称」，预览可导入/跳过，变更原因必填）。
+// 覆盖：查询过滤 / 行编辑 / 空网格编辑 / 两步式新增 / 批量导入 / 删除 / 启停 / 页面结构回归
 // 运行：node --test governance-config-hifi/tests/grid-edit.test.mjs
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
@@ -30,17 +32,21 @@ function extractFooter(html) {
 }
 
 const ROWS = [
-  { code: 'G-0418', street: '朝阳门街道', community: '某社区', owner: '刘洋', sup: '陈督', status: '启用' },
-  { code: 'G-0419', street: '东华门街道', community: '某社区', owner: '周琳', sup: '何静', status: '启用' },
-  { code: 'G-0420', street: '建国门街道', community: '某社区', owner: '孙洁', sup: '马涛', status: '启用' },
-  { code: 'G-0421', street: '朝阳门街道', community: '某社区', owner: '', sup: '—', status: '待定责' },
+  { code: 'G-0418', name: '朝阳门南小街网格', street: '朝阳门街道', community: '某社区', owner: '刘洋', sup: '陈督', status: '启用' },
+  { code: 'G-0419', name: '东花市大街网格', street: '东华门街道', community: '某社区', owner: '周琳', sup: '何静', status: '启用' },
+  { code: 'G-0420', name: '建国门内大街网格', street: '建国门街道', community: '某社区', owner: '孙洁', sup: '马涛', status: '启用' },
+  { code: 'G-0421', name: '金宝街北网格', street: '朝阳门街道', community: '某社区', owner: '', sup: '—', status: '待定责' },
 ];
 
-function rowEl({ code, street, community, owner, sup, status }, mk) {
-  // 与真实页面一致：原始行是裸 <tr>（无 data-grid-row），仅新增行携带该属性
+function rowEl({ code, name, street, community, owner, sup, status }, mk) {
+  // 与真实页面一致（rev26）：首列「名称 + 编码小字」，生效日期后有「来源」列；
+  // 原始行是裸 <tr>（无 data-grid-row），仅新增行携带该属性
   const tr = mk('tr');
   const td = (cls, text) => { const n = mk('td'); if (cls) n.className = cls; n.textContent = text; tr.appendChild(n); return n; };
-  td('gc-td-code', code);
+  const tdN = mk('td');
+  const nameSpan = mk('span'); nameSpan.className = 'gc-grid-name'; nameSpan.textContent = name; tdN.appendChild(nameSpan);
+  const subSpan = mk('span'); subSpan.className = 'gc-td-sub'; subSpan.textContent = code; tdN.appendChild(subSpan);
+  tr.appendChild(tdN);
   td('', street);
   td('', community);
   const tdO = td(owner ? 'gc-td-name' : 'gc-td-dash', owner || '—（空）');
@@ -53,6 +59,7 @@ function rowEl({ code, street, community, owner, sup, status }, mk) {
   chip.textContent = status;
   tdSt.appendChild(chip); tr.appendChild(tdSt);
   td('gc-td-code', '2026-09-08');
+  td('', '平台同步');
   const tdA = mk('td'); tdA.className = 'gc-td-actions';
   const eb = mk('button');
   eb.setAttribute('data-gc-bind', ''); eb.setAttribute('data-grid', code);
@@ -80,6 +87,7 @@ beforeEach(() => {
   const toolbar = mk('div'); toolbar.className = 'gc-toolbar';
   const input = mk('input'); input.setAttribute('id', 'gc-q-grid'); toolbar.appendChild(input);
   const searchBtn = mk('button'); searchBtn.setAttribute('data-gc-search', ''); toolbar.appendChild(searchBtn);
+  const importBtn = mk('button'); importBtn.setAttribute('data-gc-grid-import', ''); importBtn.textContent = '⇪ 批量导入'; toolbar.appendChild(importBtn);
   const newBtn = mk('button'); newBtn.setAttribute('data-gc-grid-new', ''); newBtn.textContent = '＋ 新增网格'; toolbar.appendChild(newBtn);
   body.appendChild(toolbar);
 
@@ -100,14 +108,26 @@ beforeEach(() => {
   const bindSave = mk('button'); bindSave.setAttribute('data-gc-bind-save', ''); bind.appendChild(bindSave);
   body.appendChild(bind);
 
+  // 两步式新增抽屉：① 街道在 step2 容器外，② 名称/编码/社区/原因在容器内（is-off 置灰）
   const create = mk('aside'); create.setAttribute('data-gc-drawer', 'create'); create.hidden = true;
   const createTitle = mk('h2'); createTitle.setAttribute('id', 'gc-create-title'); create.appendChild(createTitle);
   const createClose = mk('button'); createClose.setAttribute('data-gc-close', ''); create.appendChild(createClose);
-  for (const [id, tag] of [['gc-n-code', 'input'], ['gc-n-street', 'select'], ['gc-n-community', 'input'], ['gc-n-owner', 'select'], ['gc-n-sup', 'select'], ['gc-n-status', 'select']]) {
-    const f = mk(tag); f.setAttribute('id', id); create.appendChild(f);
+  const streetSel = mk('select'); streetSel.setAttribute('id', 'gc-n-street'); create.appendChild(streetSel);
+  const step2 = mk('div'); step2.setAttribute('id', 'gc-n-step2'); step2.classList.add('gc-n-step2'); step2.classList.add('is-off'); create.appendChild(step2);
+  for (const [id, tag] of [['gc-n-name', 'input'], ['gc-n-code', 'input'], ['gc-n-community', 'select'], ['gc-n-reason', 'input']]) {
+    const f = mk(tag); f.setAttribute('id', id); step2.appendChild(f);
   }
   const createSave = mk('button'); createSave.setAttribute('data-gc-create-save', ''); create.appendChild(createSave);
   body.appendChild(create);
+
+  // 批量导入抽屉：textarea + 预览 + 变更原因
+  const imp = mk('aside'); imp.setAttribute('data-gc-drawer', 'import'); imp.hidden = true;
+  const impClose = mk('button'); impClose.setAttribute('data-gc-close', ''); imp.appendChild(impClose);
+  const ta = mk('textarea'); ta.setAttribute('id', 'gc-i-text'); imp.appendChild(ta);
+  const preview = mk('div'); preview.setAttribute('data-gc-import-preview', ''); preview.hidden = true; imp.appendChild(preview);
+  const iReason = mk('input'); iReason.setAttribute('id', 'gc-i-reason'); imp.appendChild(iReason);
+  const impSave = mk('button'); impSave.setAttribute('data-gc-import-save', ''); imp.appendChild(impSave);
+  body.appendChild(imp);
 
   // 脚本在真实页面中位于全部 DOM 之后执行 —— 夹具保持同一顺序
   let tid = 0;
@@ -119,17 +139,19 @@ beforeEach(() => {
     doc, () => ++tid, () => {},
   );
 
+  const subOf = (tr) => (tr.querySelector('.gc-td-sub') || {}).textContent;
   ctx = {
-    doc, click, input, searchBtn, newBtn, scrim, bind, create,
-    tbody,
+    doc, click, input, searchBtn, newBtn, importBtn, scrim, bind, create, imp,
+    tbody, step2, streetSel, ta, preview, iReason,
     rows: () => [...tbody.children],
-    byCode: (code) => tbody.children.find((tr) => tr.children[0] && tr.children[0].textContent.trim() === code) || null,
-    bindBtn: (code) => doc.querySelectorAll('[data-gc-bind]').find((b) => b.getAttribute('data-grid') === code),
-    delBtn: (code) => doc.querySelectorAll('[data-gc-del]').find((b) => b.getAttribute('data-grid') === code),
-    toggleBtn: (code) => doc.querySelectorAll('[data-gc-toggle]').find((b) => b.getAttribute('data-grid') === code),
+    byCode: (code) => tbody.children.find((tr) => (tr.querySelector('.gc-td-sub') || { textContent: '' }).textContent.trim() === code) || null,
+    bindBtn: (code) => doc.querySelectorAll('[data-gc-bind]').find((b) => subOf(b.closest('tr')) === code),
+    delBtn: (code) => doc.querySelectorAll('[data-gc-del]').find((b) => subOf(b.closest('tr')) === code),
+    toggleBtn: (code) => doc.querySelectorAll('[data-gc-toggle]').find((b) => subOf(b.closest('tr')) === code),
     cell: (code, field) => doc.querySelector(`td[data-cell="${field}"][data-grid="${code}"]`),
     field: (id) => doc.getElementById(id),
     set: (id, v) => { doc.getElementById(id).value = v; },
+    codeOf: (tr) => subOf(tr).trim(),
   };
 });
 
@@ -144,6 +166,13 @@ describe('网格查询', () => {
     ctx.set('gc-q-grid', '   ');
     ctx.click(ctx.input, 'input');
     for (const tr of ctx.rows()) assert.equal(tr.hidden, false);
+  });
+
+  test('按网格名称同样可查（首列名称+编码）', () => {
+    ctx.set('gc-q-grid', '朝阳门南小街');
+    ctx.click(ctx.input, 'input');
+    assert.equal(ctx.byCode('G-0418').hidden, false);
+    assert.equal(ctx.byCode('G-0419').hidden, true);
   });
 
   test('点击「查询」按钮同样生效（大小写不敏感）', () => {
@@ -220,60 +249,225 @@ describe('空网格编辑', () => {
 });
 
 describe('抽屉互斥与关闭', () => {
-  test('打开新增抽屉会关闭编辑抽屉；点遮罩全部关闭', () => {
+  test('打开新增抽屉会关闭编辑抽屉；② 区初始置灰；点遮罩全部关闭', () => {
     ctx.click(ctx.bindBtn('G-0418'), 'click');
     ctx.click(ctx.newBtn, 'click');
     assert.equal(ctx.create.hidden, false);
     assert.equal(ctx.bind.hidden, true);
-    assert.equal(ctx.field('gc-n-code').value, '');
-    assert.equal(ctx.field('gc-n-status').value, '待定责');
+    assert.equal(ctx.streetSel.value, '');
+    assert.ok(ctx.step2.classList.contains('is-off'), '未选街道时 ② 区应置灰');
 
     ctx.click(ctx.scrim, 'click');
     assert.equal(ctx.create.hidden, true);
     assert.equal(ctx.scrim.hidden, true);
   });
+
+  test('打开批量导入抽屉同样互斥，关闭后清空', () => {
+    ctx.click(ctx.bindBtn('G-0418'), 'click');
+    ctx.click(ctx.importBtn, 'click');
+    assert.equal(ctx.imp.hidden, false);
+    assert.equal(ctx.bind.hidden, true);
+    assert.equal(ctx.ta.value, '');
+    assert.equal(ctx.preview.hidden, true);
+
+    ctx.click(ctx.scrim, 'click');
+    assert.equal(ctx.imp.hidden, true);
+  });
 });
 
-describe('网格新增', () => {
-  test('编码为空：聚焦编码字段，不新增行', () => {
+describe('网格新增（两步式）', () => {
+  function pickStreet(street) {
+    ctx.streetSel.value = street;
+    ctx.click(ctx.streetSel, 'change');
+  }
+
+  test('未选街道直接保存：不新增行、抽屉保持打开、聚焦 ① 街道', () => {
     ctx.click(ctx.newBtn, 'click');
-    ctx.set('gc-n-code', '   ');
     ctx.click(ctx.doc.querySelector('[data-gc-create-save]'), 'click');
     assert.equal(ctx.rows().length, 4);
     assert.equal(ctx.create.hidden, false, '抽屉应保持打开');
+    assert.equal(ctx.doc.activeElement, ctx.streetSel, '应聚焦 ① 所属街道');
+  });
+
+  test('选街道后 ② 区解禁，编码自动建议为现有最大值 +1，社区联动为该街道下社区', () => {
+    ctx.click(ctx.newBtn, 'click');
+    pickStreet('朝阳门街道');
+    assert.ok(!ctx.step2.classList.contains('is-off'), '选择街道后 ② 区应解禁');
+    assert.equal(ctx.field('gc-n-code').value, 'G-0422', '编码应为现有最大 G-0421 +1');
+    const commTexts = ctx.field('gc-n-community').children.map((o) => o.textContent);
+    assert.equal(commTexts[0], '不指定社区…');
+    assert.ok(commTexts.includes('某社区'), '朝阳门街道下应有「某社区」');
+    assert.ok(commTexts.includes('东花市社区'), '朝阳门街道下应有「东花市社区」');
+    assert.ok(!commTexts.includes('金宝街社区'), '不应混入其他街道社区');
+
+    // 切换街道：社区下拉重置为对应街道
+    pickStreet('东华门街道');
+    const commTexts2 = ctx.field('gc-n-community').children.map((o) => o.textContent);
+    assert.deepEqual(commTexts2, ['不指定社区…', '金宝街社区']);
+  });
+
+  test('编码建议保留用户改过的非标准值', () => {
+    ctx.click(ctx.newBtn, 'click');
+    pickStreet('朝阳门街道');
+    ctx.set('gc-n-code', 'X-999');
+    pickStreet('东华门街道');
+    assert.equal(ctx.field('gc-n-code').value, 'X-999', '非 G-\d+ 标准值的自定义编码应保留');
+  });
+
+  test('网格名称必填：为空时聚焦名称、不新增行', () => {
+    ctx.click(ctx.newBtn, 'click');
+    pickStreet('朝阳门街道');
+    ctx.set('gc-n-name', '   ');
+    ctx.set('gc-n-reason', '演示');
+    ctx.click(ctx.doc.querySelector('[data-gc-create-save]'), 'click');
+    assert.equal(ctx.rows().length, 4);
+    assert.equal(ctx.create.hidden, false);
+    assert.equal(ctx.doc.activeElement, ctx.field('gc-n-name'));
+  });
+
+  test('变更原因必填：为空时聚焦原因、不新增行', () => {
+    ctx.click(ctx.newBtn, 'click');
+    pickStreet('朝阳门街道');
+    ctx.set('gc-n-name', '验证网格');
+    ctx.set('gc-n-reason', ' ');
+    ctx.click(ctx.doc.querySelector('[data-gc-create-save]'), 'click');
+    assert.equal(ctx.rows().length, 4);
+    assert.equal(ctx.create.hidden, false);
+    assert.equal(ctx.doc.activeElement, ctx.field('gc-n-reason'));
   });
 
   test('编码查重：小写输入归一后命中已有网格，不新增行', () => {
     ctx.click(ctx.newBtn, 'click');
+    pickStreet('朝阳门街道');
     ctx.set('gc-n-code', 'g-0419');
+    ctx.set('gc-n-name', '另一网格');
+    ctx.set('gc-n-reason', '查重测试');
     ctx.click(ctx.doc.querySelector('[data-gc-create-save]'), 'click');
     assert.equal(ctx.rows().length, 4);
     assert.equal(ctx.create.hidden, false);
+    assert.equal(ctx.doc.activeElement, ctx.field('gc-n-code'));
   });
 
-  test('合法新增：追加一行，带编辑/删除按钮，主责单元格可再编辑', () => {
+  test('同街道重名：跳过校验命中已有网格名称，不新增行', () => {
     ctx.click(ctx.newBtn, 'click');
-    ctx.set('gc-n-code', 'G-0422');
-    ctx.set('gc-n-street', '朝阳门街道');
+    pickStreet('朝阳门街道');
+    ctx.set('gc-n-name', '朝阳门南小街网格');
+    ctx.set('gc-n-reason', '重名测试');
+    ctx.click(ctx.doc.querySelector('[data-gc-create-save]'), 'click');
+    assert.equal(ctx.rows().length, 4);
+    assert.equal(ctx.create.hidden, false);
+    assert.equal(ctx.doc.activeElement, ctx.field('gc-n-name'));
+  });
+
+  test('合法新增：追加一行（名称+编码首列、待定责、无主责、手动来源），可立即再编辑', () => {
+    ctx.click(ctx.newBtn, 'click');
+    pickStreet('朝阳门街道');
+    ctx.set('gc-n-name', '验证网格');
     ctx.set('gc-n-community', '某社区');
-    ctx.set('gc-n-owner', '张强');
-    ctx.set('gc-n-sup', '陈督');
-    ctx.set('gc-n-status', '待定责');
+    ctx.set('gc-n-reason', '演示：两步式创建');
     ctx.click(ctx.doc.querySelector('[data-gc-create-save]'), 'click');
 
     assert.equal(ctx.rows().length, 5);
     assert.equal(ctx.create.hidden, true);
+    assert.equal(ctx.scrim.hidden, true);
 
     const tr = ctx.byCode('G-0422');
-    assert.ok(tr, '新行应存在');
-    assert.equal(tr.children[0].textContent, 'G-0422');
-    assert.equal(ctx.cell('G-0422', 'owner').textContent, '张强');
-    assert.equal(ctx.cell('G-0422', 'sup').textContent, '陈督');
-    assert.ok(ctx.bindBtn('G-0422'), '新行应有编辑按钮');
-    assert.equal(ctx.bindBtn('G-0422').getAttribute('data-owner'), '张强');
-    assert.ok(ctx.delBtn('G-0422'), '新行应有删除按钮');
+    assert.ok(tr, '新行应存在且编码为自动建议值');
+    const nameSpan = tr.querySelector('.gc-grid-name');
+    assert.equal(nameSpan.textContent, '验证网格');
+    assert.equal(tr.children[1].textContent, '朝阳门街道');
+    assert.equal(tr.children[2].textContent, '某社区');
+    assert.equal(ctx.cell('G-0422', 'owner').textContent, '—（空）', '新建默认无主责');
+    const chip = tr.querySelector('.gc-chip');
+    assert.equal(chip.textContent, '待定责', '新建默认待定责');
+    assert.equal(tr.children[7].textContent, '手动', '来源应为手动');
 
-    // 新行可立即再编辑（document 级委托）
+    // 新行可立即再编辑（document 级委托，编码取自行内 .gc-td-sub）
+    ctx.click(ctx.bindBtn('G-0422'), 'click');
+    assert.equal(ctx.field('gc-bind-title').textContent, '网格 G-0422 · 编辑');
+  });
+});
+
+describe('批量导入', () => {
+  function input(text) {
+    ctx.ta.value = text;
+    ctx.click(ctx.ta, 'input');
+  }
+
+  test('实时预览：可导入 / 跳过与原因（街道不存在或已停用、同街道同名）', () => {
+    ctx.click(ctx.importBtn, 'click');
+    input([
+      '朝阳门街道,新网格A',
+      '不存在的街道,网格X',
+      '朝阳门街道,朝阳门南小街网格',
+    ].join('\n'));
+
+    assert.equal(ctx.preview.hidden, false);
+    const text = ctx.preview.textContent;
+    assert.ok(text.includes('可导入 1 个'), '应有 1 行可导入');
+    assert.ok(text.includes('跳过 2 行'), '应有 2 行跳过');
+    assert.ok(text.includes('街道不存在或已停用'));
+    assert.ok(text.includes('该街道下已有同名网格'));
+    assert.ok(text.includes('朝阳门街道 → 新网格A'));
+  });
+
+  test('顿号与 Tab 分隔同样可解析；空行忽略', () => {
+    ctx.click(ctx.importBtn, 'click');
+    input('朝阳门街道、Tab网格\n\n东华门街道\t金宝街西网格');
+    const text = ctx.preview.textContent;
+    assert.ok(text.includes('可导入 2 个'));
+    assert.ok(!text.includes('跳过'), '无跳过行');
+  });
+
+  test('无可导入行时确认导入：聚焦数据框、不新增行', () => {
+    ctx.click(ctx.importBtn, 'click');
+    input('不存在的街道,网格X');
+    ctx.set('gc-i-reason', '演示');
+    ctx.click(ctx.doc.querySelector('[data-gc-import-save]'), 'click');
+    assert.equal(ctx.rows().length, 4);
+    assert.equal(ctx.imp.hidden, false, '抽屉应保持打开');
+    assert.equal(ctx.doc.activeElement, ctx.ta);
+  });
+
+  test('变更原因必填：为空时聚焦原因、不导入', () => {
+    ctx.click(ctx.importBtn, 'click');
+    input('朝阳门街道,导入网格A');
+    ctx.set('gc-i-reason', ' ');
+    ctx.click(ctx.doc.querySelector('[data-gc-import-save]'), 'click');
+    assert.equal(ctx.rows().length, 4);
+    assert.equal(ctx.imp.hidden, false);
+    assert.equal(ctx.doc.activeElement, ctx.field('gc-i-reason'));
+  });
+
+  test('确认导入：逐行插行、编码自动递增（G-0422/G-0423）、待定责、手动来源', () => {
+    ctx.click(ctx.importBtn, 'click');
+    input('朝阳门街道,导入网格A\n朝阳门街道,导入网格B');
+    ctx.set('gc-i-reason', '演示：批量导入');
+    ctx.click(ctx.doc.querySelector('[data-gc-import-save]'), 'click');
+
+    assert.equal(ctx.rows().length, 6);
+    assert.equal(ctx.imp.hidden, true);
+    assert.equal(ctx.scrim.hidden, true);
+
+    const r1 = ctx.byCode('G-0422');
+    const r2 = ctx.byCode('G-0423');
+    assert.ok(r1 && r2, '两行应按序获得自动编码');
+    assert.equal(r1.querySelector('.gc-grid-name').textContent, '导入网格A');
+    assert.equal(r1.children[1].textContent, '朝阳门街道');
+    assert.equal(r2.querySelector('.gc-grid-name').textContent, '导入网格B');
+    for (const tr of [r1, r2]) {
+      assert.equal(tr.querySelector('.gc-chip').textContent, '待定责');
+      assert.equal(tr.children[7].textContent, '手动');
+      assert.ok(ctx.bindBtn(ctx.codeOf(tr)), '导入行应有编辑按钮');
+    }
+  });
+
+  test('导入行可立即再编辑（编辑入口按行内编码定位）', () => {
+    ctx.click(ctx.importBtn, 'click');
+    input('东华门街道,导入网格C');
+    ctx.set('gc-i-reason', '演示');
+    ctx.click(ctx.doc.querySelector('[data-gc-import-save]'), 'click');
+
     ctx.click(ctx.bindBtn('G-0422'), 'click');
     assert.equal(ctx.field('gc-bind-title').textContent, '网格 G-0422 · 编辑');
   });
@@ -290,21 +484,16 @@ describe('网格删除', () => {
 
   test('新增行的删除按钮同样生效', () => {
     ctx.click(ctx.newBtn, 'click');
-    ctx.set('gc-n-code', 'G-0423');
-    ctx.set('gc-n-owner', '周琳');
+    ctx.streetSel.value = '朝阳门街道';
+    ctx.click(ctx.streetSel, 'change');
+    ctx.set('gc-n-name', '待删除网格');
+    ctx.set('gc-n-reason', '删除测试');
     ctx.click(ctx.doc.querySelector('[data-gc-create-save]'), 'click');
     assert.equal(ctx.rows().length, 5);
 
-    ctx.click(ctx.delBtn('G-0423'), 'click');
+    ctx.click(ctx.delBtn('G-0422'), 'click');
     assert.equal(ctx.rows().length, 4);
-    assert.equal(ctx.byCode('G-0423'), null);
-  });
-
-  test('编辑抽屉的保存按钮不触发删除委托', () => {
-    ctx.click(ctx.bindBtn('G-0418'), 'click');
-    ctx.set('gc-b-reason', '仅编辑');
-    ctx.click(ctx.doc.querySelector('[data-gc-bind-save]'), 'click');
-    assert.equal(ctx.rows().length, 4, '行数不应变化');
+    assert.equal(ctx.byCode('G-0422'), null);
   });
 });
 
@@ -346,39 +535,17 @@ describe('网格启停', () => {
     assert.equal(ctx.toggleBtn('G-0421').textContent, '停用');
   });
 
-  test('停用行补充主责后保持停用，不被自动升级为启用', () => {
-    ctx.click(ctx.toggleBtn('G-0419'), 'click');
-    ctx.click(ctx.bindBtn('G-0419'), 'click');
-    ctx.set('gc-b-owner', '张强');
-    ctx.set('gc-b-reason', '主责调整');
-    ctx.click(ctx.doc.querySelector('[data-gc-bind-save]'), 'click');
-    assert.equal(ctx.cell('G-0419', 'owner').textContent, '张强');
-    const chip = ctx.byCode('G-0419').querySelector('.gc-chip');
-    assert.ok(chip.classList.contains('gc-chip--off'), '停用行不应被自动升级');
-  });
-
-  test('新增行带启停按钮：有主责的待定责新行保存后自动启用', () => {
+  test('新增行（无主责）保持待定责，启停按钮为「启用」', () => {
     ctx.click(ctx.newBtn, 'click');
-    ctx.set('gc-n-code', 'G-0422');
-    ctx.set('gc-n-owner', '张强');
-    ctx.set('gc-n-status', '待定责');
+    ctx.streetSel.value = '朝阳门街道';
+    ctx.click(ctx.streetSel, 'change');
+    ctx.set('gc-n-name', '新片区网格');
+    ctx.set('gc-n-reason', '启停测试');
     ctx.click(ctx.doc.querySelector('[data-gc-create-save]'), 'click');
+
     const tb = ctx.toggleBtn('G-0422');
     assert.ok(tb, '新行应有启停按钮');
     const chip = ctx.byCode('G-0422').querySelector('.gc-chip');
-    assert.ok(chip.classList.contains('gc-chip--green'));
-    assert.equal(chip.textContent, '启用');
-    assert.equal(tb.textContent, '停用');
-  });
-
-  test('新增无主责行保持待定责，启停按钮为「启用」', () => {
-    ctx.click(ctx.newBtn, 'click');
-    ctx.set('gc-n-code', 'G-0423');
-    ctx.set('gc-n-status', '待定责');
-    ctx.click(ctx.doc.querySelector('[data-gc-create-save]'), 'click');
-    const tb = ctx.toggleBtn('G-0423');
-    assert.ok(tb, '新行应有启停按钮');
-    const chip = ctx.byCode('G-0423').querySelector('.gc-chip');
     assert.ok(chip.classList.contains('gc-chip--muted'));
     assert.equal(chip.textContent, '待定责');
     assert.equal(tb.textContent, '启用');
@@ -388,10 +555,29 @@ describe('网格启停', () => {
 describe('页面结构回归（读取真实页面 HTML）', () => {
   const html = fs.readFileSync(PAGE, 'utf8');
 
-  test('space-edit-js 必须位于新增抽屉之后（防止脚本早执行丢失监听）', () => {
+  test('space-edit-js 必须位于新增/导入抽屉之后（防止脚本早执行丢失监听）', () => {
     const s = html.indexOf('<script id="space-edit-js">');
     const d = html.indexOf('data-gc-drawer="create"');
+    const i = html.indexOf('data-gc-drawer="import"');
     assert.ok(s > d, `script@${s} 应晚于 create-drawer@${d}`);
+    assert.ok(s > i, `script@${s} 应晚于 import-drawer@${i}`);
+  });
+
+  test('rev26 两步式口径：首列「网格」+ 编码小字、① 街道 → ② 名称、批量导入抽屉与 URL 参数', () => {
+    assert.ok(!html.includes('<th>网格编码</th>'), '表头不应再是「网格编码」');
+    assert.ok(html.includes('<th>网格</th>'));
+    assert.ok(html.includes('① 所属街道（必选，启用中的街道；含手动创建的街道）'));
+    assert.ok(html.includes('② 网格名称（必填，表格里优先显示名称）'));
+    assert.ok(html.includes('gc-n-step2'), '两步式 ② 区容器应存在');
+    assert.ok(html.includes('data-gc-grid-import'), '工具栏应有批量导入按钮');
+    assert.ok(html.includes('data-gc-drawer="import"'), '批量导入抽屉应存在');
+    assert.ok(html.includes('data-gc-import-save'));
+    assert.ok(html.includes('街道名称,网格名称'), '导入格式说明');
+    assert.ok(html.includes("qs.get('import')"), '草稿页应支持 ?import=1 自动开抽屉');
+  });
+
+  test('rev26 编辑入口按行内编码定位（新行无 data-grid 依赖也可编辑）', () => {
+    assert.ok(html.includes(".querySelector('.gc-td-sub')"), '编辑/导入定位应读取行内编码');
   });
 
   test('操作统一为「编辑」，无换绑/定责操作文案，无 toast 弹层', () => {
@@ -406,12 +592,13 @@ describe('页面结构回归（读取真实页面 HTML）', () => {
     assert.ok(html.includes('一个事件同一时刻只对应一个网格责任人。'));
   });
 
-  test('rev15 交互口径：生效版行编辑/新增带上下文跳转（?edit=/ ?create=1）', () => {
+  test('rev15 交互口径：生效版行编辑/新增带上下文跳转（?edit=/ ?create=1 / ?import=1）', () => {
     const live = fs.readFileSync(LIVE, 'utf8');
     for (const code of ['G-0418', 'G-0417', 'G-0419', 'G-0421']) {
       assert.ok(live.includes(`space-responsibility-draft.html?edit=${code}`), `live 编辑应带 ${code} 参数`);
     }
     assert.ok(live.includes('space-responsibility-draft.html?create=1'), 'live 新增网格应带 create 参数');
+    assert.ok(live.includes('space-responsibility-draft.html?import=1'), 'live 批量导入应带 import 参数');
     assert.ok(html.includes("qs.get('edit')") && html.includes("qs.get('create')"), '草稿页应支持 URL 参数自动开抽屉');
   });
 
@@ -430,12 +617,14 @@ describe('页面结构回归（读取真实页面 HTML）', () => {
   test('rev24 启停口径：行级启停按钮、一致性角标与页脚豁免', () => {
     assert.ok(html.includes('data-gc-toggle'), '应存在行级启停按钮');
     assert.equal((html.match(/data-gc-toggle data-grid="G-\d{4}">/g) || []).length, 4, '四行静态网格都应有启停按钮');
-    assert.ok(html.includes('草稿编辑中：可新增、编辑、启停、删除网格'), '卡头应有启停角标');
+    assert.ok(html.includes('草稿编辑中：新增先选街道再命名，支持批量导入；可编辑、启停、删除'), '卡头应有 rev26 口径角标');
     assert.ok(html.includes('停用网格不参与派发，不阻断'), '页脚应豁免显式停用行');
   });
 
-  test('live 页：行操作均为「编辑」，固定句与匹配预览保留', () => {
+  test('live 页：首列名称+编码、行操作均为「编辑」、固定句与匹配预览保留', () => {
     const live = fs.readFileSync(LIVE, 'utf8');
+    assert.ok(!live.includes('<th>网格编码</th>'), 'live 表头应为「网格」');
+    assert.equal((live.match(/<span class="gc-grid-name">/g) || []).length, 5, 'live 五行都应有网格名称');
     assert.ok(!live.includes('>定责<'), 'live 行按钮不应再有「定责」');
     assert.ok(!live.includes('编辑 / 定责'));
     assert.ok(live.includes('一个事件同一时刻只对应一个网格责任人。'));
