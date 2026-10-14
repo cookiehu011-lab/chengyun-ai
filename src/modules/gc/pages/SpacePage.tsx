@@ -17,7 +17,7 @@ import {
 const GRID_MANUAL = "手动创建"
 
 // 外部平台网格清单（演示数据）：网格名称 ↔ 编号一一对应。
-// 手动创建 / 批量导入时，网格从清单中下拉选择，编号按所选名称回显；清单外名称（导入）按序自动补号。
+// 手动创建 / 一键同步时，网格从清单中下拉选择，编号按所选名称回显；清单外名称（同步）按序自动补号。
 const GRID_CATALOG: Record<string, { name: string; code: string }[]> = {
   "朝阳门街道": [
     { name: "朝内大街北网格", code: "G-0401" },
@@ -74,7 +74,7 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
   const [gridDrawer, setGridDrawer] = useState<{ mode: "add" | "edit"; index: number } | null>(null)
   const [gForm, setGForm] = useState({ code: "", name: "", street: "", community: "", reason: "" })
   const [gErr, setGErr] = useState("")
-  // 批量导入（街道名称、网格名称两列）
+  // 一键同步（街道名称、网格名称两列）
   const [importOpen, setImportOpen] = useState(false)
   const [importText, setImportText] = useState("")
   const [importReason, setImportReason] = useState("")
@@ -209,7 +209,7 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
     return (GRID_CATALOG[street] || []).filter((x) => !created.has(x.name)).map((x) => x.name)
   }
 
-  // ─── 批量导入：街道名称、网格名称两列 ──────────────────────────────────────
+  // ─── 一键同步：街道名称、网格名称两列 ──────────────────────────────────────
   interface ImportRow { street: string; name: string; ok: boolean; why?: string }
   const importParsed: ImportRow[] = useMemo(() => {
     if (!importOpen) return []
@@ -228,8 +228,8 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
 
   function confirmImport() {
     const okRows = importParsed.filter((r) => r.ok)
-    if (!okRows.length) { toast("没有可导入的行：请检查格式与街道名称。"); return }
-    if (!importReason.trim()) { toast("「变更原因」为必填项：批量导入必须留痕。"); return }
+    if (!okRows.length) { toast("没有可同步的行：请检查格式与街道名称。"); return }
+    if (!importReason.trim()) { toast("「变更原因」为必填项：一键同步必须留痕。"); return }
     const authorName = author.split(" · ")[0] || author
     let fallback = parseInt(nextGridCode().replace("G-", ""), 10)
     okRows.forEach((r, i) => {
@@ -243,11 +243,11 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
       type: "ledger-note",
       entry: {
         version: "—", date: today(), author: authorName,
-        modules: ["空间与责任关系"], note: `批量导入 ${okRows.length} 个网格：${okRows.map((r) => `${r.name}（${r.street}）`).slice(0, 5).join("、")}${okRows.length > 5 ? " 等" : ""}（原因：${importReason.trim()}）`, immediate: true,
+        modules: ["空间与责任关系"], note: `一键同步 ${okRows.length} 个网格：${okRows.map((r) => `${r.name}（${r.street}）`).slice(0, 5).join("、")}${okRows.length > 5 ? " 等" : ""}（原因：${importReason.trim()}）`, immediate: true,
       },
     })
     const skip = importParsed.length - okRows.length
-    toast(`已导入 ${okRows.length} 个网格（${skip ? `跳过 ${skip} 行` : "无跳过"}），均为「待定责」：请逐格定责后派发才可用。`)
+    toast(`已同步 ${okRows.length} 个网格（${skip ? `跳过 ${skip} 行` : "无跳过"}），均为「待定责」：请逐格定责后派发才可用。`)
     setImportOpen(false)
     setImportText("")
     setImportReason("")
@@ -363,7 +363,7 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
         </header>
         <div style={S.toolbar}>
           <input style={S.search} value={query} placeholder="搜索网格名称 / 编码 / 街道 / 责任人" onChange={(e) => setQuery(e.target.value)} />
-          <button type="button" style={{ ...S.btnSecondary, marginLeft: "auto" }} onClick={() => { setImportText(""); setImportReason(""); setImportOpen(true) }}>⇪ 批量导入</button>
+          <button type="button" style={{ ...S.btnSecondary, marginLeft: "auto" }} onClick={() => { setImportText(""); setImportReason(""); setImportOpen(true) }}>⇪ 一键同步</button>
           <button type="button" style={S.btnPrimary} onClick={openGridAdd}>＋ 新建网格</button>
         </div>
         <div style={{ overflowX: "auto" }}>
@@ -565,7 +565,7 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
               </select>
               {gForm.street && catalogOptionsOf(gForm.street).length === 0 && (
                 <div style={{ fontSize: "10px", color: "var(--muted-foreground)", marginTop: "6px" }}>
-                  「{gForm.street}」清单中的网格均已创建；如需新增网格名称，请在外部平台登记后同步，或通过批量导入。
+                  「{gForm.street}」清单中的网格均已创建；如需新增网格名称，请在外部平台登记后同步，或通过一键同步。
                 </div>
               )}
             </div>
@@ -611,13 +611,13 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
 
       {importOpen && (
         <Drawer
-          title="批量导入网格"
+          title="一键同步网格"
           onClose={() => setImportOpen(false)}
           foot={
             <>
               <button type="button" style={S.btnSecondary} onClick={() => setImportOpen(false)}>取消</button>
               <button type="button" style={S.btnPrimary} onClick={confirmImport}>
-                确认导入{importParsed.filter((r) => r.ok).length ? `（${importParsed.filter((r) => r.ok).length} 个网格）` : ""}
+                确认同步{importParsed.filter((r) => r.ok).length ? `（${importParsed.filter((r) => r.ok).length} 个网格）` : ""}
               </button>
             </>
           }
@@ -634,7 +634,7 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
           {importText.trim() && (
             <div style={{ marginBottom: "12px", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px 12px", maxHeight: "180px", overflowY: "auto" }}>
               <div style={{ fontSize: "11px", fontWeight: 700, marginBottom: "6px" }}>
-                预览：可导入 <span style={{ color: "var(--green)" }}>{importParsed.filter((r) => r.ok).length}</span> 个
+                预览：可同步 <span style={{ color: "var(--green)" }}>{importParsed.filter((r) => r.ok).length}</span> 个
                 {importParsed.some((r) => !r.ok) && <>，跳过 <span style={{ color: "var(--red)" }}>{importParsed.filter((r) => !r.ok).length}</span> 行</>}
               </div>
               {importParsed.map((r, i) => (
@@ -650,10 +650,10 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
           )}
           <div style={{ marginBottom: "12px" }}>
             <label style={S.fieldLabel}>变更原因（必填，写入审计留痕）</label>
-            <textarea style={S.textarea} value={importReason} placeholder="如 外部平台按片区新增网格，批量导入" onChange={(e) => setImportReason(e.target.value)} />
+            <textarea style={S.textarea} value={importReason} placeholder="如 外部平台按片区新增网格，一键同步" onChange={(e) => setImportReason(e.target.value)} />
           </div>
           <div style={{ fontSize: "11px", color: "var(--muted-foreground)", lineHeight: 1.7 }}>
-            导入后编码自动生成（G-0NNN 递增、全表唯一），来源为「手动创建」，可编辑；每个网格初始「待定责」，需逐格定责后派发才可用。
+            同步后编码自动生成（G-0NNN 递增、全表唯一），来源为「手动创建」，可编辑；每个网格初始「待定责」，需逐格定责后派发才可用。
             街道必须已存在且启用（含手动创建的街道）；同街道下名称重复的行会跳过，不会覆盖已有网格。
           </div>
         </Drawer>

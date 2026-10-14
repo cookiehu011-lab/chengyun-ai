@@ -1217,7 +1217,7 @@ tr[data-empty-row][hidden],
   <section class="gc-card" aria-labelledby="gc-grid-title">
     <header class="gc-card-head">
       <h2 class="gc-card-title" id="gc-grid-title">网格责任表</h2>
-      <span class="gc-card-note">草稿编辑中：新增先选街道再命名，支持批量导入；可编辑、启停、删除</span>
+      <span class="gc-card-note">草稿编辑中：新增先选街道再命名，支持一键同步；可编辑、启停、删除</span>
     </header>
 <div class="gc-toolbar">
       <div class="gc-search">
@@ -1225,7 +1225,7 @@ tr[data-empty-row][hidden],
         <input type="text" id="gc-q-grid" placeholder="搜索网格名称 / 编码 / 街道 / 社区 / 主责 / 监督" aria-label="搜索网格责任表">
         <button type="button" class="gc-btn-ghost" data-gc-search>查询</button>
       </div>
-      <button type="button" class="gc-btn-ghost" data-gc-grid-import title="每行「街道名称,网格名称」批量导入">⇪ 批量导入</button>
+      <button type="button" class="gc-btn-ghost" data-gc-grid-import title="每行「街道名称,网格名称」一键同步">⇪ 一键同步</button>
       <button type="button" class="gc-btn-primary" data-gc-grid-new>＋ 新增网格</button>
     </div>
         <div class="gc-table-scroll">
@@ -1305,7 +1305,7 @@ tr[data-empty-row][hidden],
 .gc-change-val { flex: 1; min-width: 0; }
 .gc-change-val b { color: var(--gc-func-orange); font-weight: 600; }
 .gc-change-empty { padding: 18px 4px; text-align: center; color: var(--gc-muted); font-size: 12px; }
-/* rev26 网格创建迭代：两步式 gating、批量导入 */
+/* rev26 网格创建迭代：两步式 gating、一键同步 */
 .gc-grid-name { font-weight: 500; }
 .gc-chip--manual { background: var(--gc-accent-soft); color: var(--gc-accent); font-size: 11px; font-weight: 500; border-radius: 9999px; padding: 1px 8px; white-space: nowrap; }
 .gc-n-step2.is-off { opacity: 0.45; pointer-events: none; }
@@ -1390,7 +1390,7 @@ tr[data-empty-row][hidden],
 
 <aside class="gc-drawer" role="dialog" aria-modal="true" aria-labelledby="gc-import-title" data-gc-drawer="import" hidden>
   <div class="gc-drawer-head">
-    <h2 class="gc-drawer-title" id="gc-import-title">批量导入网格</h2>
+    <h2 class="gc-drawer-title" id="gc-import-title">一键同步网格</h2>
     <button type="button" class="gc-ov-close" data-gc-close aria-label="关闭">✕</button>
   </div>
   <div class="gc-drawer-body">
@@ -1401,13 +1401,13 @@ tr[data-empty-row][hidden],
     <div class="gc-import-preview" data-gc-import-preview hidden></div>
     <div class="gc-field gc-field--full" style="margin-top: 12px;">
       <label for="gc-i-reason">变更原因（必填，写入审计留痕）</label>
-      <input type="text" id="gc-i-reason" placeholder="如 外部平台按片区新增网格，批量导入">
+      <input type="text" id="gc-i-reason" placeholder="如 外部平台按片区新增网格，一键同步">
     </div>
-    <p class="gc-ov-note">导入的网格自动编码（G-0NNN 递增）、来源为手动创建、初始为「待定责」；街道不存在或已停用、同街道下已有同名网格的行将被跳过。</p>
+    <p class="gc-ov-note">同步的网格自动编码（G-0NNN 递增）、来源为手动创建、初始为「待定责」；街道不存在或已停用、同街道下已有同名网格的行将被跳过。</p>
   </div>
   <div class="gc-drawer-foot">
     <button type="button" class="gc-btn-ghost" data-gc-close>取消</button>
-    <button type="button" class="gc-btn-primary" data-gc-import-save>确认导入</button>
+    <button type="button" class="gc-btn-primary" data-gc-import-save>确认同步</button>
   </div>
 </aside>
 <script id="space-edit-js">
@@ -1595,7 +1595,7 @@ tr[data-empty-row][hidden],
     sel.value = keepName || '';
   }
 
-  // ── 插行（新增 / 批量导入共用）：名称+编号两列，默认待定责、无主责、手动来源 ──
+  // ── 插行（新增 / 一键同步共用）：名称+编号两列，默认待定责、无主责、手动来源 ──
   function addGridRow(row) {
     var code = row.code;
     var tr = document.createElement('tr');
@@ -1707,7 +1707,7 @@ tr[data-empty-row][hidden],
     close();
   });
 
-  // ── 批量导入（每行「街道名称,网格名称」；编号按清单回显，清单外自动补号） ──
+  // ── 一键同步（每行「街道名称,网格名称」；编号按清单回显，清单外自动补号） ──
   var importTa = document.getElementById('gc-i-text');
   var importPreview = document.querySelector('[data-gc-import-preview]');
   var importReason = document.getElementById('gc-i-reason');
@@ -1737,7 +1737,7 @@ tr[data-empty-row][hidden],
     importPreview.hidden = false;
     importPreview.textContent = '';
     var head = document.createElement('div');
-    var b1 = document.createElement('span'); b1.className = 'gc-import-count'; b1.textContent = '可导入 ' + ok.length + ' 个';
+    var b1 = document.createElement('span'); b1.className = 'gc-import-count'; b1.textContent = '可同步 ' + ok.length + ' 个';
     head.appendChild(b1);
     if (bad.length) {
       var b2 = document.createElement('span'); b2.className = 'gc-import-count';
@@ -1767,7 +1767,7 @@ tr[data-empty-row][hidden],
     var reason = importReason.value.trim();
     if (!reason) { importReason.focus(); return; }
     ok.forEach(function (r) { addGridRow({ code: codeForName(r.street, r.name), street: r.street, name: r.name, community: '' }); });
-    toast('已批量导入 ' + ok.length + ' 个网格，写入草稿；初始为待定责。');
+    toast('已一键同步 ' + ok.length + ' 个网格，写入草稿；初始为待定责。');
     close();
   });
 
@@ -1779,7 +1779,7 @@ tr[data-empty-row][hidden],
     if (tr) tr.remove();
   });
 
-  // ── 从生效版带上下文进入：?edit=G-xxxx 打开编辑；?create=1 打开新增；?import=1 打开批量导入 ──
+  // ── 从生效版带上下文进入：?edit=G-xxxx 打开编辑；?create=1 打开新增；?import=1 打开一键同步 ──
   var qs = (typeof location !== 'undefined' && location.search) ? new URLSearchParams(location.search) : null;
   if (qs && qs.get('edit')) {
     var code = qs.get('edit').toUpperCase();

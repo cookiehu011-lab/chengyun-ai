@@ -991,6 +991,12 @@ html.light body {
 .gc-perm input { width: 15px; height: 15px; accent-color: var(--gc-accent); }
 .gc-ov-note { margin: 12px 0 0; font-size: 12px; color: var(--gc-muted); }
 /* 轻提示 */
+/* rev25 双来源：手动创建标识与节点操作 */
+.gc-chip--manual { background: var(--gc-accent-soft); color: var(--gc-accent); font-size: 11px; font-weight: 500; border-radius: 9999px; padding: 1px 8px; white-space: nowrap; }
+.gc-org-act { display: inline-flex; gap: 6px; margin-left: 8px; }
+.gc-btn-link--sm { padding: 2px 8px; font-size: 11px; }
+.gc-btn-primary--sm { height: 28px; padding: 0 12px; font-size: 12px; border-radius: 8px; }
+.gc-card-head-right { display: flex; align-items: center; gap: 12px; }
 </style>
 
 <!-- ============================================================
@@ -1200,8 +1206,11 @@ html.light body {
   <section class="gc-panel" data-gc-panel="org" aria-label="组织架构">
     <div class="gc-card" aria-labelledby="gc-orgtree-title">
       <header class="gc-card-head">
-        <h2 class="gc-card-title" id="gc-orgtree-title">组织架构（来自平台同步）</h2>
-        <span class="gc-card-note">同步数据 · 只读</span>
+        <h2 class="gc-card-title" id="gc-orgtree-title">组织架构</h2>
+        <div class="gc-card-head-right">
+          <span class="gc-card-note">双来源：平台同步（只读）＋ 手动创建（可编辑、可停用）</span>
+          <button type="button" class="gc-btn-primary gc-btn-primary--sm">＋ 新建组织</button>
+        </div>
       </header>
       <div class="gc-org-tree">
         <div class="gc-org-node gc-org-node--root">
@@ -1229,9 +1238,15 @@ html.light body {
               <div class="gc-org-node gc-org-node--leaf"><span class="gc-org-name">苏州社区</span><span class="gc-chip gc-chip--sync">同步</span></div>
             </div>
           </div>
+          <div class="gc-org-branch">
+            <div class="gc-org-node"><span class="gc-org-name">前门街道</span><span class="gc-chip gc-chip--manual">手动</span><span class="gc-org-act"><button type="button" class="gc-btn-link gc-btn-link--sm" title="编辑手动创建的街道">编辑</button><button type="button" class="gc-btn-link gc-btn-link--sm" title="停用后不能再被勾选为账号负责范围">停用</button></span></div>
+            <div class="gc-org-children">
+              <div class="gc-org-node gc-org-node--leaf"><span class="gc-org-name">西打磨厂社区</span><span class="gc-chip gc-chip--manual">手动</span><span class="gc-org-act"><button type="button" class="gc-btn-link gc-btn-link--sm" title="编辑手动创建的社区">编辑</button><button type="button" class="gc-btn-link gc-btn-link--sm" title="停用该社区（仅展示，不参与范围）">停用</button></span></div>
+            </div>
+          </div>
         </div>
       </div>
-      <p class="gc-card-foot">同步行政区不可新建、不可编辑、不可画围栏；此处仅用于挂接账号与网格。</p>
+      <p class="gc-card-foot">平台同步节点：名称、层级、上级只读（街道可停用）。手动创建节点：由本系统维护，可编辑、可停用，街道与同步街道同权——可勾选为账号负责范围、可挂网格主责与协同监督；社区仅展示，不能作为范围或挂责任人。</p>
     </div>
   </section>
 

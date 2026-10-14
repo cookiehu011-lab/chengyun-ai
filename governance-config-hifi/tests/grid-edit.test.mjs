@@ -1,7 +1,7 @@
 // 「空间与责任 · 草稿」网格编辑（space-edit-js）单元测试
 // rev27 口径：表格首两列「网格名称」「网格编号」；新增两步式（① 所属街道 → ② 网格下拉（外部平台清单））；
-// 编号按所选网格名称回显（清单内名称↔编号一一对应，清单外名称按序补号）；批量导入同口径。
-// 覆盖：查询过滤 / 行编辑 / 空网格编辑 / 两步式新增 / 批量导入 / 删除 / 启停 / 页面结构回归
+// 编号按所选网格名称回显（清单内名称↔编号一一对应，清单外名称按序补号）；一键同步同口径。
+// 覆盖：查询过滤 / 行编辑 / 空网格编辑 / 两步式新增 / 一键同步 / 删除 / 启停 / 页面结构回归
 // 运行：node --test governance-config-hifi/tests/grid-edit.test.mjs
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
@@ -86,7 +86,7 @@ beforeEach(() => {
   const toolbar = mk('div'); toolbar.className = 'gc-toolbar';
   const input = mk('input'); input.setAttribute('id', 'gc-q-grid'); toolbar.appendChild(input);
   const searchBtn = mk('button'); searchBtn.setAttribute('data-gc-search', ''); toolbar.appendChild(searchBtn);
-  const importBtn = mk('button'); importBtn.setAttribute('data-gc-grid-import', ''); importBtn.textContent = '⇪ 批量导入'; toolbar.appendChild(importBtn);
+  const importBtn = mk('button'); importBtn.setAttribute('data-gc-grid-import', ''); importBtn.textContent = '⇪ 一键同步'; toolbar.appendChild(importBtn);
   const newBtn = mk('button'); newBtn.setAttribute('data-gc-grid-new', ''); newBtn.textContent = '＋ 新增网格'; toolbar.appendChild(newBtn);
   body.appendChild(toolbar);
 
@@ -263,7 +263,7 @@ describe('抽屉互斥与关闭', () => {
     assert.equal(ctx.scrim.hidden, true);
   });
 
-  test('打开批量导入抽屉同样互斥，关闭后清空', () => {
+  test('打开一键同步抽屉同样互斥，关闭后清空', () => {
     ctx.click(ctx.bindBtn('G-0418'), 'click');
     ctx.click(ctx.importBtn, 'click');
     assert.equal(ctx.imp.hidden, false);
@@ -377,13 +377,13 @@ describe('网格新增（两步式：① 街道 → ② 网格下拉 + 编号回
   });
 });
 
-describe('批量导入（编号按清单回显，清单外按序补号）', () => {
+describe('一键同步（编号按清单回显，清单外按序补号）', () => {
   function input(text) {
     ctx.ta.value = text;
     ctx.click(ctx.ta, 'input');
   }
 
-  test('实时预览：可导入 / 跳过与原因（街道不存在或已停用、同街道同名）', () => {
+  test('实时预览：可同步 / 跳过与原因（街道不存在或已停用、同街道同名）', () => {
     ctx.click(ctx.importBtn, 'click');
     input([
       '朝阳门街道,新网格A',
@@ -393,7 +393,7 @@ describe('批量导入（编号按清单回显，清单外按序补号）', () =
 
     assert.equal(ctx.preview.hidden, false);
     const text = ctx.preview.textContent;
-    assert.ok(text.includes('可导入 1 个'), '应有 1 行可导入');
+    assert.ok(text.includes('可同步 1 个'), '应有 1 行可同步');
     assert.ok(text.includes('跳过 2 行'), '应有 2 行跳过');
     assert.ok(text.includes('街道不存在或已停用'));
     assert.ok(text.includes('该街道下已有同名网格'));
@@ -404,14 +404,14 @@ describe('批量导入（编号按清单回显，清单外按序补号）', () =
     ctx.click(ctx.importBtn, 'click');
     input('朝阳门街道、Tab网格\n\n东华门街道\t金宝街西网格');
     const text = ctx.preview.textContent;
-    assert.ok(text.includes('可导入 2 个'));
+    assert.ok(text.includes('可同步 2 个'));
     assert.ok(!text.includes('跳过'), '无跳过行');
   });
 
-  test('确认导入：清单内名称回显清单编号，清单外按序自动补号', () => {
+  test('确认同步：清单内名称回显清单编号，清单外按序自动补号', () => {
     ctx.click(ctx.importBtn, 'click');
     input('朝阳门街道,朝内大街北网格\n朝阳门街道,清单外新网格');
-    ctx.set('gc-i-reason', '演示：批量导入');
+    ctx.set('gc-i-reason', '演示：一键同步');
     ctx.click(ctx.doc.querySelector('[data-gc-import-save]'), 'click');
 
     assert.equal(ctx.rows().length, 6);
@@ -422,13 +422,13 @@ describe('批量导入（编号按清单回显，清单外按序补号）', () =
     assert.equal(inCatalog.querySelector('td.gc-grid-name').textContent, '朝内大街北网格');
 
     const outCatalog = ctx.rows().find((tr) => tr.querySelector('td.gc-grid-name')?.textContent === '清单外新网格');
-    assert.ok(outCatalog, '清单外名称应成功导入');
+    assert.ok(outCatalog, '清单外名称应成功同步');
     assert.equal(ctx.codeOf(outCatalog), 'G-0422', '清单外名称应按现有最大编号 G-0421 +1 补号');
     assert.equal(outCatalog.querySelector('.gc-chip').textContent, '待定责');
     assert.equal(outCatalog.children[8].textContent, '手动');
   });
 
-  test('无可导入行时确认导入：聚焦数据框、不新增行', () => {
+  test('无可同步行时确认同步：聚焦数据框、不新增行', () => {
     ctx.click(ctx.importBtn, 'click');
     input('不存在的街道,网格X');
     ctx.set('gc-i-reason', '演示');
@@ -438,9 +438,9 @@ describe('批量导入（编号按清单回显，清单外按序补号）', () =
     assert.equal(ctx.doc.activeElement, ctx.ta);
   });
 
-  test('变更原因必填：为空时聚焦原因、不导入', () => {
+  test('变更原因必填：为空时聚焦原因、不同步', () => {
     ctx.click(ctx.importBtn, 'click');
-    input('朝阳门街道,导入网格A');
+    input('朝阳门街道,同步网格A');
     ctx.set('gc-i-reason', ' ');
     ctx.click(ctx.doc.querySelector('[data-gc-import-save]'), 'click');
     assert.equal(ctx.rows().length, 4);
@@ -448,7 +448,7 @@ describe('批量导入（编号按清单回显，清单外按序补号）', () =
     assert.equal(ctx.doc.activeElement, ctx.field('gc-i-reason'));
   });
 
-  test('导入行可立即再编辑（编辑入口按行内编号定位）', () => {
+  test('同步行可立即再编辑（编辑入口按行内编号定位）', () => {
     ctx.click(ctx.importBtn, 'click');
     input('朝阳门街道,朝内大街北网格');
     ctx.set('gc-i-reason', '演示');
@@ -549,7 +549,7 @@ describe('网格启停', () => {
 describe('页面结构回归（读取真实页面 HTML）', () => {
   const html = fs.readFileSync(PAGE, 'utf8');
 
-  test('space-edit-js 必须位于新增/导入抽屉之后（防止脚本早执行丢失监听）', () => {
+  test('space-edit-js 必须位于新增/同步抽屉之后（防止脚本早执行丢失监听）', () => {
     const s = html.indexOf('<script id="space-edit-js">');
     const d = html.indexOf('data-gc-drawer="create"');
     const i = html.indexOf('data-gc-drawer="import"');
@@ -569,13 +569,13 @@ describe('页面结构回归（读取真实页面 HTML）', () => {
     assert.ok(!html.includes('gc-td-sub'), 'rev26 的首列小字编码结构应已移除');
   });
 
-  test('rev26 保留口径：① 所属街道 → ② 区置灰、批量导入抽屉与 URL 参数', () => {
+  test('rev26 保留口径：① 所属街道 → ② 区置灰、一键同步抽屉与 URL 参数', () => {
     assert.ok(html.includes('① 所属街道（必选，启用中的街道；含手动创建的街道）'));
     assert.ok(html.includes('gc-n-step2'), '两步式 ② 区容器应存在');
-    assert.ok(html.includes('data-gc-grid-import'), '工具栏应有批量导入按钮');
-    assert.ok(html.includes('data-gc-drawer="import"'), '批量导入抽屉应存在');
+    assert.ok(html.includes('data-gc-grid-import'), '工具栏应有一键同步按钮');
+    assert.ok(html.includes('data-gc-drawer="import"'), '一键同步抽屉应存在');
     assert.ok(html.includes('data-gc-import-save'));
-    assert.ok(html.includes('街道名称,网格名称'), '导入格式说明');
+    assert.ok(html.includes('街道名称,网格名称'), '同步格式说明');
     assert.ok(html.includes("qs.get('import')"), '草稿页应支持 ?import=1 自动开抽屉');
   });
 
@@ -597,7 +597,7 @@ describe('页面结构回归（读取真实页面 HTML）', () => {
       assert.ok(live.includes(`space-responsibility-draft.html?edit=${code}`), `live 编辑应带 ${code} 参数`);
     }
     assert.ok(live.includes('space-responsibility-draft.html?create=1'), 'live 新增网格应带 create 参数');
-    assert.ok(live.includes('space-responsibility-draft.html?import=1'), 'live 批量导入应带 import 参数');
+    assert.ok(live.includes('space-responsibility-draft.html?import=1'), 'live 一键同步应带 import 参数');
     assert.ok(html.includes("qs.get('edit')") && html.includes("qs.get('create')"), '草稿页应支持 URL 参数自动开抽屉');
   });
 
@@ -616,7 +616,7 @@ describe('页面结构回归（读取真实页面 HTML）', () => {
   test('rev24 启停口径：行级启停按钮、一致性角标与页脚豁免', () => {
     assert.ok(html.includes('data-gc-toggle'), '应存在行级启停按钮');
     assert.equal((html.match(/data-gc-toggle data-grid="G-\d{4}">/g) || []).length, 4, '四行静态网格都应有启停按钮');
-    assert.ok(html.includes('草稿编辑中：新增先选街道再命名，支持批量导入；可编辑、启停、删除'), '卡头应有 rev26 口径角标');
+    assert.ok(html.includes('草稿编辑中：新增先选街道再命名，支持一键同步；可编辑、启停、删除'), '卡头应有 rev26 口径角标');
     assert.ok(html.includes('停用网格不参与派发，不阻断'), '页脚应豁免显式停用行');
   });
 
