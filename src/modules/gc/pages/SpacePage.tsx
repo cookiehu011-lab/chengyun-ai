@@ -1,5 +1,5 @@
 // 空间与责任 · 原生版（PRD 2026-09-22 责任台账口径；双来源修订 2026-10-12）
-// - 网格双来源：平台同步（编码/街道/社区只读）+ 手动创建（本系统维护，可编辑街道/社区；编码创建后不可改）
+// - 网格双来源：平台同步（只读）+ 手动创建（2026-10-14：网格名称取自外部平台网格清单下拉选择，编号随名称回显，创建后不可改）
 // - 两种来源都可停用/启用与定责；不提供删除（编码是派发快照与账号范围的引用键）
 // - 网格三态派生：停用优先；无主责或主责账号已停用 → 待定责（派发不可用）
 // - 定责抽屉：主责候选人 = 启用账号 + 步骤含处置 + 范围含该网格；协同监督 = 外场核查回传 + 范围含该网格；
@@ -15,6 +15,33 @@ import {
 } from "../ledger"
 
 const GRID_MANUAL = "手动创建"
+
+// 外部平台网格清单（演示数据）：网格名称 ↔ 编号一一对应。
+// 手动创建 / 批量导入时，网格从清单中下拉选择，编号按所选名称回显；清单外名称（导入）按序自动补号。
+const GRID_CATALOG: Record<string, { name: string; code: string }[]> = {
+  "朝阳门街道": [
+    { name: "朝内大街北网格", code: "G-0401" },
+    { name: "朝阳门外南大街网格", code: "G-0402" },
+    { name: "大方家胡同网格", code: "G-0403" },
+    { name: "朝内大街网格", code: "G-0417" },
+    { name: "朝阳门南小街网格", code: "G-0418" },
+    { name: "东花市大街网格", code: "G-0419" },
+  ],
+  "东华门街道": [
+    { name: "东华门大街网格", code: "G-0404" },
+    { name: "王府井西街网格", code: "G-0405" },
+    { name: "金宝街北网格", code: "G-0421" },
+  ],
+  "建国门街道": [
+    { name: "苏州胡同网格", code: "G-0406" },
+    { name: "大羊毛胡同网格", code: "G-0407" },
+    { name: "建国门内大街网格", code: "G-0420" },
+  ],
+  "前门街道": [
+    { name: "前门东大街网格", code: "G-0408" },
+    { name: "西打磨厂网格", code: "G-0422" },
+  ],
+}
 
 function today(): string {
   const d = new Date()
@@ -153,9 +180,33 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
     setGForm({ code: g.code, name: g.name === g.code ? "" : g.name, street: g.street, community: g.community === "—" ? "" : g.community, reason: "" })
     setGridDrawer({ mode: "edit", index: i })
   }
-  /** 新建时选街道：自动建议编码（基于全表递增） */
+  /** 新建时选街道：清空网格选择，等选网格后回显编号 */
   function onAddStreetChange(street: string) {
-    setGForm((p) => ({ ...p, street, community: "", code: p.code && /^G-\d+$/.test(p.code) ? p.code : nextGridCode() }))
+    setGForm((p) => ({ ...p, street, community: "", name: "", code: "" }))
+  }
+  /** 网格编号回显：编号来自外部平台网格清单，与名称一一对应；清单外名称按序自动补号 */
+  function codeForName(street: string, name: string): string {
+    const hit = GRID_CATALOG[street]?.find((x) => x.name === name)
+    return hit?.code || nextGridCode()
+  }
+  /** 选网格（下拉）：编号按所选名称回显 */
+  function onGridNameChange(name: string) {
+    if (gridDrawer?.mode === "edit") {
+      const orig = allGrids[gridDrawer.index]
+      const keep = !name || name === (orig?.name || "")
+      setGForm((p) => ({ ...p, name, code: keep ? p.code : codeForName(p.street, name) }))
+    } else {
+      setGForm((p) => ({ ...p, name, code: name ? codeForName(p.street, name) : "" }))
+    }
+  }
+  /** 该街道下已创建的网格名称（用于从清单中排除） */
+  function createdNamesOf(street: string): string[] {
+    return allGrids.filter((g) => g.street === street).map((g) => g.name || g.code)
+  }
+  /** 网格下拉选项：外部平台清单中该街道下尚未创建的网格 */
+  function catalogOptionsOf(street: string): string[] {
+    const created = new Set(createdNamesOf(street))
+    return (GRID_CATALOG[street] || []).filter((x) => !created.has(x.name)).map((x) => x.name)
   }
 
   // ─── 批量导入：街道名称、网格名称两列 ──────────────────────────────────────
@@ -180,9 +231,12 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
     if (!okRows.length) { toast("没有可导入的行：请检查格式与街道名称。"); return }
     if (!importReason.trim()) { toast("「变更原因」为必填项：批量导入必须留痕。"); return }
     const authorName = author.split(" · ")[0] || author
-    const startNum = parseInt(nextGridCode().replace("G-", ""), 10)
+    let fallback = parseInt(nextGridCode().replace("G-", ""), 10)
     okRows.forEach((r, i) => {
-      const values = [`G-${String(startNum + i).padStart(4, "0")}`, r.street, "—", "—（空）", "—", "—", GRID_MANUAL, r.name]
+      // 编号回显：清单内的名称用清单编号；清单外按序自动补号
+      const catalogCode = GRID_CATALOG[r.street]?.find((x) => x.name === r.name)?.code
+      const code = catalogCode || `G-${String(fallback++).padStart(4, "0")}`
+      const values = [code, r.street, "—", "—（空）", "—", "—", GRID_MANUAL, r.name]
       dispatch({ type: "upsert", cardKey: "space.grid", index: rows.length + i, values, status: "待定责" })
     })
     dispatch({
@@ -205,7 +259,7 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
     const name = gForm.name.trim()
     const street = gForm.street.trim()
     const community = gForm.community.trim() || "—"
-    if (!name) { setGErr("「网格名称」为必填项"); return }
+    if (!name) { setGErr("「网格」为必选项：请先选择街道下的网格"); return }
     if (!/^[A-Za-z0-9\-_]+$/.test(code)) { setGErr("网格编码只允许字母、数字、连字符和下划线"); return }
     if (allGrids.some((g, i) => g.code === code && i !== gridDrawer.index)) { setGErr(`网格编码「${code}」已存在`); return }
     if (!street) { setGErr("「所属街道」为必选项：请先选择街道"); return }
@@ -304,11 +358,11 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
         <header style={S.cardHead}>
           <h3 style={S.cardTitle}>网格责任表</h3>
           <span style={S.cardNote}>
-            双来源：平台同步（编码、街道、社区只读）＋ 手动创建（本系统维护，可编辑街道 / 社区，编码创建后不可改）；两种来源都可启停与定责——每格一名主责、一名协同监督（可空）
+            双来源：平台同步（只读）＋ 手动创建（网格取自外部平台网格清单，编号随名称回显，创建后不可改）；两种来源都可启停与定责——每格一名主责、一名协同监督（可空）
           </span>
         </header>
         <div style={S.toolbar}>
-          <input style={S.search} value={query} placeholder="搜索网格、街道或责任人" onChange={(e) => setQuery(e.target.value)} />
+          <input style={S.search} value={query} placeholder="搜索网格名称 / 编码 / 街道 / 责任人" onChange={(e) => setQuery(e.target.value)} />
           <button type="button" style={{ ...S.btnSecondary, marginLeft: "auto" }} onClick={() => { setImportText(""); setImportReason(""); setImportOpen(true) }}>⇪ 批量导入</button>
           <button type="button" style={S.btnPrimary} onClick={openGridAdd}>＋ 新建网格</button>
         </div>
@@ -316,7 +370,7 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
           <table style={S.table}>
             <thead>
               <tr>
-                {["网格", "所属街道", "社区", "网格主责", "协同监督", "生效日期", "来源"].map((c) => <th key={c} style={S.th}>{c}</th>)}
+                {["网格名称", "网格编号", "所属街道", "社区", "网格主责", "协同监督", "生效日期", "来源"].map((c) => <th key={c} style={S.th}>{c}</th>)}
                 <th style={S.th}>状态</th>
                 <th style={{ ...S.th, textAlign: "right" }}>操作</th>
               </tr>
@@ -324,7 +378,7 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={9} style={S.empty}>
+                  <td colSpan={10} style={S.empty}>
                     {query
                       ? "没有匹配的网格"
                       : orgSynced
@@ -341,13 +395,9 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
                 return (
                   <tr key={g.code}>
                     <td style={{ ...S.td, ...S.tdName }}>
-                      {g.name && g.name !== g.code ? (
-                        <>
-                          {g.name}
-                          <span style={{ color: "var(--muted-foreground)", fontWeight: 400, fontSize: "11px", marginLeft: "5px" }}>{g.code}</span>
-                        </>
-                      ) : g.code}
+                      {g.name && g.name !== g.code ? g.name : "—"}
                     </td>
+                    <td style={{ ...S.td, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: "12px" }}>{g.code}</td>
                     <td style={S.td}>{g.street}</td>
                     <td style={S.td}>{g.community}</td>
                     <td style={S.td}>{g.owner}{ownerDead ? "（主责已停用）" : ""}</td>
@@ -493,20 +543,34 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
             display: "grid", gap: "12px",
           }}>
             <div>
-              <label style={S.fieldLabel}>② 网格名称（必填，表格里优先显示名称）</label>
-              <input style={S.input} value={gForm.name} placeholder="如 朝内大街北网格" onChange={(e) => setGForm((p) => ({ ...p, name: e.target.value }))} />
+              <label style={S.fieldLabel}>② 网格（下拉选择，来自外部平台网格清单；清单中已创建的不再出现）</label>
+              <select
+                style={{ ...S.input, ...(gForm.name ? null : { borderColor: "rgba(50,109,255,0.45)" }) }}
+                value={gForm.name}
+                onChange={(e) => onGridNameChange(e.target.value)}
+              >
+                <option value="">请选择网格…</option>
+                {(gridDrawer.mode === "edit" && gForm.name && !catalogOptionsOf(gForm.street).includes(gForm.name)
+                  ? [gForm.name, ...catalogOptionsOf(gForm.street)]
+                  : catalogOptionsOf(gForm.street)
+                ).map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+              {gForm.street && catalogOptionsOf(gForm.street).length === 0 && (
+                <div style={{ fontSize: "10px", color: "var(--muted-foreground)", marginTop: "6px" }}>
+                  「{gForm.street}」清单中的网格均已创建；如需新增网格名称，请在外部平台登记后同步，或通过批量导入。
+                </div>
+              )}
             </div>
             <div>
-              <label style={S.fieldLabel}>网格编码（必填，字母 / 数字 / 连字符 / 下划线，全表唯一；已按街道自动建议{gridDrawer.mode === "edit" ? "；创建后不可改" : "，可修改"}）</label>
+              <label style={S.fieldLabel}>网格编号（按所选网格回显，来自外部平台清单；创建后不可改）</label>
               <input
-                style={{ ...S.input, ...(gridDrawer.mode === "edit" ? { backgroundColor: "var(--card-2)", color: "var(--muted-foreground)" } : null) }}
+                style={{ ...S.input, backgroundColor: "var(--card-2)", color: "var(--muted-foreground)" }}
                 value={gForm.code}
-                placeholder="选择街道后自动建议，如 G-0422"
-                readOnly={gridDrawer.mode === "edit"}
-                onChange={(e) => setGForm((p) => ({ ...p, code: e.target.value }))}
+                placeholder="选择网格后回显编号，如 G-0401"
+                readOnly
               />
               <div style={{ fontSize: "10px", color: "var(--muted-foreground)", marginTop: "6px" }}>
-                编码是账号范围与派发快照的引用键，创建后不可修改；删除不提供，停用即可让新事件不再匹配。
+                编号与网格名称一一对应（清单回显），不手工编号；编号是账号范围与派发快照的引用键，创建后不可修改；删除不提供，停用即可让新事件不再匹配。
               </div>
             </div>
             <div>

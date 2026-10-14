@@ -4,6 +4,7 @@ import DongchengHeatmapMap from "./components/DongchengHeatmapMap?v=cr37"
 import AIConclusion from "./components/AIConclusion?v=cr8"
 import EventCarousel from "./components/EventCarousel?v=cr51"
 import AIStatisticsModule from "./modules/AIStatistics"
+import AIStatisticsV2 from "./modules/AIStatisticsV2"
 import GovernanceConfigNative from "./modules/gc/GovernanceConfigNative"
 import { GcProvider, useGc } from "./modules/gc/store"
 import { IdentityPicker } from "./modules/gc/IdentityPicker"
@@ -140,6 +141,12 @@ export type ModuleId =
   // 自定义菜单项（菜单管理创建的占位模块）：保留内置 6 项的自动补全，同时放行任意字符串 id
   | (string & {})
 
+// 版本口径（2026-10-14）：默认地址展示原产品功能（AI 统计 1.0 七类版）；
+// 仅带 ?v=2 时渲染 AI 统计 2.0 四类收敛版。
+const IS_V2_STATS =
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).get("v") === "2"
+
 function Card({
   children,
   style,
@@ -256,6 +263,7 @@ function KpiCell({
   active,
   title,
   plain,
+  ruleId,
 }: {
   label: string
   value: string
@@ -269,6 +277,8 @@ function KpiCell({
   title?: string
   /** 文本值（中文短语等）：不用等宽大数字样式 */
   plain?: boolean
+  /** 注释按钮：悬停展开该指标公式，移开即收起 */
+  ruleId?: string
 }) {
   const inner = (
     <>
@@ -284,6 +294,7 @@ function KpiCell({
         >
           {label}
         </span>
+        {ruleId && <RuleChip id={ruleId} />}
         {delta && (
           <span
             style={{
@@ -438,8 +449,8 @@ function KpiStrip({
       </div>
     )
   }
-  // 实况三卡（口径见 DASH_RULES.kpi）：今日接入 / AI 自主发现 / 按期办结率。
-  // 本期无时限：AI 自主发现与按期办结率显示「—」；昨日为 0 时今日接入环比显示「—」。
+  // 实况五卡（口径见 DASH_RULES.kpi）：今日接入 / AI 自主发现 / 按期办结率 / 平均处置时长 / 超时预警。
+  // 本期无时限：AI 自主发现、按期办结率、平均处置时长、超时预警均显示「—」；昨日为 0 时今日接入环比显示「—」。
   // （示例数据：282 件为演示值，DAY_HEAT[12] 为昨日相对量）
   const yesterdayDemo = DAY_HEAT[12] ?? 0
   const cells = [
@@ -466,6 +477,22 @@ function KpiStrip({
       value="—"
       plain
       title="这一期没有时限，显示「—」"
+    />,
+    <KpiCell
+      key="duration"
+      label="平均处置时长"
+      value="—"
+      plain
+      title="平均处置时长 = 派发成功到终态的有效时长合计 ÷ 已派发且已终态的事件数。本版不计时限，暂不计算。"
+      ruleId="kpi_duration"
+    />,
+    <KpiCell
+      key="timeout"
+      label="超时预警"
+      value="—"
+      plain
+      title="超时预警 = 已派发、尚未终态、且已过提醒点或已过时限的事件件数。本版不计时限，暂不计算。"
+      ruleId="kpi_timeout"
     />,
   ]
   return (
@@ -13648,6 +13675,17 @@ interface WbMsg {
   content: string
   suggestions?: WbSuggestion[]
   fileCard?: { fileId: string }
+  /** 回复流程：思考 → 执行步骤 → 输出正文（参考 Trae 回复流程） */
+  steps?: WbStep[]
+}
+
+interface WbStep {
+  kind: "think" | "act"
+  label: string
+  done: boolean
+  /** 思考完成后的摘要（点击条目可展开/收起） */
+  detail?: string
+  open?: boolean
 }
 
 const WB_TYPE_META: Record<
@@ -13730,6 +13768,17 @@ function AIWorkbench() {
   )
   const [chatInput, setChatInput] = useState("")
   const [showOpPreview, setShowOpPreview] = useState(false)
+  // 文件预览：对话右侧分栏打开（Trae 式三段面板）
+  const [wbPreviewId, setWbPreviewId] = useState<string | null>(null)
+  const [wbZoom, setWbZoom] = useState(1)
+  const [wbWide, setWbWide] = useState(false)
+  const [wbDlMenu, setWbDlMenu] = useState(false)
+  const wbPreviewFile = files.find((f) => f.id === wbPreviewId) || null
+  function openWbPreview(id: string) {
+    setWbPreviewId(id)
+    setWbZoom(1)
+    setWbWide(false)
+  }
   // 新建对话：两档业务入口（业务问答 / 分析成稿）
   const [newEntry, setNewEntry] = useState<WbDialogType | null>(null)
   // 业务问答 → 整理为报告：确认页（标题 / 纳入轮次 / 意图）
@@ -13766,6 +13815,104 @@ function AIWorkbench() {
       const next = [...prev]
       const si = next.map((m) => m.role).lastIndexOf("status")
       if (si >= 0) next[si] = msg
+      return next
+    })
+  }
+
+  /** 回复流程（思考 → 执行 → 输出）：把最后一条 status 变为带步骤的 AI 消息，
+   * 按节奏推进步骤，全部完成后用 final 消息替换。参考 Trae 回复的流程感。 */
+  function runAgentFlow(
+    dialogId: string,
+    spec: { think?: string; thinkDetail?: string; acts: string[] },
+    final: WbMsg
+  ) {
+    const thinkLabel = spec.think || "深度思考中…"
+    // 初始：status → AI 空消息 + 思考进行中
+    setMsgs(dialogId, (prev) => {
+      const next = [...prev]
+      const si = next.map((m) => m.role).lastIndexOf("status")
+      const seed: WbMsg = {
+        role: "ai",
+        content: "",
+        steps: [{ kind: "think", label: thinkLabel, done: false }],
+      }
+      if (si >= 0) next[si] = seed
+      else next.push(seed)
+      return next
+    })
+    let t = 900
+    const markStep = (idx: number, patch: Partial<WbStep>) => {
+      setMsgs(dialogId, (prev) => {
+        const next = [...prev]
+        const mi = next.map((m) => m.role === "ai" && m.steps && m.content === "").lastIndexOf(true)
+        if (mi < 0) return next
+        const msg = next[mi]
+        if (!msg.steps || !msg.steps[idx]) return next
+        const steps = msg.steps.map((s, i) => (i === idx ? { ...s, ...patch } : s))
+        next[mi] = { ...msg, steps }
+        return next
+      })
+    }
+    const schedule = (fn: () => void) => {
+      const delay = t
+      t += 850 + Math.random() * 250
+      setTimeout(fn, delay)
+    }
+    schedule(() => {
+      // 思考完成 → 第一个执行步骤开始
+      markStep(0, { done: true, label: `已深度思考`, detail: spec.thinkDetail })
+      if (spec.acts.length) {
+        setMsgs(dialogId, (prev) => {
+          const next = [...prev]
+          const mi = next.map((m) => m.role === "ai" && m.steps && m.content === "").lastIndexOf(true)
+          if (mi < 0) return next
+          const msg = next[mi]
+          next[mi] = { ...msg, steps: [...(msg.steps || []), { kind: "act", label: spec.acts[0], done: false }] }
+          return next
+        })
+      }
+    })
+    spec.acts.forEach((_, i) => {
+      schedule(() => {
+        markStep(i + 1, { done: true })
+        if (i + 1 < spec.acts.length) {
+          setMsgs(dialogId, (prev) => {
+            const next = [...prev]
+            const mi = next.map((m) => m.role === "ai" && m.steps && m.content === "").lastIndexOf(true)
+            if (mi < 0) return next
+            const msg = next[mi]
+            next[mi] = { ...msg, steps: [...(msg.steps || []), { kind: "act", label: spec.acts[i + 1], done: false }] }
+            return next
+          })
+        }
+      })
+    })
+    // 全部完成后输出正文：步骤收起保留在回复顶部（参考 Trae 完成后的可展开痕迹）
+    setTimeout(() => {
+      setMsgs(dialogId, (prev) => {
+        const next = [...prev]
+        const mi = next.map((m) => m.role === "ai" && m.steps && m.content === "").lastIndexOf(true)
+        if (mi >= 0) {
+          const doneSteps = (next[mi].steps || []).map((s) => ({ ...s, done: true, open: false }))
+          next[mi] = { ...final, steps: doneSteps.length ? doneSteps : final.steps }
+        } else {
+          const si = next.map((m) => m.role).lastIndexOf("status")
+          if (si >= 0) next[si] = final
+          else next.push(final)
+        }
+        return next
+      })
+    }, t + 250)
+  }
+
+  /** 切换思考摘要展开态 */
+  function toggleStepOpen(dialogId: string, msgIndex: number, stepIndex: number) {
+    setMsgs(dialogId, (prev) => {
+      const next = [...prev]
+      const msg = next[msgIndex]
+      if (!msg?.steps || !msg.steps[stepIndex]) return next
+      const steps = msg.steps.map((s, i) => (i === stepIndex ? { ...s, open: !s.open } : s))
+      next[msgIndex] = { ...msg, steps }
       return next
     })
   }
@@ -13816,21 +13963,38 @@ function AIWorkbench() {
     setMsgs(dialogId, (prev) => [
       ...prev,
       { role: "user", content: text },
-      { role: "status", content: "正在按当前口径查询" },
+      { role: "status", content: "" },
     ])
     const isOp = text.includes("操作") || text.includes("激活")
-    setTimeout(() => {
-      replaceLastStatus(dialogId, {
+    const ans = isOp
+      ? "检测到您要执行业务操作。我已完成操作预检，请在右侧确认后执行。"
+      : QA_ANSWERS[wbQaSeq++ % QA_ANSWERS.length]
+    runAgentFlow(
+      dialogId,
+      isOp
+        ? {
+            think: "深度思考中…",
+            thinkDetail: "识别到业务操作意图，判断需先做权限与影响范围预检，再交由人工确认执行。",
+            acts: ["识别业务操作意图", "预检操作权限与影响范围"],
+          }
+        : {
+            think: "深度思考中…",
+            thinkDetail: "解析问题口径，定位需要的时间窗、空间范围与事件类型，规划查询与计算步骤。",
+            acts: ["检索 近7日 · 全区 · 全部类型数据", "按当前口径计算并比对环比"],
+          },
+      {
         role: "ai",
-        content: isOp
-          ? "检测到您要执行业务操作。我已完成操作预检，请在右侧确认后执行。"
-          : QA_ANSWERS[wbQaSeq++ % QA_ANSWERS.length],
-      })
-      if (isOp) setShowOpPreview(true)
-    }, 1100)
+        content: ans,
+      }
+    )
+    if (isOp) setTimeout(() => setShowOpPreview(true), 3200)
   }
 
   function deriveReportTitle(text: string): string {
+    // 输入里带明确主题词（如「上周东城治理周报」「暴露垃圾专题报告」）时，
+    // 去掉「生成/请/帮我」等指令前缀后直接用作报告标题，保住范围与时间段
+    const stripped = text.replace(/^[请帮我]*帮我?生成|生成$|^请|^帮我/g, "").trim()
+    if (stripped.length >= 4 && /报告|周报|月报|汇报|成稿/.test(stripped)) return stripped
     if (text.includes("暴露")) return "暴露垃圾专题报告"
     if (text.includes("周报")) return "治理周报"
     if (text.includes("月报")) return "治理月报"
@@ -13870,29 +14034,52 @@ function AIWorkbench() {
       setMsgs(dialogId, (prev) => [
         ...prev,
         { role: "user", content: text },
-        { role: "status", content: `正在生成《${title}》，约 2–3 分钟，完成后可在文件记录查看` },
+        { role: "status", content: "" },
       ])
       setGen({ dialogId, title, fileId, pct: 0, template: false })
+      runAgentFlow(
+        dialogId,
+        {
+          think: "深度思考中…",
+          thinkDetail: `确定《${title}》的章节结构（综合态势 / 事件发生 / 流程运行），规划各章所需数据与口径。`,
+          acts: [
+            "汇总综合态势：发现、存续、严重件",
+            "汇总事件发生与流程运行数据",
+            "套用报告模板渲染版式并生成文件",
+          ],
+        },
+        {
+          role: "ai",
+          content: `《${title}》已生成。\n\n主要发现：\n• 本周发现事件 312 件，较上周增加 12%\n• 闭环 265 件，闭环率 85%，处置时长 2.4h\n• 朝阳门、东直门街道为高发区域\n\n文件已保存，可点击下方卡片预览。`,
+          fileCard: { fileId },
+        }
+      )
       return
     }
     // 范围内追问：默认先回答、不改稿
     setMsgs(dialogId, (prev) => [
       ...prev,
       { role: "user", content: text },
-      { role: "status", content: "正在按报告口径复核数据" },
+      { role: "status", content: "" },
     ])
-    setTimeout(() => {
-      const ans = /怎么来|来源|口径|解释/.test(text)
-        ? "该数来自本报告第 2 节：本周发现事件 312 件，口径为「网格巡查 + AI 识别 + 市民上报」去重后的有效事件。"
-        : /环比|同比|为啥|为什么|趋势|多少/.test(text)
-        ? "环比 +12%：本周 312 件 vs 上周 279 件。主要增量来自暴露垃圾（+18%）与店外经营（+9%）。"
-        : "围绕当前报告：闭环率 85%，处置时长 2.4h，朝阳门、东直门为高发区域。"
-      replaceLastStatus(dialogId, {
+    const ans = /怎么来|来源|口径|解释/.test(text)
+      ? "该数来自本报告第 2 节：本周发现事件 312 件，口径为「网格巡查 + AI 识别 + 市民上报」去重后的有效事件。"
+      : /环比|同比|为啥|为什么|趋势|多少/.test(text)
+      ? "环比 +12%：本周 312 件 vs 上周 279 件。主要增量来自暴露垃圾（+18%）与店外经营（+9%）。"
+      : "围绕当前报告：闭环率 85%，处置时长 2.4h，朝阳门、东直门为高发区域。"
+    runAgentFlow(
+      dialogId,
+      {
+        think: "深度思考中…",
+        thinkDetail: "在当前报告的口径与数据边界内定位该问题，不引入报告外的新数据。",
+        acts: ["定位报告对应章节", "按报告口径复核数据"],
+      },
+      {
         role: "ai",
         content: ans,
         suggestions: [{ kind: "writeIn", text: "是否将这段分析写入本报告？" }],
-      })
-    }, 1000)
+      }
+    )
   }
 
   function sendMessage() {
@@ -13913,15 +14100,21 @@ function AIWorkbench() {
     const nv = bumpVersion(file.id)
     setMsgs(dialogId, (prev) => [
       ...prev,
-      { role: "status", content: `正在写入《${d.title}》…` },
+      { role: "status", content: "" },
     ])
-    setTimeout(() => {
-      replaceLastStatus(dialogId, {
+    runAgentFlow(
+      dialogId,
+      {
+        think: "深度思考中…",
+        thinkDetail: "确认写入位置与现有章节结构的关系，避免重复或口径冲突。",
+        acts: [`将分析写入《${d.title}》对应章节`, "更新报告文件版本"],
+      },
+      {
         role: "ai",
         content: `已写入本报告，文件更新至 ${nv}。`,
         fileCard: { fileId: file.id },
-      })
-    }, 1400)
+      }
+    )
   }
 
   // 成稿 → 范围外问题：跳转业务问答（一次性拷贝意图，不共用上下文）
@@ -14227,6 +14420,8 @@ function AIWorkbench() {
               files.map((f) => (
                 <div
                   key={f.id}
+                  onClick={() => openWbPreview(f.id)}
+                  title="点击预览文件"
                   style={{
                     padding: "9px 10px",
                     marginBottom: 5,
@@ -14573,6 +14768,82 @@ function AIWorkbench() {
                               : "0 2px 8px rgba(22,45,77,0.05)",
                         }}
                       >
+                        {/* 回复流程：思考 → 执行 → 输出（正文在步骤之后出现） */}
+                        {msg.steps && msg.steps.length > 0 && (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 5,
+                              marginBottom: msg.content ? 8 : 0,
+                            }}
+                          >
+                            {msg.steps.map((s, si) => (
+                              <div key={si}>
+                                <button
+                                  type="button"
+                                  onClick={
+                                    s.kind === "think" && s.done && s.detail
+                                      ? () => toggleStepOpen(activeDialogId!, conversations[activeDialogId!].indexOf(msg), si)
+                                      : undefined
+                                  }
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 7,
+                                    padding: 0,
+                                    border: "none",
+                                    background: "none",
+                                    cursor: s.kind === "think" && s.done && s.detail ? "pointer" : "default",
+                                    fontSize: 11,
+                                    color: s.done ? T.textMuted : T.primary,
+                                    textAlign: "left",
+                                    width: "100%",
+                                  }}
+                                >
+                                  {s.kind === "think" ? (
+                                    <span style={{ flexShrink: 0, fontSize: 12, animation: s.done ? "none" : "wb-think 1.1s ease-in-out infinite" }}>✦</span>
+                                  ) : s.done ? (
+                                    <span style={{ flexShrink: 0, color: T.green, fontSize: 11 }}>✓</span>
+                                  ) : (
+                                    <span
+                                      style={{
+                                        flexShrink: 0,
+                                        width: 10,
+                                        height: 10,
+                                        borderRadius: "50%",
+                                        border: `2px solid rgba(50,109,255,0.25)`,
+                                        borderTopColor: T.primary,
+                                        animation: "wb-spin 0.8s linear infinite",
+                                      }}
+                                    />
+                                  )}
+                                  <span style={{ fontWeight: s.done ? 400 : 600 }}>
+                                    {s.label}
+                                    {s.kind === "think" && s.done && !s.open && s.detail ? " ▸" : s.kind === "think" && s.open ? " ▾" : ""}
+                                  </span>
+                                </button>
+                                {s.kind === "think" && s.open && s.detail && (
+                                  <div
+                                    style={{
+                                      marginTop: 5,
+                                      marginLeft: 19,
+                                      padding: "7px 10px",
+                                      fontSize: 10.5,
+                                      color: T.textSub,
+                                      lineHeight: 1.7,
+                                      backgroundColor: "var(--chip-bg)",
+                                      borderLeft: `2px solid rgba(50,109,255,0.35)`,
+                                      borderRadius: 4,
+                                    }}
+                                  >
+                                    {s.detail}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         {msg.content}
                       </div>
                       {msg.fileCard &&
@@ -14583,6 +14854,13 @@ function AIWorkbench() {
                           if (!f) return null
                           return (
                             <div
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => openWbPreview(f.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") openWbPreview(f.id)
+                              }}
+                              title="点击预览文件"
                               style={{
                                 display: "flex",
                                 alignItems: "center",
@@ -14592,6 +14870,14 @@ function AIWorkbench() {
                                 border: `1px solid ${T.border}`,
                                 borderRadius: 9,
                                 boxShadow: "0 2px 8px rgba(22,45,77,0.05)",
+                                cursor: "pointer",
+                                transition: "border-color .15s ease",
+                              }}
+                              onMouseEnter={(e) => {
+                                ;(e.currentTarget as HTMLDivElement).style.borderColor = "rgba(50,109,255,0.45)"
+                              }}
+                              onMouseLeave={(e) => {
+                                ;(e.currentTarget as HTMLDivElement).style.borderColor = T.border
                               }}
                             >
                               <span
@@ -14632,7 +14918,10 @@ function AIWorkbench() {
                                 </div>
                               </div>
                               <button
-                                onClick={() => setActiveTab("files")}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setActiveTab("files")
+                                }}
                                 style={{
                                   marginLeft: 4,
                                   fontSize: 10,
@@ -14927,6 +15216,285 @@ function AIWorkbench() {
             </div>
           </Card>
         )}
+      {/* 文件预览：对话右侧分栏（Trae 式三段面板：顶栏工具 / 内容缩放 / 底部状态） */}
+      {wbPreviewFile && (
+        <Card
+          style={{
+            flexShrink: 0,
+            width: wbWide ? 720 : 480,
+            flex: "0 0 auto",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
+          {/* 顶栏：文件标识 + 工具组（缩小 / 百分比 / 放大 / 面板宽档 / 下载 / 关闭） */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "10px 12px",
+              borderBottom: `1px solid ${T.border}`,
+              backgroundColor: T.card2,
+              flexShrink: 0,
+            }}
+          >
+            <span
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: 6,
+                background: wbPreviewFile.type === "Excel" ? "linear-gradient(135deg,#35B985,#7BD8A9)" : wbPreviewFile.type === "图片" ? "linear-gradient(135deg,#8B7CF6,#B8A9FF)" : "linear-gradient(135deg,#E45E58,#FF9A7B)",
+                color: "#fff",
+                fontSize: 8,
+                fontWeight: 800,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              {wbPreviewFile.type}
+            </span>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {wbPreviewFile.name}
+              </div>
+              <div style={{ fontSize: 9, color: T.textMuted }}>
+                {wbPreviewFile.version} · {wbPreviewFile.size}
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0, border: `1px solid ${T.border}`, borderRadius: 7, padding: "1px 3px", backgroundColor: T.panelSolid }}>
+              <button
+                onClick={() => setWbZoom((z) => Math.max(0.6, Math.round((z - 0.1) * 10) / 10))}
+                title="缩小"
+                style={{ width: 24, height: 24, border: "none", background: "none", cursor: "pointer", color: wbZoom <= 0.6 ? T.textMuted : T.text, fontSize: 15, lineHeight: 1, borderRadius: 5 }}
+              >
+                −
+              </button>
+              <button
+                onClick={() => setWbZoom(1)}
+                title="重置缩放"
+                style={{ minWidth: 40, height: 24, border: "none", background: "none", cursor: "pointer", color: T.textMuted, fontSize: 10, fontFamily: "JetBrains Mono, monospace", borderRadius: 5 }}
+              >
+                {Math.round(wbZoom * 100)}%
+              </button>
+              <button
+                onClick={() => setWbZoom((z) => Math.min(2, Math.round((z + 0.1) * 10) / 10))}
+                title="放大"
+                style={{ width: 24, height: 24, border: "none", background: "none", cursor: "pointer", color: wbZoom >= 2 ? T.textMuted : T.text, fontSize: 15, lineHeight: 1, borderRadius: 5 }}
+              >
+                +
+              </button>
+            </div>
+            <button
+              onClick={() => setWbWide((w) => !w)}
+              title={wbWide ? "还原面板宽度" : "放大面板宽度"}
+              style={{
+                width: 26, height: 26, border: `1px solid ${T.border}`, background: wbWide ? "rgba(50,109,255,0.1)" : "none",
+                cursor: "pointer", color: wbWide ? T.primary : T.textMuted, fontSize: 12, borderRadius: 7, flexShrink: 0,
+              }}
+            >
+              ⤢
+            </button>
+            {/* 下载：默认 PDF，可选 Word（落浏览器默认下载路径） */}
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              <button
+                onClick={() => setWbDlMenu((v) => !v)}
+                style={{
+                  height: 26, padding: "0 10px", border: "none", background: "rgba(50,109,255,0.08)", cursor: "pointer",
+                  color: T.primary, fontSize: 11, fontWeight: 600, borderRadius: 7,
+                }}
+              >
+                下载 ▾
+              </button>
+              {wbDlMenu && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 30,
+                    right: 0,
+                    width: 218,
+                    backgroundColor: T.panelSolid,
+                    border: `1px solid ${T.border}`,
+                    borderRadius: 9,
+                    boxShadow: "0 10px 28px rgba(22,45,77,0.18)",
+                    zIndex: 20,
+                    overflow: "hidden",
+                  }}
+                >
+                  <button
+                    onClick={(e) => {
+                      const btn = e.currentTarget
+                      btn.textContent = "PDF 已开始下载（演示环境）"
+                      window.setTimeout(() => { setWbDlMenu(false); btn.textContent = "下载 PDF（默认）" }, 1500)
+                    }}
+                    style={{ display: "block", width: "100%", padding: "8px 12px", border: "none", background: "none", cursor: "pointer", fontSize: 11, color: T.text, textAlign: "left", fontWeight: 600 }}
+                  >
+                    下载 PDF（默认）
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      // Word：前端真实落一个 .doc（Word 兼容 HTML 内容）到浏览器默认下载路径
+                      const name = wbPreviewFile.name.replace(/\.pdf$/i, "")
+                      const html = `<html xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${name}</title></head><body style="font-family:SimSun,serif;"><h2 style="text-align:center;">${name}</h2><p style="text-align:center;font-size:12px;color:#666;">东城区城运中心 · ${wbPreviewFile.created} · 数据范围：${wbPreviewFile.scope || "全区"}</p><hr/><p><b>一、综合态势</b><br/>本周全区发现事件 312 件，环比 +12%；存续事件 15 件，其中严重 7 件。待立案 7 件为当前主要积压环节。</p><p><b>二、事件发生</b><br/>暴露垃圾、共享单车占道、施工占道为前三类型，合计占 61%。朝阳门、东直门、北新桥为高发街道；08–09 时为高发时段。</p><p><b>三、流程运行</b><br/>本周闭环 265 件，闭环率 85%；核查退回 2 件。责任网格在办以 A11、C07 为前二。</p><p><b>四、下周建议</b><br/>建议早高峰对高发两类、三个街道加密巡检；优先扩充立案审核力量消化待立案积压。</p><p style="font-size:10px;color:#999;text-align:center;">城运AI 生成 · 演示环境样例内容</p></body></html>`
+                      const blob = new Blob(["\ufeff", html], { type: "application/msword" })
+                      const a = document.createElement("a")
+                      a.href = URL.createObjectURL(blob)
+                      a.download = `${name}.doc`
+                      a.click()
+                      URL.revokeObjectURL(a.href)
+                      const btn = e.currentTarget
+                      btn.textContent = "Word 已下载至默认路径"
+                      window.setTimeout(() => { setWbDlMenu(false); btn.textContent = "下载 Word" }, 1600)
+                    }}
+                    style={{ display: "block", width: "100%", padding: "8px 12px", borderTop: `1px solid ${T.border}`, background: "none", cursor: "pointer", fontSize: 11, color: T.text, textAlign: "left" }}
+                  >
+                    下载 Word
+                  </button>
+                  <div style={{ padding: "6px 12px", borderTop: `1px solid ${T.border}`, fontSize: 9, color: T.textMuted, backgroundColor: T.card2 }}>
+                    在线预览为 HTML 版式 · 正式环境由服务端生成文件流，落浏览器默认下载路径
+                  </div>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => setWbPreviewId(null)}
+              title="关闭预览"
+              aria-label="关闭预览"
+              style={{ width: 26, height: 26, border: "none", background: "none", cursor: "pointer", color: T.textMuted, fontSize: 16, borderRadius: 7, flexShrink: 0 }}
+            >
+              ×
+            </button>
+          </div>
+          {/* 内容区：缩放渲染（PDF 报告版式 / 表格 / 热力示意） */}
+          <div style={{ flex: 1, overflow: "auto", backgroundColor: "var(--background-soft)", padding: 14, minHeight: 0 }}>
+            <div
+              style={{
+                transform: `scale(${wbZoom})`,
+                transformOrigin: "top left",
+                width: `${100 / wbZoom}%`,
+              }}
+            >
+              {wbPreviewFile.type === "PDF" ? (
+                <div style={{ maxWidth: 520, margin: "0 auto", backgroundColor: "#fff", border: `1px solid ${T.border}`, borderRadius: 6, padding: "26px 30px", boxShadow: "0 4px 18px rgba(22,45,77,0.08)" }}>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: T.text, textAlign: "center" }}>
+                    {wbPreviewFile.name.replace(/\.pdf$/i, "")}
+                  </div>
+                  <div style={{ fontSize: 10, color: T.textMuted, textAlign: "center", marginTop: 4, paddingBottom: 12, borderBottom: `2px solid ${T.primary}` }}>
+                    东城区城运中心 · {wbPreviewFile.created} · 数据范围：{wbPreviewFile.scope || "全区"}
+                  </div>
+                  {[
+                    { sec: "一、综合态势", body: "本周全区发现事件 312 件，环比 +12%；存续事件 15 件，其中严重 7 件。待立案 7 件为当前主要积压环节。" },
+                    { sec: "二、事件发生", body: "暴露垃圾、共享单车占道、施工占道为前三类型，合计占 61%。朝阳门、东直门、北新桥为高发街道；08–09 时为高发时段。" },
+                    { sec: "三、流程运行", body: "本周闭环 265 件，闭环率 85%；核查退回 2 件。责任网格在办以 A11、C07 为前二。" },
+                    { sec: "四、下周建议", body: "建议早高峰对高发两类、三个街道加密巡检；优先扩充立案审核力量消化待立案积压。" },
+                  ].map((b) => (
+                    <div key={b.sec} style={{ marginTop: 14 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 5 }}>{b.sec}</div>
+                      <div style={{ fontSize: 11, color: T.textSub, lineHeight: 1.8 }}>{b.body}</div>
+                    </div>
+                  ))}
+                  <div style={{ marginTop: 20, paddingTop: 10, borderTop: `1px solid ${T.border}`, fontSize: 9, color: T.textMuted, textAlign: "center" }}>
+                    城运AI 生成 · 本预览为演示版式，正式环境由报告引擎渲染
+                  </div>
+                </div>
+              ) : wbPreviewFile.type === "Excel" ? (
+                <div style={{ maxWidth: 520, margin: "0 auto", backgroundColor: "#fff", border: `1px solid ${T.border}`, borderRadius: 6, overflow: "hidden" }}>
+                  <div style={{ display: "flex", background: "rgba(53,185,133,0.08)", fontSize: 11, fontWeight: 700, color: T.text, padding: "8px 14px" }}>
+                    <span style={{ flex: 1 }}>指标</span>
+                    <span style={{ flex: 1 }}>数值</span>
+                    <span style={{ flex: 1 }}>环比</span>
+                  </div>
+                  {[
+                    ["识别候选", "1,284", "+9%"],
+                    ["立案有效", "312", "+12%"],
+                    ["分类准确率", "91.2%", "+0.8pt"],
+                    ["位置准确率", "88.4%", "+1.1pt"],
+                  ].map((row) => (
+                    <div key={row[0]} style={{ display: "flex", fontSize: 11, color: T.textSub, padding: "8px 14px", borderTop: `1px solid ${T.border}` }}>
+                      <span style={{ flex: 1 }}>{row[0]}</span>
+                      <span style={{ flex: 1, fontFamily: "JetBrains Mono, monospace" }}>{row[1]}</span>
+                      <span style={{ flex: 1, color: T.green }}>{row[2]}</span>
+                    </div>
+                  ))}
+                  <div style={{ padding: "10px 14px", fontSize: 9, color: T.textMuted, borderTop: `1px solid ${T.border}` }}>
+                    城运AI 生成 · 本预览为演示版式，正式环境由报表引擎渲染
+                  </div>
+                </div>
+              ) : (
+                <div style={{ maxWidth: 520, margin: "0 auto", backgroundColor: "#fff", border: `1px solid ${T.border}`, borderRadius: 6, padding: 18 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 10 }}>
+                    {wbPreviewFile.name.replace(/\.png$/i, "")}
+                  </div>
+                  <div style={{ position: "relative", height: 220, borderRadius: 8, overflow: "hidden", background: "linear-gradient(160deg,#f4f7fb,#e9eff7)" }}>
+                    {[
+                      { l: "58%", t: "38%", s: 120, c: "rgba(228,94,88,0.5)" },
+                      { l: "30%", t: "55%", s: 90, c: "rgba(255,154,66,0.45)" },
+                      { l: "70%", t: "62%", s: 70, c: "rgba(255,196,77,0.5)" },
+                      { l: "42%", t: "28%", s: 56, c: "rgba(50,109,255,0.35)" },
+                    ].map((h, i) => (
+                      <span
+                        key={i}
+                        style={{
+                          position: "absolute", left: h.l, top: h.t, width: h.s, height: h.s,
+                          borderRadius: "50%", background: `radial-gradient(circle,${h.c},transparent 70%)`,
+                          transform: "translate(-50%,-50%)", filter: "blur(6px)",
+                        }}
+                      />
+                    ))}
+                    <span style={{ position: "absolute", right: 10, bottom: 8, fontSize: 9, color: T.textMuted }}>
+                      颜色越深，发现越密集 · 演示示意
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          {/* 底部状态条 */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "8px 12px",
+              borderTop: `1px solid ${T.border}`,
+              backgroundColor: T.card2,
+              fontSize: 10,
+              color: T.textMuted,
+              flexShrink: 0,
+            }}
+          >
+            <span>{wbPreviewFile.type}</span>
+            {wbPreviewFile.scope && <span>数据范围：{wbPreviewFile.scope}</span>}
+            <span>演示版式 · 正式环境由报告引擎渲染</span>
+            {wbPreviewFile.dialogId && (
+              <button
+                onClick={() => {
+                  setActiveDialogId(wbPreviewFile.dialogId!)
+                  setActiveTab("dialogs")
+                  setWbPreviewId(null)
+                }}
+                style={{
+                  marginLeft: "auto",
+                  fontSize: 10,
+                  color: T.primary,
+                  backgroundColor: "rgba(50,109,255,0.08)",
+                  border: "none",
+                  padding: "3px 8px",
+                  borderRadius: 5,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  flexShrink: 0,
+                }}
+              >
+                来源对话 →
+              </button>
+            )}
+          </div>
+        </Card>
+      )}
       </div>
       {/* 新建对话：两档业务入口选择器 */}
       {newEntry && (
@@ -15679,6 +16247,23 @@ function TopNav({
                 {navIcon(item.iconKey)}
               </span>
               {item.label}
+              {item.id === "statistics" && IS_V2_STATS && (
+                <span
+                  title="AI统计 2.0 · 四类收敛版"
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 800,
+                    lineHeight: 1,
+                    padding: "2px 5px",
+                    borderRadius: 6,
+                    color: "#fff",
+                    background: `linear-gradient(135deg, ${T.primary}, #24D6D2)`,
+                    letterSpacing: "0.03em",
+                  }}
+                >
+                  2.0
+                </span>
+              )}
               {isActive && (
                 <span
                   style={{
@@ -15689,9 +16274,9 @@ function TopNav({
                     height: 3,
                     borderRadius: "2px 2px 0 0",
                     background: `linear-gradient(90deg,transparent,${T.primary},transparent)`,
-                  boxShadow: "0 0 12px rgba(50,109,255,0.65)",
-                }}
-              />
+                    boxShadow: "0 0 12px rgba(50,109,255,0.65)",
+                  }}
+                />
               )}
             </button>
           )
@@ -16451,7 +17036,16 @@ function AppShell() {
         )}
         {activeModule === "realtime" && <RealtimeGovernance identity={identity} />}
         {activeModule === "archive" && <EventArchive />}
-        {activeModule === "statistics" && <AIStatistics skin={skin} />}
+        {activeModule === "statistics" &&
+          (IS_V2_STATS ? (
+            <AIStatisticsV2
+              skin={skin}
+              onGoArchive={() => setActiveModule("archive")}
+              onGoRealtime={() => setActiveModule("realtime")}
+            />
+          ) : (
+            <AIStatistics skin={skin} />
+          ))}
         {activeModule === "workbench" && <AIWorkbench />}
         {activeModule === "config" && (
           <GovernanceConfigNative identity={identity} onIdentityChange={setIdentity} />
