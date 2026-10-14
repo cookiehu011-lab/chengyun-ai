@@ -14,7 +14,7 @@ import {
   type ReactNode,
 } from "react"
 import { CARDS, type GeneratedCard } from "./cards.generated"
-import { catalogNameOf } from "./catalog"
+import { catalogNameOf, FULL_WEB_FEATURES, FULL_APP_FEATURES } from "./catalog"
 
 // ─── 类型 ─────────────────────────────────────────────────────────────────────
 
@@ -95,6 +95,9 @@ export interface Customer {
   createdAt: string
   /** 客户订阅事件类型集合（平台事件目录的子集）；角色 / 账号的事件类型配置只能在此范围内选 */
   subscribedTypes: string[]
+  /** 客户订阅功能（2026-10-14）：Web / App 端功能菜单 id（一级叶子 + 二级 id），粒度到二级功能、不下沉到操作标签；
+   *  角色 / 账号的可见菜单只能在此范围内生效；缺省（老数据）= 全量订阅 */
+  subscribedFeatures?: { web: string[]; app: string[] }
   /** SaaS 客户档案：联系人 / 联系电话 */
   contactName: string
   contactPhone: string
@@ -267,6 +270,8 @@ const CUSTOMERS_SEED: Customer[] = [
     id: "c-dc", name: "东城区", status: "启用",
     adminName: "王倩", adminLogin: "wangqian@seetime", orgSynced: true, createdAt: "2026-07-01",
     subscribedTypes: DICT_TYPES,
+    // 订阅功能（2026-10-14）：Web / App 端功能菜单，粒度到二级功能；东城区全量订阅
+    subscribedFeatures: { web: [...FULL_WEB_FEATURES], app: [...FULL_APP_FEATURES] },
     contactName: "王倩", contactPhone: "13801020304", city: "北京市 / 东城区",
     cameraSources: ["东城公安一类视频", "东城管委二类视频"],
     cameraAreas: ["东华门街道", "朝阳门街道", "东四街道"],
@@ -276,6 +281,8 @@ const CUSTOMERS_SEED: Customer[] = [
     id: "c-xc", name: "西城区", status: "启用",
     adminName: "高建", adminLogin: "gaojian@seetime", orgSynced: false, createdAt: "2026-09-20",
     subscribedTypes: [],
+    // 部分订阅示例：Web 端只开治理大屏 / AI实时治理（全部页签）/ 事件档案；App 端只开首页与档案
+    subscribedFeatures: { web: ["dashboard", "live", "recognition", "case", "inspect", "void", "archive"], app: ["dashboard", "archive"] },
     contactName: "高建", contactPhone: "", city: "北京市 / 西城区",
     cameraSources: [], cameraAreas: [], expiresAt: "",
   },
@@ -641,6 +648,8 @@ export function GcProvider({ children }: { children: ReactNode }) {
                       ...seedC,
                       ...c,
                       subscribedTypes: c.subscribedTypes ?? seedC?.subscribedTypes ?? [],
+                      // 迁移：老数据客户无 subscribedFeatures → 全量订阅（缺省语义，与既有行为一致）
+                      subscribedFeatures: c.subscribedFeatures ?? seedC?.subscribedFeatures ?? { web: [...FULL_WEB_FEATURES], app: [...FULL_APP_FEATURES] },
                       contactName: c.contactName ?? seedC?.contactName ?? "",
                       contactPhone: c.contactPhone || seedC?.contactPhone || "",
                       city: c.city ?? seedC?.city ?? "",

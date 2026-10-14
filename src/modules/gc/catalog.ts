@@ -1,6 +1,7 @@
 // 治理配置 · 外部平台网格清单（演示数据）
 // 网格名称 ↔ 编号一一对应：手动创建 / 批量导入时网格从清单中下拉选择，
 // 编号按所选名称回显；清单外名称（批量导入）按序自动补号。
+import { MODULES } from "./meta"
 export const GRID_CATALOG: Record<string, { name: string; code: string }[]> = {
   "朝阳门街道": [
     { name: "朝内大街北网格", code: "G-0401" },
@@ -30,3 +31,11 @@ export const GRID_CATALOG: Record<string, { name: string; code: string }[]> = {
 export function catalogNameOf(street: string, code: string): string {
   return GRID_CATALOG[street]?.find((x) => x.code === code)?.name || ""
 }
+
+// ─── 功能订阅全量（与 ledger 的 MENUS / MENU_CHILDREN 同口径） ─────────────
+// 粒度到二级功能（AI实时治理页签 / 治理配置子模块），不下沉到操作标签。
+export const FEATURE_LEAF_IDS = ["dashboard", "archive", "stats", "workbench"]
+export const FEATURE_LIVE_TABS = ["recognition", "case", "inspect", "void"]
+export const FEATURE_CONFIG_MODULES = MODULES.filter((m) => !m.platform).map((m) => m.id)
+export const FULL_WEB_FEATURES = [...FEATURE_LEAF_IDS, "live", ...FEATURE_LIVE_TABS, "config", ...FEATURE_CONFIG_MODULES]
+export const FULL_APP_FEATURES = FULL_WEB_FEATURES

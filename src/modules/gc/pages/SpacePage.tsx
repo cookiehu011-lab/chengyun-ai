@@ -461,8 +461,16 @@ export function SpacePage({ author, cid, orgSynced }: { author: string; cid: str
           }
         >
           <div style={{ marginBottom: "12px" }}>
-            <label style={S.fieldLabel}>网格（同步数据，只读）</label>
-            <input style={{ ...S.input, backgroundColor: "var(--card-2)", color: "var(--muted-foreground)" }} value={`${bindGrid.code} · ${bindGrid.street} · ${bindGrid.community}`} readOnly />
+            <label style={S.fieldLabel}>网格范围（街道 · 网格；社区有则展示，只读）</label>
+            <input
+              style={{ ...S.input, backgroundColor: "var(--card-2)", color: "var(--muted-foreground)" }}
+              value={[
+                bindGrid.street,
+                bindGrid.name && bindGrid.name !== bindGrid.code ? bindGrid.name : bindGrid.code,
+                bindGrid.community && bindGrid.community !== "—" ? bindGrid.community : "",
+              ].filter(Boolean).join(" · ")}
+              readOnly
+            />
           </div>
           <div style={{ marginBottom: "12px" }}>
             <label style={S.fieldLabel}>网格主责（一格一名；候选人 = 启用账号 + 具备「处置」步骤 + 范围包含本网格）</label>

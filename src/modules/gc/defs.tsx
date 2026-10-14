@@ -41,7 +41,7 @@ export function ModuleContent({ id, author, cid, orgSynced }: { id: string; auth
   switch (id) {
     case "customers": return <CustomersPage author={author} />
     case "seetime": return <SeeTimePage author={author} />
-    case "org": return <LedgerPage cid={cid} orgSynced={orgSynced} />
+    case "org": return <LedgerPage cid={cid} orgSynced={orgSynced} author={author} />
     case "space": return <SpacePage author={author} cid={cid} orgSynced={orgSynced} />
     case "eventstd": return <CardList defs={CARDS.eventstd} nouns={NOUNS} />
     case "lifecycle": return <CardList defs={CARDS.lifecycle} nouns={NOUNS} />
