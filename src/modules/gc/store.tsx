@@ -14,6 +14,7 @@ import {
   type ReactNode,
 } from "react"
 import { CARDS, type GeneratedCard } from "./cards.generated"
+import { catalogNameOf } from "./catalog"
 
 // ─── 类型 ─────────────────────────────────────────────────────────────────────
 
@@ -41,12 +42,18 @@ export interface LedgerRole {
   id: string
   name: string
   steps: string[] // 冻结步骤清单的多选，见 ledger.ts STEPS
-  /** 可用的功能菜单（menu id，见 ledger.ts MENUS）；决定成员能看到哪些系统菜单 */
+  /** Web 端可用的功能菜单（menu id，见 ledger.ts MENUS）；决定成员能看到哪些系统菜单 */
   menus?: string[]
-  /** 治理配置子模块（gc module id）；仅在菜单含「治理配置」时生效 */
+  /** Web 端治理配置子模块（gc module id）；仅在菜单含「治理配置」时生效 */
   configModules?: string[]
-  /** AI实时治理二级页签（recognition/case/inspect/void）；仅在菜单含「AI实时治理」时生效 */
+  /** Web 端 AI实时治理二级页签（recognition/case/inspect/void）；仅在菜单含「AI实时治理」时生效 */
   liveTabs?: string[]
+  /** App 端功能菜单（menu id）；缺省/空 = 该角色未开通 App 端 */
+  appMenus?: string[]
+  /** App 端治理配置子模块；仅在 appMenus 含「治理配置」时生效 */
+  appConfigModules?: string[]
+  /** App 端 AI实时治理二级页签；仅在 appMenus 含「AI实时治理」时生效 */
+  appLiveTabs?: string[]
   /** 订阅事件类型：来自客户订阅事件类型集合的多选；空 = 不限（订阅该客户全部事件类型） */
   subscribeTypes?: string[]
   source: "平台预置" | "自定义"
@@ -103,12 +110,37 @@ export interface Customer {
 /** SeeTime 功能权限只有两项，可多选，至少选 1 项；不能自造第三项 */
 export type SeeTimePerm = "super" | "display"
 
+/** 组织角色绑定（对齐 SeeTime/MOGO 成员入驻）：一个 SeeTime 账号可绑定多个客户。
+ * 平台角色（超管 / 客户展示）是账号级配置，独立于绑定之外；绑定内只放客户级授权。
+ * 客户角色的功能访问端（Web / App）由角色定义决定（在「组织、账号与角色 → 角色」配置）。 */
+export interface SeeTimeBind {
+  /** 绑定的客户 id */
+  customer: string
+  /** 该客户下的组织节点（客户全区 或 某街道） */
+  org: string
+  /** 客户角色：所选客户责任台账中的启用角色 id（角色依赖客户，随客户联动） */
+  roles: string[]
+  /** 相机权限范围：省-市-区-街道级联后在客户已接入的街道层多选（同一层级） */
+  cameras: string[]
+  /** 设为默认组织：登录后默认进入；全部绑定中至多一条为默认 */
+  def?: boolean
+}
+
 export interface SeeTimeAccount {
   id: string
   name: string
+  /** 登录名（保存时按手机号自动派生 name@seetime；老数据保留原值） */
   login: string
+  /** 手机号（必填，对齐 MOGO 成员入驻） */
+  phone: string
+  /** 邮箱（选填） */
+  email: string
+  /** 使用结束时间（YYYY-MM-DD；空 = 长期） */
+  expiresAt: string
+  /** 组织角色绑定：至少 1 条 */
+  binds: SeeTimeBind[]
   perms: SeeTimePerm[]
-  /** 客户展示：被勾选的客户（至少 1 个）；超管自动可见全部客户 */
+  /** 客户展示：被勾选的客户（至少 1 个）；超管自动可见全部客户（由 binds 派生） */
   displayCustomers: string[]
   lastLogin: string
   status: "启用" | "停用"
@@ -137,12 +169,14 @@ export interface GcState {
 // ─── 种子数据 ────────────────────────────────────────────────────────────────
 
 // 空间与责任 · 网格责任表（rev24 口径：启用/停用/待定责 三态，停用豁免派发）
-export const SPACE_COLS = ["网格编码", "所属街道", "社区", "网格主责", "协同监督", "生效日期"]
+// 来源双轨：平台同步（外部平台权威，编码/街道/社区只读）+ 手动创建（本系统维护，可编辑）
+// 2026-10-14：网格名称取自外部平台网格清单，编号随名称回显（values[7]）
+export const SPACE_COLS = ["网格编码", "所属街道", "社区", "网格主责", "协同监督", "生效日期", "来源", "网格名称"]
 const SPACE_SEED: GcRow[] = [
-  { values: ["G-0418", "朝阳门街道", "某社区", "刘洋", "陈督", "2026-08-01"], status: "启用" },
-  { values: ["G-0417", "朝阳门街道", "某社区", "张强", "—", "2026-08-01"], status: "启用" },
-  { values: ["G-0419", "朝阳门街道", "东花市社区", "周琳", "陈督", "2026-08-01"], status: "启用" },
-  { values: ["G-0421", "东华门街道", "金宝街社区", "—（空）", "—", "—"], status: "待定责" },
+  { values: ["G-0418", "朝阳门街道", "某社区", "刘洋", "陈督", "2026-08-01", "平台同步", "朝阳门南小街网格"], status: "启用" },
+  { values: ["G-0417", "朝阳门街道", "某社区", "张强", "—", "2026-08-01", "平台同步", "朝内大街网格"], status: "启用" },
+  { values: ["G-0419", "朝阳门街道", "东花市社区", "周琳", "陈督", "2026-08-01", "平台同步", "东花市大街网格"], status: "启用" },
+  { values: ["G-0421", "东华门街道", "金宝街社区", "—（空）", "—", "—", "平台同步", "金宝街北网格"], status: "待定责" },
 ]
 
 // 时限与异常监控 · 时限矩阵（同一细类+等级+区域只能启用一条）
@@ -161,14 +195,14 @@ const SLA_MATRIX_SEED: GcRow[] = [
 // 责任台账 · 角色预置（PRD：预置不是冻结名单，管理员可改名或另建）
 const LEDGER_SEED: LedgerState = {
   roles: [
-    { id: "r-jt", name: "全局协调", steps: ["改配置"], menus: ["dashboard", "live", "archive", "stats", "workbench", "config"], configModules: ["org", "space", "eventstd", "lifecycle", "sla", "dispatch", "dedup", "metric", "publish"], liveTabs: ["recognition", "case", "inspect", "void"], source: "平台预置", status: "启用" },
-    { id: "r-ld", name: "领导", steps: ["只看"], menus: ["dashboard", "archive", "stats"], configModules: [], source: "平台预置", status: "启用" },
+    { id: "r-jt", name: "全局协调", steps: ["改配置"], menus: ["dashboard", "live", "archive", "stats", "workbench", "config"], configModules: ["org", "space", "eventstd", "lifecycle", "sla", "dispatch", "dedup", "metric", "publish"], liveTabs: ["recognition", "case", "inspect", "void"], appMenus: ["dashboard", "workbench", "archive"], appLiveTabs: [], appConfigModules: [], source: "平台预置", status: "启用" },
+    { id: "r-ld", name: "领导", steps: ["只看"], menus: ["dashboard", "archive", "stats"], configModules: [], appMenus: ["dashboard", "stats"], appLiveTabs: [], appConfigModules: [], source: "平台预置", status: "启用" },
     { id: "r-sh", name: "事件有效审核", steps: ["事件有效审核"], menus: ["live", "archive", "workbench", "stats", "config"], configModules: ["publish"], liveTabs: ["recognition", "case", "inspect", "void"], source: "平台预置", status: "启用" },
     { id: "r-pf", name: "立案派发", steps: ["立案派发"], menus: ["live", "archive", "workbench", "stats", "config"], configModules: ["publish"], liveTabs: ["recognition", "case", "inspect", "void"], source: "平台预置", status: "启用" },
-    { id: "r-zr", name: "网格责任人", steps: ["处置"], menus: ["workbench", "archive"], configModules: [], source: "平台预置", status: "启用" },
+    { id: "r-zr", name: "网格责任人", steps: ["处置"], menus: ["workbench", "archive"], configModules: [], appMenus: ["workbench"], appLiveTabs: [], appConfigModules: [], source: "平台预置", status: "启用" },
     { id: "r-hc", name: "核查审核", steps: ["核查审核"], menus: ["live", "archive", "workbench", "stats", "config"], configModules: ["publish"], liveTabs: ["recognition", "case", "inspect", "void"], source: "平台预置", status: "启用" },
     { id: "r-zf", name: "作废深化", steps: ["作废深化"], menus: ["archive", "workbench"], configModules: [], source: "平台预置", status: "启用" },
-    { id: "r-jd", name: "监督员", steps: ["外场核查回传"], menus: ["workbench", "archive"], configModules: [], source: "平台预置", status: "启用" },
+    { id: "r-jd", name: "监督员", steps: ["外场核查回传"], menus: ["workbench", "archive"], configModules: [], appMenus: ["workbench"], appLiveTabs: [], appConfigModules: [], source: "平台预置", status: "启用" },
   ],
   accounts: [
     { id: "a-wq", name: "王倩", login: "wangqian@seetime", org: "东城区", roles: ["r-jt"], scopeKind: "district", streets: [], grids: [], eventTypes: [], lastLogin: "2026-09-05", status: "启用" },
@@ -248,8 +282,8 @@ const CUSTOMERS_SEED: Customer[] = [
 ]
 
 const SEETIME_SEED: SeeTimeAccount[] = [
-  { id: "st-sys", name: "系统运营", login: "sysadmin@seetime", perms: ["super"], displayCustomers: [], lastLogin: "2026-09-23", status: "启用" },
-  { id: "st-ly", name: "陆遥", login: "luyao@seetime", perms: ["display"], displayCustomers: ["c-dc"], lastLogin: "2026-09-22", status: "启用" },
+  { id: "st-sys", name: "系统运营", login: "sysadmin@seetime", phone: "13900000001", email: "sysadmin@seetime.com", expiresAt: "", binds: [{ customer: "c-dc", org: "东城区", roles: ["r-jt"], cameras: [], def: true }], perms: ["super"], displayCustomers: [], lastLogin: "2026-09-23", status: "启用" },
+  { id: "st-ly", name: "陆遥", login: "luyao@seetime", phone: "13900000002", email: "luyao@seetime.com", expiresAt: "2027-09-22", binds: [{ customer: "c-dc", org: "东城区", roles: ["r-ld"], cameras: ["东华门街道", "朝阳门街道", "东四街道"], def: true }], perms: ["display"], displayCustomers: ["c-dc"], lastLogin: "2026-09-22", status: "启用" },
 ]
 
 const PLATFORM_SEED: PlatformState = {
@@ -616,9 +650,41 @@ export function GcProvider({ children }: { children: ReactNode }) {
                       expiresAt: c.expiresAt || seedC?.expiresAt || "",
                     }
                   }),
-                  seeTime: (parsed.platform.seeTime ?? base.platform.seeTime).map((s) => ({
-                    ...s, perms: [...(s.perms || [])], displayCustomers: [...(s.displayCustomers || [])],
-                  })),
+                  seeTime: (parsed.platform.seeTime ?? base.platform.seeTime).map((s) => {
+                    // 迁移：老 SeeTime 账号无 phone / email / expiresAt / binds →
+                    // 由 login / perms / displayCustomers 派生一条绑定，对齐 MOGO 成员入驻结构。
+                    // binds 元素逐条补齐：更早版本的绑定带 perms / 字符串 roles（无端配置），
+                    // 统一转换为 { id, ends } 结构，缺了会渲染崩溃。
+                    const legacy = s as SeeTimeAccount & { binds?: SeeTimeBind[] }
+                    const binds: SeeTimeBind[] = (legacy.binds?.length
+                      ? legacy.binds
+                      : [{
+                          customer: (s.displayCustomers || [])[0] ?? "c-dc",
+                          org: "东城区",
+                          roles: [],
+                          cameras: [],
+                          def: true,
+                        } as unknown as SeeTimeBind]
+                    ).map((b) => ({
+                      ...b,
+                      customer: b.customer ?? "c-dc",
+                      org: b.org ?? "东城区",
+                      // 角色引用统一为 string[]：老结构可能是 { id, ends } 或 { id, web, app }，只保留角色 id
+                      roles: ((b as { roles?: unknown }).roles ?? []).map((r: unknown) =>
+                        typeof r === "string" ? r : ((r as { id?: string }).id ?? ""),
+                      ).filter(Boolean),
+                      cameras: b.cameras ?? [],
+                    }))
+                    return {
+                      ...s,
+                      phone: s.phone || "—",
+                      email: s.email || "",
+                      expiresAt: s.expiresAt || "",
+                      binds,
+                      perms: [...(s.perms || [])],
+                      displayCustomers: [...(s.displayCustomers || binds.map((b) => b.customer))],
+                    }
+                  }),
                 }
               : base.platform,
           } as GcState
@@ -646,13 +712,17 @@ export function GcProvider({ children }: { children: ReactNode }) {
             ...(parsed.ledgers ?? {}),
             "c-xc": parsed.ledgers?.["c-xc"] ?? base.ledgers["c-xc"],
           }
-          // 迁移：清理空间表协同监督列的历史「（草稿）」标记
+          // 迁移：清理空间表协同监督列的历史「（草稿）」标记；老数据 6 列 → 补「来源=平台同步」；
+          // 老数据无名称列（values[7]）→ 按编码从网格清单回填名称
           const sg = merged.rows["space.grid"]
           if (sg) {
-            merged.rows["space.grid"] = sg.map((r) => ({
-              ...r,
-              values: r.values.map((v) => v.replace("（草稿）", "")),
-            }))
+            merged.rows["space.grid"] = sg.map((r) => {
+              const values = r.values.map((v) => v.replace("（草稿）", ""))
+              if (values.length >= 6 && values.length < 7) values[6] = "平台同步"
+              while (values.length < SPACE_COLS.length) values.push("")
+              if (!values[7]) values[7] = catalogNameOf(values[1], values[0])
+              return { ...r, values }
+            })
           }
           return merged
         }

@@ -99,11 +99,15 @@ export function enabledStreets(rows: Record<string, GcRow[]>): string[] {
 export interface GridRowView {
   index: number
   code: string
+  /** 网格名称（手动创建 / 导入时可起名；缺省显示编码） */
+  name: string
   street: string
   community: string
   owner: string
   sup: string
   effDate: string
+  /** 来源：平台同步（外部平台权威，只读）| 手动创建（本系统维护，可编辑） */
+  source: string
   stored: GcRow["status"]
 }
 
@@ -111,13 +115,25 @@ export function gridRows(rows: Record<string, GcRow[]>): GridRowView[] {
   return (rows["space.grid"] || []).map((r, index) => ({
     index,
     code: r.values[0],
+    name: r.values[7] ?? "",
     street: r.values[1],
     community: r.values[2],
     owner: r.values[3],
     sup: r.values[4],
     effDate: r.values[5],
+    source: r.values[6] ?? "平台同步", // 老数据无来源列：视为平台同步
     stored: r.status,
   }))
+}
+
+// ─── 外部平台网格清单（真源在 catalog.ts，此处 re-export 供页面使用） ───────
+export { GRID_CATALOG, catalogNameOf } from "./catalog"
+
+/** 某街道下启用中的社区（组织架构行：层级=社区，上级=该街道） */
+export function communitiesOfStreet(rows: Record<string, GcRow[]>, street: string): string[] {
+  return (rows["org"] || [])
+    .filter((r) => r.status === "启用" && r.values[1] === "社区" && r.values[2] === street)
+    .map((r) => r.values[0])
 }
 
 export function ownerNameIsSet(owner: string): boolean {
