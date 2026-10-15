@@ -14040,6 +14040,63 @@ const initialWbConversations: Record<string, WbMsg[]> = {
 let wbQaSeq = 0
 const wbConsumed = new Set<string>()
 
+/** 轻量规则标签：?（用户口径）/ 规则（给研发），悬停显示说明，不挡内容 */
+function WbHint({ label = "?", text }: { label?: string; text: string }) {
+  const [open, setOpen] = useState(false)
+  const round = label === "?"
+  return (
+    <span
+      style={{ position: "relative", display: "inline-flex", marginLeft: 6, verticalAlign: "middle", flexShrink: 0, cursor: "help" }}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onClick={() => setOpen(!open)}
+    >
+      <span
+        style={{
+          fontSize: 9,
+          fontWeight: 600,
+          color: T.textMuted,
+          border: `1px solid ${T.border}`,
+          backgroundColor: T.card2,
+          borderRadius: round ? "50%" : 4,
+          width: round ? 13 : undefined,
+          height: round ? 13 : undefined,
+          padding: round ? 0 : "1px 5px",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "help",
+          lineHeight: 1,
+        }}
+      >
+        {label}
+      </span>
+      {open && (
+        <span
+          style={{
+            position: "absolute",
+            bottom: "calc(100% + 6px)",
+            left: -8,
+            zIndex: 45,
+            width: 256,
+            backgroundColor: "rgba(22,45,77,0.94)",
+            color: "#fff",
+            fontSize: 10.5,
+            lineHeight: 1.7,
+            padding: "8px 10px",
+            borderRadius: 8,
+            boxShadow: "0 6px 18px rgba(22,45,77,0.25)",
+            whiteSpace: "normal",
+            textAlign: "left",
+          }}
+        >
+          {text}
+        </span>
+      )}
+    </span>
+  )
+}
+
 /** 多图事件详情（静态演示）：主图 + 缩略切换 + 左右切 + 过程证据折叠；无真实图，色块占位不串图 */
 function DetailMultiView({ b }: { b: Extract<WbBlock, { kind: "detailMulti" }> }) {
   const [sel, setSel] = useState(0)
@@ -14052,6 +14109,7 @@ function DetailMultiView({ b }: { b: Extract<WbBlock, { kind: "detailMulti" }> }
         <span>{b.type}</span>
         <span style={{ fontSize: 9.5, color: T.amber, fontWeight: 600 }}>{b.status}</span>
         <span style={{ fontSize: 10, color: T.textMuted, fontWeight: 400 }}>· {b.place}</span>
+        <WbHint text="多图按 发现 / 处置前 / 核查 分阶段；主图可左右切；占位图已标明「占位图（无真实画面）」。" />
       </div>
       <div style={{ marginTop: 7, position: "relative" }}>
         <div
@@ -14368,6 +14426,9 @@ function WbBlockView({
             缺失项：{b.missing}
           </div>
         )}
+        <div style={{ marginTop: 8, paddingTop: 7, borderTop: `1px dashed ${T.border}`, fontSize: 10.5, color: T.textMuted }}>
+          确认后才生成；正文不可在系统内改；同一版本同时提供 PDF 与 DOCX。
+        </div>
       </div>
     )
   if (b.kind === "gensteps")
@@ -14479,7 +14540,10 @@ function WbBlockView({
   if (b.kind === "thumbList")
     return (
       <div style={box}>
-        <div style={headStyle}>{b.title}</div>
+        <div style={{ ...headStyle, display: "flex", alignItems: "center" }}>
+          {b.title}
+          <WbHint text="每行须有缩略图（无图写「暂无图片」）；点行在本会话展详情，不跳办理；禁止串用其他事件图。" />
+        </div>
         <div style={{ display: "flex", flexDirection: "column" }}>
           {b.rows.map((r, i) => (
             <div
@@ -14560,7 +14624,12 @@ function WbBlockView({
       stops.push(`${palette[i % palette.length]} ${start}% ${acc}%`)
     })
     return (
-      <div style={{ ...box, display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+      <div style={box}>
+        <div style={{ ...headStyle, display: "flex", alignItems: "center", marginBottom: 8 }}>
+          类型构成（示例）
+          <WbHint label="规则" text="构成占比用饼图或环图 + 表；与 AI 统计同口径、同时点。" />
+        </div>
+        <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
         <div
           style={{
             width: 96,
@@ -14614,6 +14683,7 @@ function WbBlockView({
             </tbody>
           </table>
         </div>
+        </div>
       </div>
     )
   }
@@ -14629,6 +14699,10 @@ function WbBlockView({
     const path = pts.map((p) => `${p.x},${p.y}`).join(" ")
     return (
       <div style={box}>
+        <div style={{ ...headStyle, display: "flex", alignItems: "center", marginBottom: 6 }}>
+          按日变化（示例）
+          <WbHint label="规则" text="随时间变化用曲线；图下带实际条件与数据截至时间。" />
+        </div>
         <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block" }}>
           <polygon points={`${pts[0].x},${H - 18} ${path} ${pts[pts.length - 1].x},${H - 18}`} fill="rgba(50,109,255,0.12)" />
           <polyline points={path} fill="none" stroke="#326DFF" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
@@ -14647,7 +14721,10 @@ function WbBlockView({
     const max = Math.max(...b.items.map((x) => x.n), 1)
     return (
       <div style={box}>
-        <div style={headStyle}>街道排行（件数）</div>
+        <div style={{ ...headStyle, display: "flex", alignItems: "center" }}>
+          街道排行（件数）
+          <WbHint label="规则" text="排行保留；底图失败或示意时写明；无位置不补落点并计数。" />
+        </div>
         {b.items.map((x) => (
           <div key={x.name} style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0", fontSize: 11 }}>
             <span style={{ width: 70, color: T.text, flexShrink: 0 }}>{x.name}</span>
@@ -14776,6 +14853,7 @@ function AIWorkbench() {
   const [wbToast, setWbToast] = useState("")
   // 消息变化后自动滚到底部，保证新回复完整可见
   const msgsBoxRef = useRef<HTMLDivElement>(null)
+  const [wbRulesOpen, setWbRulesOpen] = useState(false)
   const activeConvNow = conversations[activeDialogId] || []
   useEffect(() => {
     const el = msgsBoxRef.current
@@ -15453,6 +15531,14 @@ function AIWorkbench() {
         <span style={{ fontWeight: 600, fontSize: 15, color: T.text }}>
           AI 工作台
         </span>
+        <WbHint
+          label="?"
+          text="本页只回答事件 / 指标并生成只读报告；查询、查看更多、下载、追问都不改事件状态、责任人或派发。"
+        />
+        <WbHint
+          label="规则"
+          text="本期要有：五类即时问答（摘要 + 结构化结果）+ 报告确认。本期不做：对话改状态 / 转交 / 派发 / 重新激活、任务中心真实调度、上传模板与改正文。"
+        />
         <span
           style={{
             marginLeft: 10,
@@ -15463,7 +15549,7 @@ function AIWorkbench() {
             borderRadius: 4,
           }}
         >
-          全量数据 · 账号权限内
+          账号权限内查询与成稿 · 不办理、不改状态、不派发 · 数字均为示例
         </span>
       </div>
       <div
@@ -15686,7 +15772,7 @@ function AIWorkbench() {
                   lineHeight: 1.5,
                 }}
               >
-                定时周报、指标监控属于调度任务，不进入新建对话选择器。
+                定时周报、指标监控属于调度任务：本期不在此调度（示意），不做可执行的定时 / 条件任务。
               </div>
             )}
             {activeTab === "tasks" &&
@@ -15841,19 +15927,95 @@ function AIWorkbench() {
             </div>
           )}
           <div ref={msgsBoxRef} style={{ flex: 1, overflowY: "auto", padding: 16 }}>
-            {activeConv.length === 0 && (
+            {!activeConv.some((m) => m.role === "user") && (
               <div
                 style={{
                   textAlign: "center",
                   color: T.textMuted,
                   fontSize: 12,
-                  marginTop: 48,
+                  marginTop: 40,
                   lineHeight: 1.9,
+                  maxWidth: 560,
+                  marginLeft: "auto",
+                  marginRight: "auto",
                 }}
               >
-                这是一条分析成稿对话。
-                <br />
-                描述要生成的报告，或围绕当前报告追问。
+                {activeDialog?.type === "report"
+                  ? "这是一条分析成稿对话。描述要生成的报告，或围绕当前报告追问。"
+                  : "这是一条业务问答对话。点击下方推荐问题直接提问，或输入你的问题。"}
+                <div
+                  style={{
+                    marginTop: 18,
+                    textAlign: "left",
+                    border: `1px solid ${T.border}`,
+                    borderRadius: 9,
+                    backgroundColor: "var(--row-bg)",
+                    overflow: "hidden",
+                  }}
+                >
+                  <button
+                    onClick={() => setWbRulesOpen(!wbRulesOpen)}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "9px 12px",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                      color: T.text,
+                    }}
+                  >
+                    <span style={{ color: T.primary }}>{wbRulesOpen ? "▾" : "▸"}</span>
+                    本页规则
+                    <span style={{ fontSize: 10.5, color: T.textMuted, fontWeight: 400 }}>
+                      只查询与成稿，不办理 · 数字均为示例（点开看本期要有 / 不要做）
+                    </span>
+                  </button>
+                  {wbRulesOpen && (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: 12,
+                        padding: "4px 12px 12px",
+                        borderTop: `1px solid ${T.border}`,
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 10.5, fontWeight: 700, color: T.green, margin: "8px 0 4px" }}>本期要有</div>
+                        {[
+                          "历史会话可找回；新建不带上一条条件",
+                          "五类问答：摘要 + 结构化结果（列表缩略图 / 详情多图 / 饼环图 / 曲线 / 空间排行）",
+                          "推荐问题点击即提交；有答案后才出现「整理成周报」",
+                          "报告：生成前确认 → 只读预览 → PDF 与 DOCX 同版本",
+                        ].map((s) => (
+                          <div key={s} style={{ fontSize: 10.5, color: T.textSub, lineHeight: 1.7, display: "flex", gap: 5 }}>
+                            <span style={{ color: T.green }}>·</span>
+                            <span>{s}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 10.5, fontWeight: 700, color: T.amber, margin: "8px 0 4px" }}>本期不要</div>
+                        {[
+                          "对话改状态、转交、派发、重新激活",
+                          "任务中心真实调度 / 定时与条件任务",
+                          "上传模板、生成后改正文、PPT",
+                          "AI 查档 / 大屏 AI 解读 / 实时治理跟办入口",
+                        ].map((s) => (
+                          <div key={s} style={{ fontSize: 10.5, color: T.textSub, lineHeight: 1.7, display: "flex", gap: 5 }}>
+                            <span style={{ color: T.amber }}>·</span>
+                            <span>{s}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             {activeConv.map((msg, i) => {
@@ -16244,6 +16406,12 @@ function AIWorkbench() {
                   </button>
                   )
                 })}
+              <span style={{ alignSelf: "center" }}>
+                <WbHint
+                  label="?"
+                  text="点击芯片 = 直接提交该问句并走出完整答案，不是只填输入框。空会话 5 条业务问；本会话已有答案后才出现「把上述内容整理成治理周报」。禁止「重新派发 / 重新激活」芯片。"
+                />
+              </span>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <textarea
