@@ -20,7 +20,7 @@
     - V1.1（原地址）：https://cookiehu011-lab.github.io/chengyun-ai/
     - V1.0（对照）：https://cookiehu011-lab.github.io/chengyun-ai/v1/
 - V1.0 子路径部署方式：使用**同一源码提交**（`release/v1.0` = `5ad7011`），仅改构建基座参数（`FIGMA_PUBLIC_URL=/chengyun-ai/v1`）重新构建，**V1.0 源码零改动**。
-- 维护注意：`vite build` 会清空 `dist/`，每次构建部署后需把 `v1.0-dist-backup/` 重新拷回 `dist/v1/` 再提交推送（`rsync -a --exclude .git v1.0-dist-backup/ dist/v1/`）。
+- 维护注意：`vite build` 会清空 `dist/`（含 `dist/v1/`）。每次构建部署后先 `cd dist && git restore v1` 从 git 恢复 V1.0 对照目录，再提交推送。**不要**用 `v1.0-dist-backup/` 拷回 `dist/v1/`——那份副本是根路径基座的产物，只用于根路径回退（见回退说明第 4 步）。
 
 ---
 
