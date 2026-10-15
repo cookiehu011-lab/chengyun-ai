@@ -14041,7 +14041,7 @@ let wbQaSeq = 0
 const wbConsumed = new Set<string>()
 
 /** 轻量规则标签：?（用户口径）/ 规则（给研发），悬停显示说明，不挡内容 */
-function WbHint({ label = "?", text }: { label?: string; text: string }) {
+function WbHint({ label = "?", text, down }: { label?: string; text: string; down?: boolean }) {
   const [open, setOpen] = useState(false)
   const round = label === "?"
   return (
@@ -14075,9 +14075,9 @@ function WbHint({ label = "?", text }: { label?: string; text: string }) {
         <span
           style={{
             position: "absolute",
-            bottom: "calc(100% + 6px)",
+            ...(down ? { top: "calc(100% + 6px)" } : { bottom: "calc(100% + 6px)" }),
             left: -8,
-            zIndex: 45,
+            zIndex: 60,
             width: 256,
             backgroundColor: "rgba(22,45,77,0.94)",
             color: "#fff",
@@ -15532,10 +15532,12 @@ function AIWorkbench() {
           AI 工作台
         </span>
         <WbHint
+          down
           label="?"
           text="本页只回答事件 / 指标并生成只读报告；查询、查看更多、下载、追问都不改事件状态、责任人或派发。"
         />
         <WbHint
+          down
           label="规则"
           text="本期要有：五类即时问答（摘要 + 结构化结果）+ 报告确认。本期不做：对话改状态 / 转交 / 派发 / 重新激活、任务中心真实调度、上传模板与改正文。"
         />
