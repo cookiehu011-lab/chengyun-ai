@@ -1,4 +1,4 @@
-import { useState, useContext, createContext, useEffect, useReducer, useRef, useMemo } from "react"
+import { useState, useContext, createContext, useEffect, useReducer, useRef, useMemo, type CSSProperties } from "react"
 import { assetUrl } from "./assetUrl"
 import DongchengHeatmapMap from "./components/DongchengHeatmapMap?v=cr37"
 import AIConclusion from "./components/AIConclusion?v=cr8"
@@ -13677,6 +13677,8 @@ interface WbMsg {
   fileCard?: { fileId: string }
   /** 回复流程：思考 → 执行步骤 → 输出正文（参考 Trae 回复流程） */
   steps?: WbStep[]
+  /** 静态演示块：列表 / 表格 / 详情卡 / 趋势 / 指标 / 确认卡等（渲染在正文之后，白卡内左对齐） */
+  blocks?: WbBlock[]
 }
 
 interface WbStep {
@@ -13688,6 +13690,20 @@ interface WbStep {
   open?: boolean
 }
 
+// ─── 静态演示消息块（2026-10-15）：列表 / 表格 / 详情卡 / 趋势 / 指标 / 确认卡等 ───
+type WbBlock =
+  | { kind: "tags"; items: string[] }
+  | { kind: "list"; title: string; rows: { no: string; type: string; status: string; time: string }[]; more?: string }
+  | { kind: "detail"; summary: string; fields: { k: string; v: string }[]; image: "photo" | "none" | "error"; caption?: string }
+  | { kind: "table"; head: string[]; rows: string[][] }
+  | { kind: "trend"; points: { d: string; n: number }[] }
+  | { kind: "metrics"; items: { name: string; value: string; rule: string }[] }
+  | { kind: "confirm"; fields: { k: string; v: string }[]; missing?: string }
+  | { kind: "gensteps"; steps: string[] }
+  | { kind: "note"; text: string; tone?: "plain" | "box" }
+  | { kind: "files"; ids: string[] }
+  | { kind: "actions"; items: string[] }
+
 const WB_TYPE_META: Record<
   WbDialogType,
   { label: string; color: string; bg: string }
@@ -13697,6 +13713,15 @@ const WB_TYPE_META: Record<
 }
 
 const initialWbDialogs: WbDialog[] = [
+  { id: "d5", title: "东华门待核查有哪些", time: "09-02 10:12", type: "qa" },
+  { id: "d6", title: "这件暂时没有图", time: "09-02 10:20", type: "qa" },
+  { id: "d7", title: "东华门施工占道有多少", time: "09-02 10:26", type: "qa" },
+  { id: "d8", title: "当前条件没有结果", time: "09-02 10:31", type: "qa" },
+  { id: "d9", title: "近7日每天新发现怎么变", time: "09-02 10:36", type: "qa" },
+  { id: "d10", title: "对比期是 0", time: "09-02 10:40", type: "qa" },
+  { id: "d11", title: "施工占道集中在哪些街道", time: "09-02 10:45", type: "qa" },
+  { id: "d12", title: "生成本月施工占道报告", time: "09-02 10:52", type: "report" },
+  { id: "d13", title: "周报生成中（演示）", time: "09-02 11:00", type: "report" },
   { id: "d1", title: "第33周治理周报", time: "08-18 14:32", type: "report", fileId: "f1" },
   { id: "d2", title: "高发街道分布咨询", time: "08-18 11:05", type: "qa" },
   { id: "d3", title: "AI识别准确率分析", time: "08-17 16:48", type: "report", fileId: "f2" },
@@ -13704,6 +13729,9 @@ const initialWbDialogs: WbDialog[] = [
 ]
 
 const initialWbFiles: WbFile[] = [
+  { id: "f5", name: "2026年8月施工占道报告.docx", type: "DOCX", version: "v1", size: "0.6MB", created: "09-02", dialogId: "d12", scope: "08-01 ~ 08-31 · 全区" },
+  { id: "f6", name: "2026年8月施工占道报告.pdf", type: "PDF", version: "v1", size: "1.1MB", created: "09-02", dialogId: "d12", scope: "08-01 ~ 08-31 · 全区" },
+  { id: "f4", name: "2026年第33周治理周报.docx", type: "DOCX", version: "v1", size: "0.6MB", created: "08-18", dialogId: "d1", scope: "08-11 ~ 08-17 · 全区" },
   { id: "f1", name: "2026年第33周治理周报.pdf", type: "PDF", version: "v1", size: "1.2MB", created: "08-18", dialogId: "d1", scope: "08-11 ~ 08-17 · 全区" },
   { id: "f2", name: "AI识别准确率分析.xlsx", type: "Excel", version: "v2", size: "0.8MB", created: "08-17", dialogId: "d3", scope: "近30日 · 全区" },
   { id: "f3", name: "高发街道热力图.png", type: "图片", version: "v1", size: "2.4MB", created: "08-16", scope: "近30日 · 全区" },
@@ -13731,10 +13759,243 @@ const wbTasks = [
 ]
 
 const initialWbConversations: Record<string, WbMsg[]> = {
+  // ── d5 澄清 → 列表 + 查看更多 → 单件详情（带图位灰块） ──
+  d5: [
+    { role: "user", content: "东华门最近还有哪些待核查事件" },
+    {
+      role: "ai",
+      content: "先确认一个口径：您想按发现时间筛选，还是看当前仍待核查的？已保留的条件：",
+      blocks: [{ kind: "tags", items: ["区域 东华门", "状态 待核查"] }],
+    },
+    { role: "user", content: "近7天，按发现时间，并且现在仍待核查" },
+    {
+      role: "ai",
+      content: "东华门、近7天（按发现时间）且当前仍待核查的事件如下。",
+      blocks: [
+        {
+          kind: "list",
+          title: "命中 6 件，先显示 5 件",
+          rows: [
+            { no: "DC-2026-07216", type: "暴露垃圾 · 待核查", status: "待核查", time: "09-01 15:42" },
+            { no: "DC-2026-07233", type: "施工占道 · 待核查", status: "待核查", time: "09-01 11:05" },
+            { no: "DC-2026-07231", type: "店外经营 · 待核查", status: "待核查", time: "08-31 17:20" },
+            { no: "DC-2026-07224", type: "暴露垃圾 · 待核查", status: "待核查", time: "08-31 09:48" },
+            { no: "DC-2026-07219", type: "非法小广告 · 待核查", status: "待核查", time: "08-30 14:31" },
+          ],
+          more: "查看更多",
+        },
+      ],
+    },
+    { role: "user", content: "看 DC-2026-07216 的详情" },
+    {
+      role: "ai",
+      content: "DC-2026-07216 的详情如下。",
+      blocks: [
+        {
+          kind: "detail",
+          summary: "暴露垃圾 · 待核查",
+          fields: [
+            { k: "编号", v: "DC-2026-07216" },
+            { k: "类型", v: "暴露垃圾" },
+            { k: "状态", v: "待核查" },
+            { k: "位置", v: "东华门街道 · 台基厂二条东口" },
+            { k: "发现时间", v: "09-01 15:42" },
+          ],
+          image: "photo",
+          caption: "采集时间 09-01 15:42 · 阶段 待核查（AI 识别抓拍）",
+        },
+      ],
+    },
+  ],
+  // ── d6 同一套详情卡：无图 / 加载失败两种图位 ──
+  d6: [
+    { role: "user", content: "看 DC-2026-07233 的详情" },
+    {
+      role: "ai",
+      content: "DC-2026-07233 的详情如下。",
+      blocks: [
+        {
+          kind: "detail",
+          summary: "施工占道 · 待核查",
+          fields: [
+            { k: "编号", v: "DC-2026-07233" },
+            { k: "类型", v: "施工占道" },
+            { k: "状态", v: "待核查" },
+            { k: "位置", v: "东华门街道 · 东安门大街南侧行道" },
+            { k: "发现时间", v: "09-01 11:05" },
+          ],
+          image: "none",
+        },
+      ],
+    },
+    { role: "user", content: "再看 DC-2026-07231" },
+    {
+      role: "ai",
+      content: "DC-2026-07231 的详情如下。",
+      blocks: [
+        {
+          kind: "detail",
+          summary: "店外经营 · 待核查",
+          fields: [
+            { k: "编号", v: "DC-2026-07231" },
+            { k: "类型", v: "店外经营" },
+            { k: "状态", v: "待核查" },
+            { k: "位置", v: "东华门街道 · 王府井西街北侧" },
+            { k: "发现时间", v: "08-31 17:20" },
+          ],
+          image: "error",
+          caption: "采集时间 08-31 17:20 · 阶段 待核查（网格巡查上报）",
+        },
+      ],
+    },
+  ],
+  // ── d7 摘要 + 小表 + 条件/时间依据/来源（示例标注） ──
+  d7: [
+    { role: "user", content: "东华门最近施工占道有多少？" },
+    {
+      role: "ai",
+      content: "东华门近30日施工占道共 14 件（示例）。",
+      blocks: [
+        {
+          kind: "table",
+          head: ["分组", "件数", "占比"],
+          rows: [
+            ["占道堆物", "6", "43%"],
+            ["围挡占路", "5", "36%"],
+            ["经营占道", "3", "21%"],
+          ],
+        },
+        {
+          kind: "note",
+          text: "条件：区域=东华门，类型=施工占道（含占道堆物 / 围挡占路 / 经营占道）· 时间依据=发现时间，近30日 · 数据截至 09-02 10:26 · 来源=网格巡查 + AI 识别 + 市民上报（去重）。页面数字均为示例。",
+        },
+      ],
+    },
+  ],
+  // ── d8 空结果：只说明没有事件，不做 0% 环、不自动扩大范围 ──
+  d8: [
+    { role: "user", content: "东华门近7日施工占道夜间时段有多少？" },
+    {
+      role: "ai",
+      content: "东华门、近7日、施工占道，当前条件下没有事件。可以调整时间范围或时段后再查。",
+    },
+  ],
+  // ── d9 按日趋势 ──
+  d9: [
+    { role: "user", content: "近7日每天新发现的事件怎么变？" },
+    {
+      role: "ai",
+      content: "近7日新发现先升后降：08-27 达到峰值 21 件，随后连续 3 天回落（示例）。",
+      blocks: [
+        {
+          kind: "trend",
+          points: [
+            { d: "08-27", n: 12 },
+            { d: "08-28", n: 15 },
+            { d: "08-29", n: 21 },
+            { d: "08-30", n: 18 },
+            { d: "08-31", n: 14 },
+            { d: "09-01", n: 11 },
+            { d: "09-02", n: 9 },
+          ],
+        },
+        {
+          kind: "note",
+          text: "口径：按发现时间统计当日新发现 · 全区 · 全部事件类型 · 数据截至 09-02 10:36（示例）。",
+        },
+      ],
+    },
+  ],
+  // ── d10 对比期为 0：只写差值，不写增幅百分比 ──
+  d10: [
+    { role: "user", content: "和上一个周期比呢？" },
+    {
+      role: "ai",
+      content: "本期（近7日）新发现 100 件，对比期（前一个7日）0 件，差值 +100 件。对比期为 0，不计算增幅百分比（示例）。",
+    },
+  ],
+  // ── d11 区域排行 + 定位说明 + 底图加载失败 ──
+  d11: [
+    { role: "user", content: "施工占道集中在哪些街道？" },
+    {
+      role: "ai",
+      content: "近30日施工占道集中在东华门、北新桥、东四三个街道，合计 12 件（示例）。",
+      blocks: [
+        {
+          kind: "table",
+          head: ["街道", "件数"],
+          rows: [
+            ["东华门街道", "5"],
+            ["北新桥街道", "4"],
+            ["东四街道", "3"],
+            ["其他街道", "4"],
+          ],
+        },
+        { kind: "note", text: "8 件可以定位，2 件没有位置，未在地图落点。" },
+        { kind: "note", text: "底图加载失败", tone: "box" },
+      ],
+    },
+  ],
+  // ── d12 报告生成：确认卡 → 生成中（只有步骤） → 完成（PDF + DOCX v1） ──
+  d12: [
+    { role: "user", content: "生成本月施工占道报告" },
+    {
+      role: "ai",
+      content: "生成前先和您确认本次范围：",
+      blocks: [
+        {
+          kind: "confirm",
+          fields: [
+            { k: "标题", v: "2026年8月施工占道报告" },
+            { k: "报告类型", v: "专题报告" },
+            { k: "城市 / 空间", v: "北京市 / 东城区（全区）" },
+            { k: "实际日期", v: "08-01 ~ 08-31" },
+            { k: "事件条件", v: "类型=施工占道（含占道堆物 / 围挡占路 / 经营占道）" },
+            { k: "章节", v: "综合态势 · 事件发生 · 流程运行 · 治理建议" },
+            { k: "模板名称和版本", v: "街乡治理专题模板 · v3" },
+          ],
+          missing: "8 月数据中 2 件无位置信息，将在正文标注「未定位」",
+        },
+        { kind: "actions", items: ["确认生成", "调整条件"] },
+      ],
+    },
+    { role: "status", content: "正在生成《2026年8月施工占道报告》" },
+    {
+      role: "ai",
+      content: "《2026年8月施工占道报告》已生成（v1）。正文为只读预览，不可在系统内修改；可下载 PDF 或 DOCX。",
+      blocks: [{ kind: "files", ids: ["f6", "f5"] }],
+    },
+  ],
+  // ── d13 生成中演示：只有生成中，不与已完成 PDF 同屏 ──
+  d13: [
+    { role: "user", content: "生成本周治理周报，包含综合态势、事件发生、流程运行三个部分。" },
+    { role: "status", content: "正在生成《2026年第33周治理周报》" },
+  ],
+  // ── d1 周报完成态：PDF + DOCX 同版本 v1 + 追问演示 ──
   d1: [
     { role: "user", content: "生成本周治理周报，包含综合态势、事件发生、流程运行三个部分。" },
-    { role: "status", content: "正在生成《2026年第33周治理周报》，约 2–3 分钟，完成后可在文件记录查看" },
-    { role: "ai", content: "《2026年第33周治理周报》已生成（V1）。\n\n主要发现：\n• 本周发现事件 312 件，较上周增加 12%\n• 闭环 265 件，闭环率 85%，处置时长降至 2.4h\n• 朝阳门、东直门街道为高发区域", fileCard: { fileId: "f1" } },
+    {
+      role: "ai",
+      content:
+        "《2026年第33周治理周报》已生成（v1）。\n\n主要发现：\n• 本周发现事件 312 件，较上周增加 12%（示例）\n• 闭环 265 件，闭环率 85%，处置时长降至 2.4h（示例）\n• 朝阳门、东直门街道为高发区域（示例）\n\n正文为只读预览，不可在系统内修改；也可在文件记录查看。",
+      blocks: [{ kind: "files", ids: ["f1", "f4"] }],
+    },
+    { role: "user", content: "这个数怎么来的？" },
+    {
+      role: "ai",
+      content: "2026年第33周治理周报 · v1 · 数据截至 2026-08-18 14:32\n\n以下为该版本保存的结果，不是刚才重新查的：",
+      blocks: [
+        {
+          kind: "metrics",
+          items: [
+            { name: "发现事件", value: "312 件", rule: "口径：网格巡查 + AI 识别 + 市民上报去重后的有效事件" },
+            { name: "闭环率", value: "85%", rule: "口径：闭环 265 件 ÷ 本周应闭环事件" },
+            { name: "平均处置时长", value: "2.4h", rule: "口径：立案至结案的间隔中位数" },
+          ],
+        },
+        { kind: "note", text: "数字均为示例。" },
+      ],
+    },
   ],
   d2: [
     { role: "ai", content: "您好，这里是业务问答。我会按当前口径直接给结论，通常几秒内回复。" },
@@ -13757,6 +14018,346 @@ const initialWbConversations: Record<string, WbMsg[]> = {
 let wbQaSeq = 0
 const wbConsumed = new Set<string>()
 
+/** 静态演示块渲染：助手白卡内左对齐，沿用现有字号与边框，不引入新的深色 / 大屏风格 */
+function WbBlockView({
+  b,
+  files,
+  onPreview,
+  onAction,
+}: {
+  b: WbBlock
+  files: WbFile[]
+  onPreview: (id: string) => void
+  onAction: (label: string) => void
+}) {
+  const box: CSSProperties = {
+    border: `1px solid ${T.border}`,
+    borderRadius: 8,
+    padding: "9px 11px",
+    backgroundColor: "var(--row-bg)",
+  }
+  const headStyle: CSSProperties = {
+    fontSize: 11,
+    fontWeight: 700,
+    color: T.text,
+    marginBottom: 6,
+  }
+  if (b.kind === "tags")
+    return (
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {b.items.map((t) => (
+          <span
+            key={t}
+            style={{
+              fontSize: 10.5,
+              color: T.textSub,
+              border: `1px solid ${T.border}`,
+              backgroundColor: T.card2,
+              padding: "2px 8px",
+              borderRadius: 5,
+            }}
+          >
+            {t}
+          </span>
+        ))}
+      </div>
+    )
+  if (b.kind === "list")
+    return (
+      <div style={box}>
+        <div style={headStyle}>{b.title}</div>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {b.rows.map((r, i) => (
+            <div
+              key={r.no}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 11,
+                color: T.text,
+                padding: "4px 0",
+                borderTop: i === 0 ? "none" : `1px dashed ${T.border}`,
+              }}
+            >
+              <span style={{ fontFamily: T.mono, color: T.primary, flexShrink: 0 }}>{r.no}</span>
+              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.type}</span>
+              <span style={{ color: T.amber, flexShrink: 0 }}>{r.status}</span>
+              <span style={{ color: T.textMuted, flexShrink: 0, fontFamily: T.mono }}>{r.time}</span>
+            </div>
+          ))}
+        </div>
+        {b.more && (
+          <button
+            onClick={() => onAction(b.more!)}
+            style={{
+              marginTop: 6,
+              fontSize: 11,
+              color: T.primary,
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            {b.more}
+          </button>
+        )}
+      </div>
+    )
+  if (b.kind === "detail")
+    return (
+      <div style={box}>
+        <div style={{ ...headStyle, marginBottom: 4 }}>{b.summary}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "max-content 1fr", gap: "3px 10px", fontSize: 11, color: T.text }}>
+          {b.fields.map((f) => (
+            <div key={f.k} style={{ display: "contents" }}>
+              <span style={{ color: T.textMuted }}>{f.k}</span>
+              <span>{f.v}</span>
+            </div>
+          ))}
+        </div>
+        <div
+          style={{
+            marginTop: 8,
+            height: 96,
+            borderRadius: 7,
+            backgroundColor: "rgba(110,129,151,0.10)",
+            border: `1px dashed ${T.border}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 11,
+            color: T.textMuted,
+          }}
+        >
+          {b.image === "photo" ? "图片位（灰块示意）" : b.image === "none" ? "暂无图片" : "图片加载失败"}
+        </div>
+        {b.caption && (
+          <div style={{ marginTop: 5, fontSize: 10, color: T.textMuted }}>{b.caption}</div>
+        )}
+      </div>
+    )
+  if (b.kind === "table")
+    return (
+      <div style={box}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+          <thead>
+            <tr>
+              {b.head.map((h) => (
+                <th
+                  key={h}
+                  style={{
+                    textAlign: "left",
+                    fontWeight: 600,
+                    color: T.textMuted,
+                    padding: "3px 6px",
+                    borderBottom: `1px solid ${T.border}`,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {b.rows.map((r, i) => (
+              <tr key={i}>
+                {r.map((c, j) => (
+                  <td
+                    key={j}
+                    style={{
+                      padding: "4px 6px",
+                      color: j === 0 ? T.text : T.textSub,
+                      fontWeight: j === 0 ? 500 : 400,
+                      borderBottom: i === b.rows.length - 1 ? "none" : `1px dashed ${T.border}`,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {c}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  if (b.kind === "trend") {
+    const max = Math.max(...b.points.map((p) => p.n), 1)
+    return (
+      <div style={box}>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 86, padding: "0 2px" }}>
+          {b.points.map((p) => (
+            <div key={p.d} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, height: "100%", justifyContent: "flex-end" }}>
+              <span style={{ fontSize: 9.5, color: T.textSub, fontFamily: T.mono }}>{p.n}</span>
+              <div
+                style={{
+                  width: "100%",
+                  maxWidth: 26,
+                  borderRadius: "3px 3px 0 0",
+                  background: `linear-gradient(180deg, ${T.primary}, ${T.accent})`,
+                  height: `${Math.max((p.n / max) * 62, 3)}px`,
+                }}
+              />
+              <span style={{ fontSize: 9.5, color: T.textMuted }}>{p.d}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+  if (b.kind === "metrics")
+    return (
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
+        {b.items.map((m) => (
+          <div key={m.name} style={{ ...box, padding: "8px 10px" }}>
+            <div style={{ fontSize: 10.5, color: T.textMuted }}>{m.name}</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: T.text, margin: "2px 0 3px" }}>
+              {m.value}
+              <span style={{ fontSize: 9.5, color: T.textMuted, fontWeight: 400, marginLeft: 4 }}>示例</span>
+            </div>
+            <div style={{ fontSize: 10, color: T.textMuted, lineHeight: 1.5 }}>{m.rule}</div>
+          </div>
+        ))}
+      </div>
+    )
+  if (b.kind === "confirm")
+    return (
+      <div style={box}>
+        <div style={headStyle}>请确认生成范围</div>
+        <div style={{ display: "grid", gridTemplateColumns: "max-content 1fr", gap: "4px 12px", fontSize: 11.5, color: T.text }}>
+          {b.fields.map((f) => (
+            <div key={f.k} style={{ display: "contents" }}>
+              <span style={{ color: T.textMuted, whiteSpace: "nowrap" }}>{f.k}</span>
+              <span>{f.v}</span>
+            </div>
+          ))}
+        </div>
+        {b.missing && (
+          <div style={{ marginTop: 7, fontSize: 10.5, color: T.amber }}>
+            缺失项：{b.missing}
+          </div>
+        )}
+      </div>
+    )
+  if (b.kind === "gensteps")
+    return (
+      <div style={box}>
+        <div style={headStyle}>正在生成</div>
+        {b.steps.map((s, i) => (
+          <div key={i} style={{ display: "flex", gap: 7, fontSize: 11, color: T.textSub, padding: "2px 0" }}>
+            <span style={{ color: T.green }}>✓</span>
+            <span>{s}</span>
+          </div>
+        ))}
+        <div style={{ display: "flex", gap: 7, fontSize: 11, color: T.primary, padding: "2px 0" }}>
+          <span style={{ width: 10, height: 10, borderRadius: "50%", border: "2px solid rgba(50,109,255,0.25)", borderTopColor: T.primary, animation: "wb-spin 0.8s linear infinite", flexShrink: 0, marginTop: 2 }} />
+          <span>正在渲染版式…</span>
+        </div>
+      </div>
+    )
+  if (b.kind === "note")
+    return b.tone === "box" ? (
+      <div
+        style={{
+          border: `1px dashed ${T.border}`,
+          borderRadius: 8,
+          padding: "16px 12px",
+          backgroundColor: "rgba(110,129,151,0.06)",
+          fontSize: 11,
+          color: T.textMuted,
+          textAlign: "center",
+        }}
+      >
+        {b.text}
+      </div>
+    ) : (
+      <div style={{ fontSize: 10.5, color: T.textMuted, lineHeight: 1.7 }}>{b.text}</div>
+    )
+  if (b.kind === "files")
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {b.ids.map((id) => {
+          const f = files.find((x) => x.id === id)
+          if (!f) return null
+          return (
+            <div
+              key={id}
+              role="button"
+              tabIndex={0}
+              onClick={() => onPreview(id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") onPreview(id)
+              }}
+              title="点击预览文件"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "7px 10px",
+                backgroundColor: "var(--glass-bg-strong)",
+                border: `1px solid ${T.border}`,
+                borderRadius: 8,
+                cursor: "pointer",
+                maxWidth: 280,
+              }}
+            >
+              <span
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 5,
+                  background: f.type === "PDF" ? "linear-gradient(135deg,#E45E58,#FF9A7B)" : "linear-gradient(135deg,#326DFF,#24D6D2)",
+                  color: "#fff",
+                  fontSize: 8,
+                  fontWeight: 800,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                {f.type}
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 11, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span>
+                <span style={{ display: "block", fontSize: 9.5, color: T.textMuted }}>
+                  {f.version} · {f.size}
+                </span>
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    )
+  if (b.kind === "actions")
+    return (
+      <div style={{ display: "flex", gap: 8 }}>
+        {b.items.map((label, i) => (
+          <button
+            key={label}
+            onClick={() => onAction(label)}
+            style={{
+              fontSize: 11.5,
+              fontWeight: 600,
+              padding: "6px 14px",
+              borderRadius: 7,
+              cursor: "pointer",
+              border: i === 0 ? "none" : `1px solid ${T.border}`,
+              background: i === 0 ? `linear-gradient(135deg, ${T.primary} 0%, #5A8BFF 100%)` : T.card2,
+              color: i === 0 ? "#fff" : T.textSub,
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    )
+  return null
+}
+
 function AIWorkbench() {
   const [activeTab, setActiveTab] = useState<WbTab>("dialogs")
   const [dialogs, setDialogs] = useState<WbDialog[]>(initialWbDialogs)
@@ -13768,6 +14369,8 @@ function AIWorkbench() {
   )
   const [chatInput, setChatInput] = useState("")
   const [showOpPreview, setShowOpPreview] = useState(false)
+  // 静态演示交互反馈（查看更多 / 确认生成 / 调整条件等）
+  const [wbToast, setWbToast] = useState("")
   // 文件预览：对话右侧分栏打开（Trae 式三段面板）
   const [wbPreviewId, setWbPreviewId] = useState<string | null>(null)
   const [wbZoom, setWbZoom] = useState(1)
@@ -13965,17 +14568,18 @@ function AIWorkbench() {
       { role: "user", content: text },
       { role: "status", content: "" },
     ])
-    const isOp = text.includes("操作") || text.includes("激活")
+    // 本期边界：对话不做改状态 / 派发类业务操作，统一说明
+    const isOp = text.includes("派发") || text.includes("激活") || text.includes("改状态") || text.includes("操作")
     const ans = isOp
-      ? "检测到您要执行业务操作。我已完成操作预检，请在右侧确认后执行。"
+      ? "本期不能在对话里改事件状态或派发。"
       : QA_ANSWERS[wbQaSeq++ % QA_ANSWERS.length]
     runAgentFlow(
       dialogId,
       isOp
         ? {
             think: "深度思考中…",
-            thinkDetail: "识别到业务操作意图，判断需先做权限与影响范围预检，再交由人工确认执行。",
-            acts: ["识别业务操作意图", "预检操作权限与影响范围"],
+            thinkDetail: "识别到改状态 / 派发类意图；本期对话不执行业务操作，仅返回能力边界说明。",
+            acts: ["识别业务操作意图", "按本期边界返回说明"],
           }
         : {
             think: "深度思考中…",
@@ -13987,7 +14591,6 @@ function AIWorkbench() {
         content: ans,
       }
     )
-    if (isOp) setTimeout(() => setShowOpPreview(true), 3200)
   }
 
   function deriveReportTitle(text: string): string {
@@ -14589,7 +15192,9 @@ function AIWorkbench() {
                 <div style={{ fontSize: 10, color: T.textMuted, marginTop: 1 }}>
                   城运AI · {activeDialog.time} ·{" "}
                   {activeDialog.type === "qa"
-                    ? "文字结论 · 几秒回复"
+                    ? "摘要 + 查询结果 · 可继续问"
+                    : activeFile
+                    ? `围绕当前报告 · 先答不改稿 · ${activeFile.name.replace(/\.pdf$/i, "")} · ${activeFile.version}`
                     : "围绕当前报告 · 先答不改稿"}
                 </div>
               </div>
@@ -14845,6 +15450,29 @@ function AIWorkbench() {
                           </div>
                         )}
                         {msg.content}
+                        {msg.blocks && msg.blocks.length > 0 && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: msg.content ? 8 : 0, alignItems: "stretch" }}>
+                            {msg.blocks.map((b, bi) => (
+                              <WbBlockView
+                                key={bi}
+                                b={b}
+                                files={files}
+                                onPreview={openWbPreview}
+                                onAction={(label) => {
+                                  if (label === "查看更多") {
+                                    setWbToast("演示：剩余 1 件已加载（静态演示数据）")
+                                  } else if (label === "确认生成") {
+                                    setWbToast("演示：已开始生成，进度见下一条消息")
+                                  } else if (label === "调整条件") {
+                                    setWbToast("演示：调整条件入口仅作展示，不改变本条数据")
+                                  } else {
+                                    setWbToast(`演示：「${label}」为静态演示交互`)
+                                  }
+                                }}
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
                       {msg.fileCard &&
                         (() => {
@@ -15002,7 +15630,7 @@ function AIWorkbench() {
                 }}
                 placeholder={
                   activeDialog?.type === "report"
-                    ? "描述要生成的报告，或围绕当前报告追问…（Enter发送）"
+                    ? "围绕当前报告追问…（Enter发送）"
                     : "按当前口径查询治理数据，直接给结论…（Enter发送）"
                 }
                 style={{
@@ -15056,7 +15684,6 @@ function AIWorkbench() {
                     "本周哪类事件上升最快？按当前口径直接给结论。",
                     "解释闭环率的统计口径",
                     "按街道下钻暴露垃圾分布",
-                    "重新激活事件 DC-2026-07082",
                   ]
               ).map((q) => (
                   <button
@@ -15497,6 +16124,28 @@ function AIWorkbench() {
       )}
       </div>
       {/* 新建对话：两档业务入口选择器 */}
+      {wbToast && (
+        <div
+          onClick={() => setWbToast("")}
+          style={{
+            position: "fixed",
+            bottom: 28,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 70,
+            backgroundColor: "rgba(22,45,77,0.92)",
+            color: "#fff",
+            fontSize: 11.5,
+            padding: "9px 16px",
+            borderRadius: 9,
+            boxShadow: "0 8px 24px rgba(22,45,77,0.3)",
+            cursor: "pointer",
+            maxWidth: 420,
+          }}
+        >
+          {wbToast}
+        </div>
+      )}
       {newEntry && (
         <div
           onClick={() => setNewEntry(null)}
@@ -15525,7 +16174,7 @@ function AIWorkbench() {
               新建对话
             </div>
             <div style={{ fontSize: 11, color: T.textMuted, marginTop: 3 }}>
-              先选择业务入口，用来锁定成果物和等待时长
+              先选择业务入口，用来锁定成果物
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
               {(["qa", "report"] as WbDialogType[]).map((m) => {
@@ -15601,13 +16250,11 @@ function AIWorkbench() {
                     >
                       成果物：
                       {m === "qa"
-                        ? "文字结论（结论 → 数据/证据 → 可继续问）"
-                        : "一份可预览、可改、可下载的文件"}
+                        ? "摘要，加上详情、列表、表格、图表或地图；可继续问"
+                        : "生成前先确认范围；完成后只读预览，可下载 PDF 和 DOCX；正文不可在系统内改"}
                       <br />
                       等待：
-                      {m === "qa"
-                        ? "通常几秒，可多轮"
-                        : "约 2–3 分钟，先出进度再出文件"}
+                      {m === "qa" ? "通常几秒，可多轮" : "生成中仅显示进度，完成后可预览与下载"}
                     </div>
                   </div>
                 )
@@ -15623,7 +16270,7 @@ function AIWorkbench() {
                 gap: 6,
               }}
             >
-              <span>定时周报、指标监控不在这里，前往「任务中心」调度。</span>
+              <span>页面上的全部数字均为示例；生成前会先与您确认范围。</span>
             </div>
             <div
               style={{
