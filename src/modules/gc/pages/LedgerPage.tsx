@@ -1103,8 +1103,8 @@ function AccountCard({ cid, orgSynced }: { cid: string; orgSynced: boolean }) {
 
 const TABS = [
   { id: "org", label: "组织架构" },
-  { id: "account", label: "账号" },
   { id: "role", label: "角色" },
+  { id: "account", label: "账号" },
 ] as const
 
 export function LedgerPage({ cid, orgSynced, author }: { cid: string; orgSynced: boolean; author: string }) {
