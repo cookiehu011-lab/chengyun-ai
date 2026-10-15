@@ -1,6 +1,7 @@
 node_modules
 dist
 .vite
+v1.0-dist-backup
 .DS_Store
 *.log
 .venv

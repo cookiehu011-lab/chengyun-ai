@@ -147,6 +147,9 @@ const IS_V2_STATS =
   typeof window !== "undefined" &&
   new URLSearchParams(window.location.search).get("v") === "2"
 
+// 原型版本标识：随评审版本更新，展示在顶栏右侧（见 TopNav）
+const APP_VERSION = "V1.1"
+
 function Card({
   children,
   style,
@@ -17831,6 +17834,9 @@ function TopNav({
             )
           })}
         </div>
+        {/* 原型版本标识：评审对照 V1.0（/v1/）与当前版本用 */}
+        <div style={{ width: 1, height: 18, backgroundColor: T.border }} />
+        <span style={{ fontSize: 10.5, fontWeight: 600, color: T.textMuted, whiteSpace: "nowrap" }}>原型版本 {APP_VERSION}</span>
         {/* 全局身份：账号 / 客户 / 角色（平台全局右上角选择器，与治理配置页共用同一份状态） */}
         <IdentityPicker identity={identity} onChange={onIdentityChange} />
       </div>
