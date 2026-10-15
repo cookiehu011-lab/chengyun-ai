@@ -701,3 +701,12 @@ html[data-skin="tech"] img {
     box-shadow: 0 0 0 6px rgba(255, 90, 80, 0);
   }
 }
+
+/* AI 工作台回复流程动画：思考呼吸 / 执行旋转 */
+@keyframes wb-think {
+  0%, 100% { opacity: 0.35; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+@keyframes wb-spin {
+  to { transform: rotate(360deg); }
+}

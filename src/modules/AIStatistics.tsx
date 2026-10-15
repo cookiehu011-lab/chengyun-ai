@@ -6,8 +6,8 @@ import EchartsPie from "../components/EchartsPie"
 import EchartsRank from "../components/EchartsRank"
 import KpiIcon from "../components/KpiIcon"
 import RankList from "../components/RankList"
-import { RuleChip } from "../data/dashboardRules"
-import { STATS_RULES } from "../data/statsRules"
+import { RuleChips } from "../data/dashboardRules"
+import { STATS_USER_RULES, STATS_RULES } from "../data/statsRules"
 
 // Modern light glassmorphism · 政务分析台配色
 const C = {
@@ -444,7 +444,9 @@ function KpiCard({
           >
             {label}
           </span>
-          {ruleId && <RuleChip id={ruleId} label="注释" rules={STATS_RULES} />}
+          {ruleId && (
+            <RuleChips id={ruleId} userRules={STATS_USER_RULES} algoRules={STATS_RULES} />
+          )}
         </div>
         <div
           style={{
@@ -605,7 +607,9 @@ function ChartCard({
             <div style={{ fontSize: 15, fontWeight: 700, color: C.text, letterSpacing: "0.01em" }}>
               {title}
             </div>
-            {ruleId && <RuleChip id={ruleId} label="注释" rules={STATS_RULES} />}
+            {ruleId && (
+            <RuleChips id={ruleId} userRules={STATS_USER_RULES} algoRules={STATS_RULES} />
+          )}
           </div>
           <div style={{ fontSize: 12, color: C.muted, marginTop: 4, paddingLeft: 15, fontWeight: 500 }}>
             {question}
@@ -1017,7 +1021,7 @@ function TopicsCategory() {
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 8 }}>
           <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>专题统计</span>
-          <RuleChip id="tp_topics" label="注释" rules={STATS_RULES} />
+          <RuleChips id="tp_topics" userRules={STATS_USER_RULES} algoRules={STATS_RULES} />
         </div>
         <div style={{ fontSize: 13, color: C.muted, fontWeight: 500, lineHeight: 1.8 }}>
           当前范围无观察中专题
@@ -1111,7 +1115,7 @@ export default function AIStatistics({ skin }: { skin: "light" | "tech" }) {
                 全域治理数据洞察
               </span>
             </div>
-            <RuleChip id="page" label="本页口径" rules={STATS_RULES} />
+            <RuleChips id="page" userRules={STATS_USER_RULES} algoRules={STATS_RULES} />
           </div>
           <button
             onClick={() => setShowInterpret(!showInterpret)}
