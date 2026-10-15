@@ -13691,6 +13691,7 @@ interface WbStep {
 }
 
 // ─── 静态演示消息块（2026-10-15）：列表 / 表格 / 详情卡 / 趋势 / 指标 / 确认卡等 ───
+// 2026-10-15 二轮：业务问答预制答案新增 缩略图列表 / 多图详情 / 饼图 / 曲线 / 排行条 / 示意地图 / 条件条
 type WbBlock =
   | { kind: "tags"; items: string[] }
   | { kind: "list"; title: string; rows: { no: string; type: string; status: string; time: string }[]; more?: string }
@@ -13703,6 +13704,27 @@ type WbBlock =
   | { kind: "note"; text: string; tone?: "plain" | "box" }
   | { kind: "files"; ids: string[] }
   | { kind: "actions"; items: string[] }
+  | { kind: "condbar"; text: string }
+  | {
+      kind: "thumbList"
+      title: string
+      rows: { no: string; type: string; status: string; street: string; grid: string; time: string; hue: number; thumbLabel: string }[]
+      more?: string
+    }
+  | {
+      kind: "detailMulti"
+      no: string
+      type: string
+      status: string
+      place: string
+      fields: { k: string; v: string }[]
+      images: { label: string; hue: number }[]
+      process: string[]
+    }
+  | { kind: "pie"; items: { name: string; pct: number; n: number }[] }
+  | { kind: "line"; points: { d: string; n: number }[] }
+  | { kind: "bars"; items: { name: string; n: number }[] }
+  | { kind: "mapStub"; text: string }
 
 const WB_TYPE_META: Record<
   WbDialogType,
@@ -14018,6 +14040,112 @@ const initialWbConversations: Record<string, WbMsg[]> = {
 let wbQaSeq = 0
 const wbConsumed = new Set<string>()
 
+/** 多图事件详情（静态演示）：主图 + 缩略切换 + 左右切 + 过程证据折叠；无真实图，色块占位不串图 */
+function DetailMultiView({ b }: { b: Extract<WbBlock, { kind: "detailMulti" }> }) {
+  const [sel, setSel] = useState(0)
+  const [open, setOpen] = useState(false)
+  const img = b.images[sel] || b.images[0]
+  return (
+    <div style={{ border: `1px solid ${T.border}`, borderRadius: 8, padding: "9px 11px", backgroundColor: "var(--row-bg)" }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: T.text, display: "flex", alignItems: "center", gap: 7 }}>
+        <span style={{ fontFamily: T.mono, color: T.primary }}>{b.no}</span>
+        <span>{b.type}</span>
+        <span style={{ fontSize: 9.5, color: T.amber, fontWeight: 600 }}>{b.status}</span>
+        <span style={{ fontSize: 10, color: T.textMuted, fontWeight: 400 }}>· {b.place}</span>
+      </div>
+      <div style={{ marginTop: 7, position: "relative" }}>
+        <div
+          style={{
+            height: 132,
+            borderRadius: 7,
+            background: `linear-gradient(135deg, hsl(${img.hue},58%,70%), hsl(${(img.hue + 45) % 360},52%,55%))`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexDirection: "column",
+            gap: 3,
+          }}
+        >
+          <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.96)" }}>示意 · {img.label}</span>
+          <span style={{ fontSize: 9, color: "rgba(255,255,255,0.8)" }}>占位图（无真实画面）</span>
+        </div>
+        {b.images.length > 1 && (
+          <>
+            <button
+              onClick={() => setSel((sel - 1 + b.images.length) % b.images.length)}
+              style={{ position: "absolute", left: 6, top: "50%", transform: "translateY(-50%)", width: 22, height: 22, borderRadius: "50%", border: "none", backgroundColor: "rgba(255,255,255,0.85)", color: T.text, cursor: "pointer", fontSize: 12, lineHeight: 1 }}
+            >
+              ‹
+            </button>
+            <button
+              onClick={() => setSel((sel + 1) % b.images.length)}
+              style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", width: 22, height: 22, borderRadius: "50%", border: "none", backgroundColor: "rgba(255,255,255,0.85)", color: T.text, cursor: "pointer", fontSize: 12, lineHeight: 1 }}
+            >
+              ›
+            </button>
+          </>
+        )}
+      </div>
+      {b.images.length > 1 && (
+        <div style={{ display: "flex", gap: 7, marginTop: 7 }}>
+          {b.images.map((im, i) => (
+            <button
+              key={im.label}
+              onClick={() => setSel(i)}
+              style={{
+                flex: 1,
+                height: 34,
+                borderRadius: 5,
+                border: i === sel ? `2px solid ${T.primary}` : `1px solid ${T.border}`,
+                background: `linear-gradient(135deg, hsl(${im.hue},58%,72%), hsl(${(im.hue + 45) % 360},52%,58%))`,
+                color: "#fff",
+                fontSize: 9,
+                fontWeight: 700,
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              {im.label}
+            </button>
+          ))}
+        </div>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "max-content 1fr", gap: "3px 10px", fontSize: 11, color: T.text, marginTop: 9 }}>
+        {b.fields.map((f) => (
+          <div key={f.k} style={{ display: "contents" }}>
+            <span style={{ color: T.textMuted }}>{f.k}</span>
+            <span>{f.v}</span>
+          </div>
+        ))}
+      </div>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{ marginTop: 8, fontSize: 11, color: T.primary, background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: 600 }}
+      >
+        过程与证据 {open ? "▾" : "▸"}
+      </button>
+      {open && (
+        <div
+          style={{
+            marginTop: 6,
+            padding: "7px 10px",
+            fontSize: 10.5,
+            color: T.textSub,
+            lineHeight: 1.7,
+            backgroundColor: "var(--chip-bg)",
+            borderLeft: "2px solid rgba(50,109,255,0.35)",
+            borderRadius: 4,
+          }}
+        >
+          {b.process.map((p, i) => (
+            <div key={i}>{p}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /** 静态演示块渲染：助手白卡内左对齐，沿用现有字号与边框，不引入新的深色 / 大屏风格 */
 function WbBlockView({
   b,
@@ -14332,6 +14460,226 @@ function WbBlockView({
         })}
       </div>
     )
+  if (b.kind === "condbar")
+    return (
+      <div
+        style={{
+          fontSize: 10.5,
+          color: T.textSub,
+          backgroundColor: "var(--chip-bg)",
+          border: `1px solid ${T.border}`,
+          borderRadius: 6,
+          padding: "4px 9px",
+          lineHeight: 1.6,
+        }}
+      >
+        {b.text}
+      </div>
+    )
+  if (b.kind === "thumbList")
+    return (
+      <div style={box}>
+        <div style={headStyle}>{b.title}</div>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {b.rows.map((r, i) => (
+            <div
+              key={r.no}
+              role="button"
+              tabIndex={0}
+              onClick={() => onAction("open-detail:" + r.no)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") onAction("open-detail:" + r.no)
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 9,
+                padding: "6px 0",
+                borderTop: i === 0 ? "none" : `1px dashed ${T.border}`,
+                cursor: "pointer",
+              }}
+            >
+              <span
+                style={{
+                  width: 40,
+                  height: 30,
+                  borderRadius: 5,
+                  flexShrink: 0,
+                  background: `linear-gradient(135deg, hsl(${b.rows[i].hue},60%,72%), hsl(${(b.rows[i].hue + 40) % 360},55%,58%))`,
+                  display: "flex",
+                  alignItems: "flex-end",
+                  justifyContent: "flex-start",
+                  padding: "1px 3px",
+                }}
+              >
+                <span style={{ fontSize: 7.5, color: "rgba(255,255,255,0.95)", fontWeight: 600, lineHeight: 1.2 }}>{r.thumbLabel}</span>
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: T.text, fontWeight: 600 }}>
+                  {r.type}
+                  <span style={{ fontSize: 9.5, color: T.amber, fontWeight: 600 }}>{r.status}</span>
+                </span>
+                <span style={{ display: "block", fontSize: 10, color: T.textMuted, marginTop: 1 }}>
+                  {r.street} · {r.grid}
+                </span>
+              </span>
+              <span style={{ textAlign: "right", flexShrink: 0 }}>
+                <span style={{ display: "block", fontSize: 10.5, color: T.textSub, fontFamily: T.mono }}>{r.time}</span>
+                <span style={{ display: "block", fontSize: 9.5, color: T.textMuted, fontFamily: T.mono }}>{r.no}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+        {b.more && (
+          <button
+            onClick={() => onAction(b.more!)}
+            style={{
+              marginTop: 6,
+              fontSize: 11,
+              color: T.primary,
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            {b.more}
+          </button>
+        )}
+      </div>
+    )
+  if (b.kind === "detailMulti")
+    return <DetailMultiView b={b} />
+  if (b.kind === "pie") {
+    const stops: string[] = []
+    let acc = 0
+    const palette = ["#326DFF", "#24D6D2", "#7C5CFF", "#F5A623", "#E45E58"]
+    b.items.forEach((it, i) => {
+      const start = acc
+      acc += it.pct
+      stops.push(`${palette[i % palette.length]} ${start}% ${acc}%`)
+    })
+    return (
+      <div style={{ ...box, display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+        <div
+          style={{
+            width: 96,
+            height: 96,
+            borderRadius: "50%",
+            flexShrink: 0,
+            background: `conic-gradient(${stops.join(",")})`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: "50%",
+              backgroundColor: "var(--row-bg)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <span style={{ fontSize: 15, fontWeight: 800, color: T.text, fontFamily: T.mono, lineHeight: 1 }}>{b.items.reduce((s, x) => s + x.n, 0)}</span>
+            <span style={{ fontSize: 8.5, color: T.textMuted }}>件（示例）</span>
+          </div>
+        </div>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+            <thead>
+              <tr>
+                {["类型", "件数", "占比"].map((h) => (
+                  <th key={h} style={{ textAlign: "left", fontWeight: 600, color: T.textMuted, padding: "2px 6px", borderBottom: `1px solid ${T.border}` }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {b.items.map((it, i) => (
+                <tr key={it.name}>
+                  <td style={{ padding: "3px 6px", color: T.text }}>
+                    <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, backgroundColor: palette[i % palette.length], marginRight: 5 }} />
+                    {it.name}
+                  </td>
+                  <td style={{ padding: "3px 6px", color: T.textSub, fontFamily: T.mono }}>{it.n}</td>
+                  <td style={{ padding: "3px 6px", color: T.textSub, fontFamily: T.mono }}>{it.pct}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+  if (b.kind === "line") {
+    const W = 320
+    const H = 92
+    const max = Math.max(...b.points.map((p) => p.n)) + 2
+    const pts = b.points.map((p, i) => {
+      const x = 8 + (i * (W - 16)) / (b.points.length - 1)
+      const y = H - 18 - (p.n / max) * (H - 30)
+      return { x, y, ...p }
+    })
+    const path = pts.map((p) => `${p.x},${p.y}`).join(" ")
+    return (
+      <div style={box}>
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block" }}>
+          <polygon points={`${pts[0].x},${H - 18} ${path} ${pts[pts.length - 1].x},${H - 18}`} fill="rgba(50,109,255,0.12)" />
+          <polyline points={path} fill="none" stroke="#326DFF" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+          {pts.map((p) => (
+            <g key={p.d}>
+              <circle cx={p.x} cy={p.y} r="2.6" fill="#fff" stroke="#326DFF" strokeWidth="1.6" />
+              <text x={p.x} y={p.y - 7} textAnchor="middle" fontSize="8.5" fill="#6E8197" fontFamily="monospace">{p.n}</text>
+              <text x={p.x} y={H - 5} textAnchor="middle" fontSize="8.5" fill="#6E8197">{p.d}</text>
+            </g>
+          ))}
+        </svg>
+      </div>
+    )
+  }
+  if (b.kind === "bars") {
+    const max = Math.max(...b.items.map((x) => x.n), 1)
+    return (
+      <div style={box}>
+        <div style={headStyle}>街道排行（件数）</div>
+        {b.items.map((x) => (
+          <div key={x.name} style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0", fontSize: 11 }}>
+            <span style={{ width: 70, color: T.text, flexShrink: 0 }}>{x.name}</span>
+            <span style={{ flex: 1, height: 12, borderRadius: 3, backgroundColor: "rgba(110,129,151,0.12)", overflow: "hidden" }}>
+              <span style={{ display: "block", height: "100%", width: `${(x.n / max) * 100}%`, background: `linear-gradient(90deg, ${T.primary}, ${T.accent})`, borderRadius: 3 }} />
+            </span>
+            <span style={{ width: 18, textAlign: "right", color: T.textSub, fontFamily: T.mono, flexShrink: 0 }}>{x.n}</span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+  if (b.kind === "mapStub")
+    return (
+      <div
+        style={{
+          height: 120,
+          borderRadius: 8,
+          border: `1px dashed ${T.border}`,
+          backgroundColor: "rgba(110,129,151,0.08)",
+          backgroundImage:
+            "repeating-linear-gradient(0deg, rgba(110,129,151,0.10) 0 1px, transparent 1px 22px), repeating-linear-gradient(90deg, rgba(110,129,151,0.10) 0 1px, transparent 1px 22px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 11,
+          color: T.textMuted,
+        }}
+      >
+        {b.text}
+      </div>
+    )
   if (b.kind === "actions")
     return (
       <div style={{ display: "flex", gap: 8 }}>
@@ -14358,6 +14706,61 @@ function WbBlockView({
   return null
 }
 
+// ─── 业务问答推荐芯片与预制答案（2026-10-15 二轮：点击即提交，给结构化结果） ───
+const QA_CHIPS: { key: string; q: string }[] = [
+  { key: "list", q: "东华门现在还有哪些待核查事件？" },
+  { key: "detail", q: "看看编号 E-20555 的事件详情" },
+  { key: "pie", q: "近 7 日各类型事件占比多少？" },
+  { key: "trend", q: "近 7 日每天新发现事件数怎么变？" },
+  { key: "space", q: "近 7 日施工占道主要集中在哪些街道？" },
+]
+const QA_CHIP_REPORT = "把上述内容整理成治理周报"
+
+type WbThumbRow = { no: string; type: string; status: string; street: string; grid: string; time: string; hue: number; thumbLabel: string }
+const WB_LIST_ROWS: WbThumbRow[] = [
+  { no: "E-20555", type: "共享单车占道", status: "待核查", street: "东华门街道", grid: "东华门-02网格", time: "10-12 08:41", hue: 210, thumbLabel: "发现 10-12" },
+  { no: "E-20551", type: "施工占道", status: "待核查", street: "东华门街道", grid: "东华门-04网格", time: "10-12 09:02", hue: 265, thumbLabel: "发现 10-12" },
+  { no: "E-20548", type: "暴露垃圾", status: "待核查", street: "东华门街道", grid: "东华门-01网格", time: "10-11 16:20", hue: 150, thumbLabel: "发现 10-11" },
+  { no: "E-20542", type: "店外经营", status: "待核查", street: "东华门街道", grid: "东华门-03网格", time: "10-11 10:15", hue: 35, thumbLabel: "发现 10-11" },
+  { no: "E-20537", type: "非法小广告", status: "待核查", street: "东华门街道", grid: "东华门-02网格", time: "10-10 18:33", hue: 0, thumbLabel: "发现 10-10" },
+]
+const WB_LIST_MORE: WbThumbRow[] = [
+  { no: "E-20530", type: "施工占道", status: "待核查", street: "东华门街道", grid: "东华门-05网格", time: "10-10 14:07", hue: 285, thumbLabel: "发现 10-10" },
+  { no: "E-20524", type: "暴露垃圾", status: "待核查", street: "东华门街道", grid: "东华门-01网格", time: "10-09 19:26", hue: 120, thumbLabel: "发现 10-09" },
+  { no: "E-20519", type: "共享单车占道", status: "待核查", street: "东华门街道", grid: "东华门-02网格", time: "10-09 08:52", hue: 195, thumbLabel: "发现 10-09" },
+]
+const WB_COND_DHD = "实际条件：东华门街道 · 状态=待核查 · 不限发现日 · 数据截至 2026-10-15 14:00 · 来源：网格巡查 + AI 识别（示例）"
+
+function wbDetailBlocks(no: string): WbBlock[] {
+  const row = [...WB_LIST_ROWS, ...WB_LIST_MORE].find((r) => r.no === no)
+  const known = no === "E-20555"
+  return [
+    {
+      kind: "detailMulti",
+      no,
+      type: row?.type || "共享单车占道",
+      status: "待核查",
+      place: row ? `${row.street} · ${row.grid}` : "东华门街道 · 东华门-02网格",
+      fields: [
+        { k: "发现时间", v: row?.time || "10-12 08:41" },
+        { k: "来源", v: known ? "相机识别（示例）" : "网格巡查（示例）" },
+        { k: "等级", v: "一般（示例）" },
+        { k: "状态", v: "待核查" },
+      ],
+      images: [
+        { label: "发现", hue: row?.hue ?? 210 },
+        { label: "处置前", hue: ((row?.hue ?? 210) + 70) % 360 },
+        { label: "核查", hue: ((row?.hue ?? 210) + 160) % 360 },
+      ],
+      process: [
+        `10-12 08:41 ${known ? "相机识别命中，自动生成待核查工单" : "网格巡查上报，生成待核查工单"}`,
+        "10-12 08:42 进入东华门街道核查队列，等待分派核查人",
+        "（演示数据，仅展示环节流转，不在此办理）",
+      ],
+    },
+  ]
+}
+
 function AIWorkbench() {
   const [activeTab, setActiveTab] = useState<WbTab>("dialogs")
   const [dialogs, setDialogs] = useState<WbDialog[]>(initialWbDialogs)
@@ -14371,6 +14774,165 @@ function AIWorkbench() {
   const [showOpPreview, setShowOpPreview] = useState(false)
   // 静态演示交互反馈（查看更多 / 确认生成 / 调整条件等）
   const [wbToast, setWbToast] = useState("")
+
+  // ── 推荐芯片：点击即提交，助手给完整结构化答案（静态演示） ──
+  function answerPreset(dialogId: string, key: string) {
+    const chip = QA_CHIPS.find((c) => c.key === key)
+    const q = chip ? chip.q : QA_CHIP_REPORT
+    let msg: WbMsg
+    if (key === "list")
+      msg = {
+        role: "ai",
+        content: "东华门当前待核查 8 件（示例）；先展示 5 件。",
+        blocks: [
+          { kind: "condbar", text: WB_COND_DHD },
+          {
+            kind: "thumbList",
+            title: "事件列表 · 按发现时间倒序",
+            rows: WB_LIST_ROWS,
+            more: "查看更多（还有 3 件）",
+          },
+          { kind: "note", text: "实际条件：东华门街道 · 状态=待核查 · 不限发现日 · 数据截至 2026-10-15 14:00 · 来源：网格巡查 + AI 识别（示例）。点击任一行可在本会话展开详情。" },
+        ],
+      }
+    else if (key === "detail")
+      msg = {
+        role: "ai",
+        content: "E-20555 的事件详情如下（示例）。",
+        blocks: [
+          ...wbDetailBlocks("E-20555"),
+          { kind: "note", text: "实际条件：编号=E-20555 · 数据截至 2026-10-15 14:00 · 来源：相机识别 + 工单流水（示例）。" },
+        ],
+      }
+    else if (key === "pie")
+      msg = {
+        role: "ai",
+        content: "近7日全区新发现 48 件；类型构成如下（示例）。",
+        blocks: [
+          { kind: "condbar", text: "实际条件：近7日 · 全区 · 全部事件类型 · 按发现时间 · 数据截至 2026-10-15 14:00" },
+          {
+            kind: "pie",
+            items: [
+              { name: "共享单车占道", pct: 30, n: 14 },
+              { name: "施工占道", pct: 25, n: 12 },
+              { name: "占道经营", pct: 20, n: 10 },
+              { name: "暴露垃圾", pct: 15, n: 7 },
+              { name: "疑似堆物", pct: 10, n: 5 },
+            ],
+          },
+          { kind: "note", text: "实际条件：近7日 · 全区 · 按发现时间 · 数据截至 2026-10-15 14:00 · 来源：相机识别等（去重）（示例）。" },
+        ],
+      }
+    else if (key === "trend")
+      msg = {
+        role: "ai",
+        content: "近7日日均新发现约 6.9 件；周末（10-10 / 10-11）低于工作日（示例）。",
+        blocks: [
+          { kind: "condbar", text: "实际条件：近7日 · 全区 · 全部事件类型 · 按发现时间归日 · 数据截至 2026-10-15 14:00" },
+          {
+            kind: "line",
+            points: [
+              { d: "10-09", n: 5 },
+              { d: "10-10", n: 6 },
+              { d: "10-11", n: 5 },
+              { d: "10-12", n: 9 },
+              { d: "10-13", n: 8 },
+              { d: "10-14", n: 7 },
+              { d: "10-15", n: 8 },
+            ],
+          },
+          { kind: "note", text: "实际条件：近7日（10-09 ~ 10-15）· 全区 · 按发现时间归日 · 数据截至 2026-10-15 14:00 · 来源：相机识别等（去重）（示例）。" },
+        ],
+      }
+    else if (key === "space")
+      msg = {
+        role: "ai",
+        content: "近7日施工占道 12 件，主要在朝阳门、东四、北新桥（示例）。",
+        blocks: [
+          { kind: "condbar", text: "实际条件：近7日 · 全区 · 类型=施工占道 · 按发现时间 · 数据截至 2026-10-15 14:00" },
+          {
+            kind: "bars",
+            items: [
+              { name: "朝阳门街道", n: 4 },
+              { name: "东四街道", n: 3 },
+              { name: "北新桥街道", n: 2 },
+              { name: "安定门街道", n: 2 },
+              { name: "其他街道", n: 1 },
+            ],
+          },
+          { kind: "mapStub", text: "底图示意（非真实地图）· 12 件中 10 件已落点，2 件无位置未落点" },
+          { kind: "note", text: "实际条件：近7日 · 全区 · 类型=施工占道 · 数据截至 2026-10-15 14:00 · 来源：相机识别 + 网格巡查（去重）（示例）。" },
+        ],
+      }
+    else
+      msg = {
+        role: "ai",
+        content: "生成前先确认本次范围：",
+        blocks: [
+          {
+            kind: "confirm",
+            fields: [
+              { k: "标题", v: "治理周报 · 2026-10-15" },
+              { k: "报告类型", v: "周报" },
+              { k: "范围", v: "近7日 · 全区（含本会话问答口径）" },
+              { k: "章节", v: "综合态势 · 事件发生 · 流程运行" },
+              { k: "模板名称和版本", v: "街乡治理周报模板 · v2" },
+            ],
+          },
+          { kind: "actions", items: ["确认生成"] },
+          { kind: "note", text: "完成后只读预览，可下载 PDF 和 DOCX；正文不可在系统内改。" },
+        ],
+      }
+    setMsgs(dialogId, (prev) => [...prev, { role: "user", content: q }, msg])
+  }
+
+  // ── 块内交互：行点详情 / 查看更多 / 确认生成（静态演示流） ──
+  function handleBlockAction(dialogId: string, mi: number, action: string) {
+    if (action.startsWith("open-detail:")) {
+      const no = action.slice("open-detail:".length)
+      setMsgs(dialogId, (prev) => [...prev, { role: "user", content: `看看编号 ${no} 的事件详情` }, { role: "ai", content: `${no} 的事件详情如下（示例）。`, blocks: wbDetailBlocks(no) }])
+      return
+    }
+    if (action.startsWith("查看更多")) {
+      setMsgs(dialogId, (prev) =>
+        prev.map((m, idx) => {
+          if (idx !== mi || !m.blocks) return m
+          return {
+            ...m,
+            blocks: m.blocks.map((b) =>
+              b.kind === "thumbList" && b.more
+                ? { ...b, rows: [...b.rows, ...WB_LIST_MORE], more: undefined }
+                : b
+            ),
+          }
+        })
+      )
+      setWbToast("演示：已追加剩余 3 件（静态演示数据）")
+      return
+    }
+    if (action === "确认生成") {
+      const pdfId = "f-rp-" + Date.now()
+      const docId = pdfId + "d"
+      setMsgs(dialogId, (prev) => [...prev, { role: "status", content: "正在生成《治理周报 · 2026-10-15》" }])
+      setTimeout(() => {
+        setFiles((prev) => [
+          { id: pdfId, name: "治理周报 · 2026-10-15.pdf", type: "PDF", version: "v1", size: "1.0MB", created: "10-15", dialogId, scope: "近7日 · 全区" },
+          { id: docId, name: "治理周报 · 2026-10-15.docx", type: "DOCX", version: "v1", size: "0.5MB", created: "10-15", dialogId, scope: "近7日 · 全区" },
+          ...prev,
+        ])
+        setMsgs(dialogId, (prev) => [
+          ...prev.map((m) => (m.role === "status" && m.content.indexOf("正在生成《治理周报") === 0 ? { ...m, content: "《治理周报 · 2026-10-15》已生成（v1）" } : m)),
+          {
+            role: "ai",
+            content: "《治理周报 · 2026-10-15》已生成（v1）。正文为只读预览，不可在系统内修改；可下载 PDF 或 DOCX，也可在文件记录查看。",
+            blocks: [{ kind: "files", ids: [pdfId, docId] }],
+          },
+        ])
+      }, 1500)
+      return
+    }
+    setWbToast(`演示：「${action}」为静态演示交互`)
+  }
   // 文件预览：对话右侧分栏打开（Trae 式三段面板）
   const [wbPreviewId, setWbPreviewId] = useState<string | null>(null)
   const [wbZoom, setWbZoom] = useState(1)
@@ -15458,17 +16020,7 @@ function AIWorkbench() {
                                 b={b}
                                 files={files}
                                 onPreview={openWbPreview}
-                                onAction={(label) => {
-                                  if (label === "查看更多") {
-                                    setWbToast("演示：剩余 1 件已加载（静态演示数据）")
-                                  } else if (label === "确认生成") {
-                                    setWbToast("演示：已开始生成，进度见下一条消息")
-                                  } else if (label === "调整条件") {
-                                    setWbToast("演示：调整条件入口仅作展示，不改变本条数据")
-                                  } else {
-                                    setWbToast(`演示：「${label}」为静态演示交互`)
-                                  }
-                                }}
+                                onAction={(action) => handleBlockAction(activeDialogId!, conversations[activeDialogId!].indexOf(msg), action)}
                               />
                             ))}
                           </div>
@@ -15681,14 +16233,21 @@ function AIWorkbench() {
                     "环比变化是多少？",
                   ]
                 : [
-                    "本周哪类事件上升最快？按当前口径直接给结论。",
-                    "解释闭环率的统计口径",
-                    "按街道下钻暴露垃圾分布",
+                    ...QA_CHIPS.map((c) => c.q),
+                    ...(conversations[activeDialogId]?.some((m) => m.role === "ai" && m.blocks && m.blocks.length > 0)
+                      ? [QA_CHIP_REPORT]
+                      : []),
                   ]
-              ).map((q) => (
+              ).map((q) => {
+                  const chip = QA_CHIPS.find((c) => c.q === q)
+                  return (
                   <button
                     key={q}
-                    onClick={() => setChatInput(q)}
+                    onClick={() => {
+                      if (chip && activeDialogId) answerPreset(activeDialogId, chip.key)
+                      else if (q === QA_CHIP_REPORT && activeDialogId) answerPreset(activeDialogId, "report")
+                      else setChatInput(q)
+                    }}
                     style={{
                       fontSize: 11,
                       color: T.textMuted,
@@ -15701,7 +16260,8 @@ function AIWorkbench() {
                   >
                     {q}
                   </button>
-                ))}
+                  )
+                })}
             </div>
           </div>
         </Card>
