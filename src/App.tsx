@@ -13708,7 +13708,7 @@ type WbBlock =
   | {
       kind: "thumbList"
       title: string
-      rows: { no: string; type: string; status: string; street: string; grid: string; time: string; hue: number; thumbLabel: string }[]
+      rows: { no: string; type: string; status: string; street: string; grid: string; time: string; thumbLabel: string }[]
       more?: string
     }
   | {
@@ -13718,7 +13718,7 @@ type WbBlock =
       status: string
       place: string
       fields: { k: string; v: string }[]
-      images: { label: string; hue: number }[]
+      images: { label: string; tone: number }[]
       process: string[]
     }
   | { kind: "pie"; items: { name: string; pct: number; n: number }[] }
@@ -14058,7 +14058,7 @@ function DetailMultiView({ b }: { b: Extract<WbBlock, { kind: "detailMulti" }> }
           style={{
             height: 132,
             borderRadius: 7,
-            background: `linear-gradient(135deg, hsl(${img.hue},58%,70%), hsl(${(img.hue + 45) % 360},52%,55%))`,
+            background: `linear-gradient(135deg, hsl(210,15%,${68 - img.tone * 8}%), hsl(210,12%,${56 - img.tone * 8}%))`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -14097,7 +14097,7 @@ function DetailMultiView({ b }: { b: Extract<WbBlock, { kind: "detailMulti" }> }
                 height: 34,
                 borderRadius: 5,
                 border: i === sel ? `2px solid ${T.primary}` : `1px solid ${T.border}`,
-                background: `linear-gradient(135deg, hsl(${im.hue},58%,72%), hsl(${(im.hue + 45) % 360},52%,58%))`,
+                background: `linear-gradient(135deg, hsl(210,14%,${72 - im.tone * 8}%), hsl(210,11%,${60 - im.tone * 8}%))`,
                 color: "#fff",
                 fontSize: 9,
                 fontWeight: 700,
@@ -14505,7 +14505,7 @@ function WbBlockView({
                   height: 30,
                   borderRadius: 5,
                   flexShrink: 0,
-                  background: `linear-gradient(135deg, hsl(${b.rows[i].hue},60%,72%), hsl(${(b.rows[i].hue + 40) % 360},55%,58%))`,
+                  background: "linear-gradient(135deg, #A9BACA, #8497A8)",
                   display: "flex",
                   alignItems: "flex-end",
                   justifyContent: "flex-start",
@@ -14553,7 +14553,7 @@ function WbBlockView({
   if (b.kind === "pie") {
     const stops: string[] = []
     let acc = 0
-    const palette = ["#326DFF", "#24D6D2", "#7C5CFF", "#F5A623", "#E45E58"]
+    const palette = ["#2F6BDF", "#5A8BE8", "#8CA9E8", "#24B8C6", "#8497A8"]
     b.items.forEach((it, i) => {
       const start = acc
       acc += it.pct
@@ -14716,18 +14716,18 @@ const QA_CHIPS: { key: string; q: string }[] = [
 ]
 const QA_CHIP_REPORT = "把上述内容整理成治理周报"
 
-type WbThumbRow = { no: string; type: string; status: string; street: string; grid: string; time: string; hue: number; thumbLabel: string }
+type WbThumbRow = { no: string; type: string; status: string; street: string; grid: string; time: string; thumbLabel: string }
 const WB_LIST_ROWS: WbThumbRow[] = [
-  { no: "E-20555", type: "共享单车占道", status: "待核查", street: "东华门街道", grid: "东华门-02网格", time: "10-12 08:41", hue: 210, thumbLabel: "发现 10-12" },
-  { no: "E-20551", type: "施工占道", status: "待核查", street: "东华门街道", grid: "东华门-04网格", time: "10-12 09:02", hue: 265, thumbLabel: "发现 10-12" },
-  { no: "E-20548", type: "暴露垃圾", status: "待核查", street: "东华门街道", grid: "东华门-01网格", time: "10-11 16:20", hue: 150, thumbLabel: "发现 10-11" },
-  { no: "E-20542", type: "店外经营", status: "待核查", street: "东华门街道", grid: "东华门-03网格", time: "10-11 10:15", hue: 35, thumbLabel: "发现 10-11" },
-  { no: "E-20537", type: "非法小广告", status: "待核查", street: "东华门街道", grid: "东华门-02网格", time: "10-10 18:33", hue: 0, thumbLabel: "发现 10-10" },
+  { no: "E-20555", type: "共享单车占道", status: "待核查", street: "东华门街道", grid: "东华门-02网格", time: "10-12 08:41", thumbLabel: "发现 10-12" },
+  { no: "E-20551", type: "施工占道", status: "待核查", street: "东华门街道", grid: "东华门-04网格", time: "10-12 09:02", thumbLabel: "发现 10-12" },
+  { no: "E-20548", type: "暴露垃圾", status: "待核查", street: "东华门街道", grid: "东华门-01网格", time: "10-11 16:20", thumbLabel: "发现 10-11" },
+  { no: "E-20542", type: "店外经营", status: "待核查", street: "东华门街道", grid: "东华门-03网格", time: "10-11 10:15", thumbLabel: "发现 10-11" },
+  { no: "E-20537", type: "非法小广告", status: "待核查", street: "东华门街道", grid: "东华门-02网格", time: "10-10 18:33", thumbLabel: "发现 10-10" },
 ]
 const WB_LIST_MORE: WbThumbRow[] = [
-  { no: "E-20530", type: "施工占道", status: "待核查", street: "东华门街道", grid: "东华门-05网格", time: "10-10 14:07", hue: 285, thumbLabel: "发现 10-10" },
-  { no: "E-20524", type: "暴露垃圾", status: "待核查", street: "东华门街道", grid: "东华门-01网格", time: "10-09 19:26", hue: 120, thumbLabel: "发现 10-09" },
-  { no: "E-20519", type: "共享单车占道", status: "待核查", street: "东华门街道", grid: "东华门-02网格", time: "10-09 08:52", hue: 195, thumbLabel: "发现 10-09" },
+  { no: "E-20530", type: "施工占道", status: "待核查", street: "东华门街道", grid: "东华门-05网格", time: "10-10 14:07", thumbLabel: "发现 10-10" },
+  { no: "E-20524", type: "暴露垃圾", status: "待核查", street: "东华门街道", grid: "东华门-01网格", time: "10-09 19:26", thumbLabel: "发现 10-09" },
+  { no: "E-20519", type: "共享单车占道", status: "待核查", street: "东华门街道", grid: "东华门-02网格", time: "10-09 08:52", thumbLabel: "发现 10-09" },
 ]
 const WB_COND_DHD = "实际条件：东华门街道 · 状态=待核查 · 不限发现日 · 数据截至 2026-10-15 14:00 · 来源：网格巡查 + AI 识别（示例）"
 
@@ -14748,9 +14748,9 @@ function wbDetailBlocks(no: string): WbBlock[] {
         { k: "状态", v: "待核查" },
       ],
       images: [
-        { label: "发现", hue: row?.hue ?? 210 },
-        { label: "处置前", hue: ((row?.hue ?? 210) + 70) % 360 },
-        { label: "核查", hue: ((row?.hue ?? 210) + 160) % 360 },
+        { label: "发现", tone: 0 },
+        { label: "处置前", tone: 1 },
+        { label: "核查", tone: 2 },
       ],
       process: [
         `10-12 08:41 ${known ? "相机识别命中，自动生成待核查工单" : "网格巡查上报，生成待核查工单"}`,
@@ -14774,6 +14774,13 @@ function AIWorkbench() {
   const [showOpPreview, setShowOpPreview] = useState(false)
   // 静态演示交互反馈（查看更多 / 确认生成 / 调整条件等）
   const [wbToast, setWbToast] = useState("")
+  // 消息变化后自动滚到底部，保证新回复完整可见
+  const msgsBoxRef = useRef<HTMLDivElement>(null)
+  const activeConvNow = conversations[activeDialogId] || []
+  useEffect(() => {
+    const el = msgsBoxRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [activeDialogId, activeConvNow])
 
   // ── 推荐芯片：点击即提交，助手给完整结构化答案（静态演示） ──
   function answerPreset(dialogId: string, key: string) {
@@ -14883,7 +14890,36 @@ function AIWorkbench() {
           { kind: "note", text: "完成后只读预览，可下载 PDF 和 DOCX；正文不可在系统内改。" },
         ],
       }
-    setMsgs(dialogId, (prev) => [...prev, { role: "user", content: q }, msg])
+    // 点击即提交：用户气泡 → 思考 → 执行步骤 → 输出完整答案（与手动提问同一流程）
+    const specs: Record<string, { thinkDetail: string; acts: string[] }> = {
+      list: {
+        thinkDetail: "先明确口径：东华门街道、状态=待核查、不限发现日；按发现时间倒序取前 5 件，剩余留给「查看更多」。",
+        acts: ["检索东华门待核查事件", "按发现时间倒序整理前 5 件"],
+      },
+      detail: {
+        thinkDetail: "定位编号 E-20555 的工单与图片档案，核对发现时间、来源与当前状态。",
+        acts: ["查询工单 E-20555", "关联抓拍图片与处理记录"],
+      },
+      pie: {
+        thinkDetail: "口径：近7日 · 全区 · 按发现时间；按类型统计件数与占比，合计核对。",
+        acts: ["检索近7日全区事件", "按类型统计件数与占比"],
+      },
+      trend: {
+        thinkDetail: "口径：近7日 · 按发现时间归日；输出每日件数并观察工作日 / 周末差异。",
+        acts: ["检索近7日每日新发现", "按发现时间归日并比对周末"],
+      },
+      space: {
+        thinkDetail: "口径：近7日 · 类型=施工占道；按街道聚合排名，并核对各件是否有位置可落点。",
+        acts: ["检索近7日施工占道", "按街道聚合排名并核对落点"],
+      },
+      report: {
+        thinkDetail: "汇总本会话已确认的问答口径，套用街乡治理周报模板 v2，先与用户确认范围。",
+        acts: ["汇总本会话口径", "按模板整理报告范围"],
+      },
+    }
+    const s = specs[key] || specs.list
+    setMsgs(dialogId, (prev) => [...prev, { role: "user", content: q }, { role: "status", content: "" }])
+    runAgentFlow(dialogId, { thinkDetail: s.thinkDetail, acts: s.acts }, msg)
   }
 
   // ── 块内交互：行点详情 / 查看更多 / 确认生成（静态演示流） ──
@@ -15804,7 +15840,7 @@ function AIWorkbench() {
               ) : null}
             </div>
           )}
-          <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+          <div ref={msgsBoxRef} style={{ flex: 1, overflowY: "auto", padding: 16 }}>
             {activeConv.length === 0 && (
               <div
                 style={{
@@ -16170,7 +16206,46 @@ function AIWorkbench() {
               flexShrink: 0,
             }}
           >
-            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+              {(activeDialog?.type === "report"
+                ? [
+                    "生成上周东城治理周报",
+                    "生成暴露垃圾专题报告",
+                    "这个数怎么来的？",
+                    "环比变化是多少？",
+                  ]
+                : [
+                    ...QA_CHIPS.map((c) => c.q),
+                    ...(conversations[activeDialogId]?.some((m) => m.role === "ai" && m.blocks && m.blocks.length > 0)
+                      ? [QA_CHIP_REPORT]
+                      : []),
+                  ]
+              ).map((q) => {
+                  const chip = QA_CHIPS.find((c) => c.q === q)
+                  return (
+                  <button
+                    key={q}
+                    onClick={() => {
+                      if (chip && activeDialogId) answerPreset(activeDialogId, chip.key)
+                      else if (q === QA_CHIP_REPORT && activeDialogId) answerPreset(activeDialogId, "report")
+                      else setChatInput(q)
+                    }}
+                    style={{
+                      fontSize: 11,
+                      color: T.textMuted,
+                      border: `1px solid ${T.border}`,
+                      backgroundColor: T.card2,
+                      padding: "3px 8px",
+                      borderRadius: 4,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {q}
+                  </button>
+                  )
+                })}
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
               <textarea
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
@@ -16223,45 +16298,6 @@ function AIWorkbench() {
                   <polygon points="22 2 15 22 11 13 2 9 22 2" />
                 </svg>
               </button>
-            </div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {(activeDialog?.type === "report"
-                ? [
-                    "生成上周东城治理周报",
-                    "生成暴露垃圾专题报告",
-                    "这个数怎么来的？",
-                    "环比变化是多少？",
-                  ]
-                : [
-                    ...QA_CHIPS.map((c) => c.q),
-                    ...(conversations[activeDialogId]?.some((m) => m.role === "ai" && m.blocks && m.blocks.length > 0)
-                      ? [QA_CHIP_REPORT]
-                      : []),
-                  ]
-              ).map((q) => {
-                  const chip = QA_CHIPS.find((c) => c.q === q)
-                  return (
-                  <button
-                    key={q}
-                    onClick={() => {
-                      if (chip && activeDialogId) answerPreset(activeDialogId, chip.key)
-                      else if (q === QA_CHIP_REPORT && activeDialogId) answerPreset(activeDialogId, "report")
-                      else setChatInput(q)
-                    }}
-                    style={{
-                      fontSize: 11,
-                      color: T.textMuted,
-                      border: `1px solid ${T.border}`,
-                      backgroundColor: T.card2,
-                      padding: "3px 8px",
-                      borderRadius: 4,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {q}
-                  </button>
-                  )
-                })}
             </div>
           </div>
         </Card>
