@@ -3623,7 +3623,8 @@ const pendingVoidEvents: BatchEvent[] = [
     location: "朝阳门南小街3号楼前",
     time: "08-18 08:20",
     camera: "CAM-CYM-047",
-    agentStatus: "外场责任人申请作废",
+    agentStatus:
+      "网格员申请作废：责任主体判定错误 ZF-01 · 车主出示场内停车证，停放合规，无法按原定责处置",
     suggestedGrid: "北新桥街道网格",
     imgUrls: [eventImage("违规停放机动车", "during")],
     situation: { text: "正常作废审核", type: "normal" },
@@ -3635,7 +3636,8 @@ const pendingVoidEvents: BatchEvent[] = [
     location: "东四十条甲22号",
     time: "08-18 08:05",
     camera: "CAM-DST-031",
-    agentStatus: "监督员提交复核建议作废",
+    agentStatus:
+      "网格员申请作废：重复立案（已有主事件）ZF-02 · 同点位同批货物已由在办事件处置",
     suggestedGrid: "东四街道网格",
     imgUrls: [eventImage("店外经营占道", "during")],
     situation: { text: "正常作废审核", type: "normal" },
@@ -3647,7 +3649,8 @@ const pendingVoidEvents: BatchEvent[] = [
     location: "建国门外大街16号",
     time: "08-18 07:48",
     camera: "CAM-JGM-023",
-    agentStatus: "处置方申请重复事件作废",
+    agentStatus:
+      "网格员申请作废：责任主体判定错误 ZF-01 · 点位已取得临时宣传设施设置审批，非无证设置",
     suggestedGrid: "景山街道网格",
     hasRisk: true,
     imgUrls: [eventImage("无证户外广告", "during")],
@@ -3655,10 +3658,16 @@ const pendingVoidEvents: BatchEvent[] = [
   },
 ]
 
-// ─── Agent 处理池：五态对齐业务流程（Agent 监控全量事件，按业务状态分组）──────
-// 状态与事件处理业务一一对应：等待立案→等待处置反馈→等待核查→等待外场核查→持续监控
+// ─── Agent 处理池：六态对齐业务流程（Agent 监控全量事件，按业务状态分组）──────
+// 状态与事件处理业务一一对应：等待立案→等待处置反馈→等待核查→等待外场核查→等待作废审核→持续监控
 // 池内件数为演示数据（标注示例口径），不计入页签待办数，也不是人工待办
-type PoolStateId = "case" | "feedback" | "verify" | "inspection" | "watching"
+type PoolStateId =
+  | "case"
+  | "feedback"
+  | "verify"
+  | "inspection"
+  | "void"
+  | "watching"
 
 interface PoolStateMeta {
   id: PoolStateId
@@ -3727,9 +3736,9 @@ const agentPoolStats: PoolStateMeta[] = [
     count: 9,
     color: T.red,
     rgb: T.redRGB,
-    hint: "已提出作废申请（重复 / 误报），等作废审核岗确认（对应「待作废审核」队列）",
-    firstScreen: "作废理由、重复事件对照、申请人与其申请时间",
-    agentAction: "查重比对、整理作废理由与证据、生成作废审核清单",
+    hint: "网格责任人现场反馈无法处置，已提交作废申请，等作废审核岗确认（对应「待作废审核」队列）",
+    firstScreen: "作废申请原因（事件标准字典）、现场证据、申请人与其申请时间",
+    agentAction: "归集申请理由与现场证据、生成作废审核清单",
     humanDecision: "是否同意作废：作废后流程终止并归档",
   },
   {
@@ -4162,43 +4171,32 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
   ],
   void: [
     {
-      type: "暴露垃圾",
+      type: "违规停放机动车",
       level: "一般",
-      location: "朝阳门北大街6号",
-      grid: "朝阳门街道-网格C02",
+      location: "朝阳门南小街3号楼前",
+      grid: "朝阳门街道-网格C04",
       time: "08-18 09:05",
       waitedH: 1.8,
       deadlineH: 12,
-      blocker: "查重命中 DC-2026-20588（同点位 40 分钟前已立案），疑似重复上报",
-      owner: "待作废审核确认",
-      ownerRole: "作废审核岗：立案审核",
-      nextTrigger: "确认作废后归档并并入原事件；驳回则正常派发",
+      blocker:
+        "责任人现场反馈无法处置：车主出示场内停车证，停放合规（ZF-01 责任主体判定错误）",
+      owner: "李建国",
+      ownerRole: "网格责任人 · 已提交作废申请",
+      nextTrigger: "作废审核批准后流程终止并归档；驳回则回到待处置继续派发",
     },
     {
-      type: "乱堆垃圾",
+      type: "店外经营占道",
       level: "一般",
-      location: "东四北大街267号",
+      location: "东四十条甲22号",
       grid: "东四街道-网格D05",
       time: "08-18 08:20",
       waitedH: 2.9,
       deadlineH: 12,
-      blocker: "AI 判定为装修施工合规围挡内堆放，建议按误报作废，待人工确认",
-      owner: "待作废审核确认",
-      ownerRole: "作废审核岗：立案审核",
-      nextTrigger: "确认误报作废；驳回则补充立案信息后派发",
-    },
-    {
-      type: "道路遗撒",
-      level: "较重",
-      location: "安定门东大街58号",
-      grid: "安定门街道-网格B07",
-      time: "08-18 07:45",
-      waitedH: 3.6,
-      deadlineH: 12,
-      blocker: "与已结案事件同点位同类，复发规则建议并入观察而非新立案",
-      owner: "待作废审核确认",
-      ownerRole: "作废审核岗：立案审核 / 监督员",
-      nextTrigger: "确认后并入原事件观察；驳回则正常立案派发",
+      blocker:
+        "责任人现场反馈无法处置：同点位同批货物已由在办事件处置（ZF-02 重复立案（已有主事件））",
+      owner: "李建国",
+      ownerRole: "网格责任人 · 已提交作废申请",
+      nextTrigger: "作废审核批准后流程终止并归档；驳回则回到待处置继续派发",
     },
   ],
   watching: [
@@ -4292,6 +4290,21 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       monitorTarget: "东直门内大街212号门前",
       monitorRule: "连续 2 日出现暴露垃圾即触发回访",
     },
+    {
+      type: "道路遗撒",
+      level: "较重",
+      location: "安定门东大街58号",
+      grid: "安定门街道-网格B07",
+      time: "08-18 07:45",
+      waitedH: 3.6,
+      deadlineH: 0,
+      blocker: "疑似复发，已生成候选，等待全量识别重新审核",
+      owner: "—",
+      ownerRole: "承接人：全量识别审核",
+      nextTrigger: "全量识别重新审核：判定成立则新立案，不成立则维持观察",
+      monitorTarget: "安定门东大街58号路面",
+      monitorRule: "与已结案事件同点位同类再次识别即生成候选",
+    },
   ],
 }
 
@@ -4320,8 +4333,8 @@ const poolTrails: Record<
     { dh: 1.5, actor: "Agent", text: "已派发监督员外场核查，等待回传同机位照片" },
   ],
   void: [
-    { dh: 0, actor: "Agent", text: "查重命中疑似重复 / 误报，整理作废理由与证据并生成审核清单" },
-    { dh: 0.2, actor: "立案审核岗", text: "发起作废申请，事件转入待作废审核" },
+    { dh: 0, actor: "网格责任人", text: "现场反馈无法处置，提交作废申请" },
+    { dh: 0.2, actor: "系统", text: "作废申请转入待作废审核，附现场证据与申请原因（事件标准 · 作废申请原因字典）" },
     { dh: 1, actor: "系统", text: "等待作废审核确认，超时按规则提醒作废审核岗" },
   ],
   watching: [
@@ -9510,7 +9523,17 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                   v: poolEvent.needEvidence || "需同机位处置后图 1 张",
                 },
               ]
-            : [
+            : poolEvent.state === "void"
+              ? [
+                  {
+                    k: "申请人",
+                    v: `${poolEvent.owner} · ${poolEvent.ownerRole}`,
+                  },
+                  { k: "申请原因", v: poolEvent.blocker },
+                  { k: "已等待多久", v: waitedText(poolEvent.waitedH) },
+                  { k: "下一触发条件", v: poolEvent.nextTrigger },
+                ]
+              : [
                 {
                   k: "观察对象",
                   v: poolEvent.monitorTarget || poolEvent.grid,
