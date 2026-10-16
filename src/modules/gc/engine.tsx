@@ -357,9 +357,20 @@ export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun,
             )}
             {filtered.map(({ r, i }) => (
               <tr key={i}>
-                {r.values.map((v, ci) => (
-                  <td key={ci} style={ci === 0 ? { ...S.td, ...S.tdName } : S.td}>{v}</td>
-                ))}
+                {r.values.map((v, ci) => {
+                  // 待办领取 · 单次最多领取件数：留空 = 不设上限（展示为灰字说明）
+                  const emptyQuota =
+                    def.id === "dc-batch" && def.fields[ci]?.k === "quota" && v.trim() === ""
+                  return (
+                    <td key={ci} style={ci === 0 ? { ...S.td, ...S.tdName } : S.td}>
+                      {emptyQuota ? (
+                        <span style={{ color: "var(--muted-foreground)" }}>不设上限</span>
+                      ) : (
+                        v
+                      )}
+                    </td>
+                  )
+                })}
                 <td style={S.td}><Chip status={r.status} /></td>
                 {!readOnly && (
                   <td style={{ ...S.td, ...S.tdActions }}>

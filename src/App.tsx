@@ -3179,7 +3179,7 @@ interface BatchEvent {
   suggestedGrid?: string
   situation: { text: string; type: RtSituationType }
   aiReview?: {
-    conclusion: "正常结案" | "建议退回" | "待人工判断"
+    conclusion: "正常结案" | "建议退回" | "证据不足，建议外场核查" | "待人工判断"
     basis: string
   }
 }
@@ -3222,18 +3222,6 @@ const pendingCaseEvents: BatchEvent[] = [
     hasRisk: true,
     imgUrls: [eventImage("共享单车占道", "during")],
     situation: { text: "Agent 建议：确认责任后由工作流派发", type: "info" },
-  },
-  {
-    id: "DC-2026-20561",
-    type: "占道经营",
-    level: "一般",
-    location: "东华门街道-网格A11",
-    time: "08-18 16:08",
-    camera: "CAM-BXQ-006",
-    agentStatus: "已完成查重、空间匹配、取证",
-    suggestedGrid: "北新桥街道网格",
-    imgUrls: [eventImage("占道经营", "during")],
-    situation: { text: "重复上报 · 不新建", type: "warning" },
   },
   {
     id: "DC-2026-20559",
@@ -3297,6 +3285,22 @@ const pendingInspectEvents: BatchEvent[] = [
     aiReview: {
       conclusion: "待人工判断",
       basis: "处置后图显示摊位已撤离，但画面右下角出现新的疑似占道物品，需人工确认是否属于同一事件",
+    },
+  },
+  {
+    id: "DC-2026-20568",
+    type: "暴露垃圾",
+    level: "一般",
+    location: "安定门街道-网格A07",
+    time: "08-17 10:05",
+    camera: "CAM-ADM-008",
+    agentStatus: "处置后影像未回传，建议外场核查",
+    suggestedGrid: "安定门街道网格",
+    imgUrls: [eventImage("暴露垃圾", "during")],
+    situation: { text: "正常立案", type: "normal" },
+    aiReview: {
+      conclusion: "证据不足，建议外场核查",
+      basis: "处置后影像未回传，仅凭系统记录无法确认现场已清理，建议派监督员外场核查取证",
     },
   },
 ]
@@ -3622,7 +3626,7 @@ const pendingVoidEvents: BatchEvent[] = [
     agentStatus: "外场责任人申请作废",
     suggestedGrid: "北新桥街道网格",
     imgUrls: [eventImage("违规停放机动车", "during")],
-    situation: { text: "正常立案", type: "normal" },
+    situation: { text: "正常作废审核", type: "normal" },
   },
   {
     id: "DC-2026-20566",
@@ -3736,8 +3740,8 @@ const agentPoolStats: PoolStateMeta[] = [
     rgb: T.greenRGB,
     hint: "事件已终态，或进入规则要求的持续观察",
     firstScreen: "观察对象、监控规则、何种条件会形成后续动作",
-    agentAction: "订阅复发识别规则、盯同点位复发、观察期留痕与归档预告",
-    humanDecision: "是否结束观察，是否触发结案复核",
+    agentAction: "识别疑似复发，生成复发候选并回到全量识别审核",
+    humanDecision: "复发候选是否成立，由全量识别审核决定",
   },
 ]
 
@@ -4401,13 +4405,15 @@ function buildPoolEvents(): PoolEvent[] {
   const out: PoolEvent[] = []
   agentPoolStats.forEach((st) => {
     poolSeeds[st.id].forEach((s, i) => {
-      const overtime = s.deadlineH > 0 && s.waitedH >= s.deadlineH
+      // 时限从派发成功开始计算：等待立案（立案阶段）与持续监控没有时限，不标已超时/临近超时
+      const noDeadline = st.id === "watching" || st.id === "case"
+      const overtime = !noDeadline && s.deadlineH > 0 && s.waitedH >= s.deadlineH
       out.push({
         ...s,
         id: `DC-2026-${POOL_ID_BASE[st.id] + i}`,
         state: st.id,
         risk:
-          st.id === "watching"
+          noDeadline
             ? null
             : overtime
               ? "overtime"
@@ -4429,7 +4435,18 @@ function buildPoolEvents(): PoolEvent[] {
   return out
 }
 
-function AgentJudgment({ title = "Agent 分析 / 建议" }: { title?: string }) {
+/** Agent 建议（按事件传入建议与依据；正式决定由人确认） */
+function AgentJudgment({
+  title = "Agent 分析 / 建议",
+  suggestion,
+  basis,
+}: {
+  title?: string
+  /** 按事件给出的一句话建议 */
+  suggestion: string
+  /** 建议依据，逐条展示；warn 条目用琥珀色提醒 */
+  basis: { text: string; warn?: boolean }[]
+}) {
   const [exp, setExp] = useState(false)
   return (
     <div
@@ -4478,20 +4495,21 @@ function AgentJudgment({ title = "Agent 分析 / 建议" }: { title?: string }) 
       </div>
       <div style={{ padding: "0 12px 10px" }}>
         <div style={{ fontSize: 12, fontWeight: 500, color: T.green }}>
-          {!exp && "建议立案并派发至朝阳门南小街网格"}
+          {!exp && suggestion}
         </div>
         {exp && (
           <div style={{ fontSize: 11, color: T.text, lineHeight: 1.7 }}>
             <div style={{ fontWeight: 500, color: T.green, marginBottom: 4 }}>
-              建议立案并派发至朝阳门南小街网格
+              {suggestion}
             </div>
-            · 相机帧清晰识别到3辆机动车违停，置信度 94%
-            <br />· 事件点坐标已匹配至朝阳门南小街网格（精度 ±5m）
-            <br />· 查重结果：无同位置存续事件
-            <br />
-            <span style={{ color: T.amber }}>
-              · 相机视角较远，车牌不可读，需人工判断
-            </span>
+            {basis.map((b, i) => (
+              <span key={i}>
+                {i > 0 && <br />}
+                <span style={b.warn ? { color: T.amber } : undefined}>
+                  · {b.text}
+                </span>
+              </span>
+            ))}
           </div>
         )}
       </div>
@@ -4507,10 +4525,11 @@ function CaseDecisionPage({
   onBack: () => void
 }) {
   // 「当前情况」驱动详情动作（MD《AI实时治理》§3）：
-  // 自然消散 → Agent 给出前后对比，立案人确认后结案归档；重复上报 · 不新建 → 只记到已有事件；
-  // 未能匹配网格 → 派发不可用，改点/定网格后可用
+  // 自然消散 → Agent 给出前后对比，立案人确认后结案归档；
+  // 未能匹配网格 → 派发不可用，改点/定网格后可用。
+  // 重复上报不再在这里处理：查重命中主事件的回全量识别判无效（NL-02，关联主事件编号）。
   const [submitted, setSubmitted] = useState<
-    null | "dispatch" | "repeat" | "dissipate"
+    null | "dispatch" | "dissipate"
   >(null)
   const [selectedGrid, setSelectedGrid] = useState(event.suggestedGrid || "")
   const [editLevel, setEditLevel] = useState(event.level)
@@ -4519,7 +4538,6 @@ function CaseDecisionPage({
   const sitType = event.situation.type
   const sitText = event.situation.text
   const isDissipateSit = sitType === "readonly"
-  const isRepeatSit = sitText === "重复上报 · 不新建"
   const isNoGridSit = sitText === "未能匹配网格"
   const gridMoved = selectedGrid !== (event.suggestedGrid || "")
   if (submitted)
@@ -4540,11 +4558,8 @@ function CaseDecisionPage({
             width: 52,
             height: 52,
             borderRadius: "50%",
-            backgroundColor:
-              submitted === "repeat"
-                ? "rgba(255,122,66,0.1)"
-                : "rgba(53,185,133,0.1)",
-            border: `2px solid ${submitted === "repeat" ? T.amber : T.green}`,
+            backgroundColor: "rgba(53,185,133,0.1)",
+            border: `2px solid ${T.green}`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -4555,7 +4570,7 @@ function CaseDecisionPage({
             height="24"
             viewBox="0 0 24 24"
             fill="none"
-            stroke={submitted === "repeat" ? T.amber : T.green}
+            stroke={T.green}
             strokeWidth="2.5"
           >
             <polyline points="20 6 9 17 4 12" />
@@ -4566,22 +4581,18 @@ function CaseDecisionPage({
             style={{
               fontSize: 15,
               fontWeight: 600,
-              color: submitted === "repeat" ? T.amber : T.green,
+              color: T.green,
               marginBottom: 6,
             }}
           >
-            {submitted === "repeat"
-              ? "已记录到已有事件"
-              : submitted === "dissipate"
-                ? "已记录自然消散结案"
-                : "已确认立案并派发"}
+            {submitted === "dissipate"
+              ? "已记录自然消散结案"
+              : "已确认立案并派发"}
           </div>
           <div style={{ fontSize: 12, color: T.textMuted }}>
-            {submitted === "repeat"
-              ? `事件 ${event.id} 判为重复上报 · 不新建：已记到在办事件上，未新建、未派发`
-              : submitted === "dissipate"
-                ? `已记录自然消散结案，事件已归档。`
-                : `立案信息和责任已确认，工作流已派发给责任人（${selectedGrid} · 责任人：李建国）。`}
+            {submitted === "dissipate"
+              ? `已记录自然消散结案，事件已归档。`
+              : `立案信息和责任已确认，工作流已派发给责任人（${selectedGrid} · 责任人：李建国）。`}
           </div>
         </div>
         <button
@@ -4705,7 +4716,36 @@ function CaseDecisionPage({
             </div>
           </Card>
           <Card style={{ padding: 14 }}>
-            <AgentJudgment />
+            <AgentJudgment
+              suggestion={
+                isDissipateSit
+                  ? "建议按自然消散结案"
+                  : `建议立案并派发至${event.suggestedGrid || "候选网格"}`
+              }
+              basis={
+                isDissipateSit
+                  ? [
+                      {
+                        text: "前后画面已对比：现场违规状态已消散（Agent 判定置信度 0.91）",
+                      },
+                      { text: "未发现同点位新发同类事件，无同位置存续事件" },
+                      { text: "已排除光线 / 遮挡导致的误判消散" },
+                    ]
+                  : [
+                      {
+                        text: "相机帧清晰识别到3辆机动车违停，置信度 94%",
+                      },
+                      {
+                        text: `事件点坐标已匹配至${event.suggestedGrid || "候选网格"}（精度 ±5m）`,
+                      },
+                      { text: "查重结果：无同位置存续事件" },
+                      {
+                        text: "相机视角较远，车牌不可读，需人工判断",
+                        warn: true,
+                      },
+                    ]
+              }
+            />
           </Card>
           <Card style={{ padding: 14 }}>
             <SectionLabel>由你确认立案信息与责任</SectionLabel>
@@ -5083,30 +5123,6 @@ function CaseDecisionPage({
                 确认自然消散并结案
               </button>
             </div>
-          ) : isRepeatSit ? (
-            <div
-              style={{
-                padding: 12,
-                border: `1px solid ${T.border}`,
-                borderRadius: 8,
-                backgroundColor: T.card2,
-                marginBottom: 12,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: T.text,
-                  marginBottom: 5,
-                }}
-              >
-                重复上报 · 不新建
-              </div>
-              <div style={{ fontSize: 11, color: T.textMuted, lineHeight: 1.6 }}>
-                与一件仍在办的事件判为同一件事：记到已有事件上，不新建、不派发。
-              </div>
-            </div>
           ) : (
             <div
               style={{
@@ -5132,7 +5148,7 @@ function CaseDecisionPage({
               </div>
             </div>
           )}
-          {!isDissipateSit && !isRepeatSit && (
+          {!isDissipateSit && (
             <textarea
               style={{
                 width: "100%",
@@ -5159,24 +5175,7 @@ function CaseDecisionPage({
               marginTop: "auto",
             }}
           >
-            {isDissipateSit ? null : isRepeatSit ? (
-              <button
-                onClick={() => setSubmitted("repeat")}
-                style={{
-                  width: "100%",
-                  padding: 11,
-                  backgroundColor: T.amber,
-                  color: T.cardSolid,
-                  border: "none",
-                  borderRadius: 6,
-                  cursor: "pointer",
-                  fontSize: 13,
-                  fontWeight: 600,
-                }}
-              >
-                记到已有事件（不新建）
-              </button>
-            ) : (
+            {isDissipateSit ? null : (
               <>
                 {isNoGridSit && !gridMoved && (
                   <div
@@ -6483,7 +6482,27 @@ function InspectDecisionPage({
               </div>
             </div>
           )}
-          <AgentJudgment title="Agent 核查建议（仅供核查人参考）" />
+          <AgentJudgment
+            title="Agent 核查建议（仅供核查人参考）"
+            suggestion={
+              event.aiReview?.conclusion === "正常结案"
+                ? "建议结案"
+                : event.aiReview?.conclusion === "建议退回"
+                  ? "建议退回"
+                  : event.aiReview?.conclusion === "证据不足，建议外场核查"
+                    ? "证据不足，建议外场核查"
+                    : "无法判断"
+            }
+            basis={
+              event.aiReview
+                ? [{ text: event.aiReview.basis }]
+                : [
+                    {
+                      text: "处置前后影像已归集，暂无法形成复核结论，需核查人结合现场情况判断",
+                    },
+                  ]
+            }
+          />
           <SectionLabel>核查人决定</SectionLabel>
           <div
             style={{
@@ -6518,7 +6537,11 @@ function InspectDecisionPage({
             }}
           >
             <option value="">退回原因（退回时必选 · 来自事件标准 · 退回处置字典）</option>
-            {["处置未到位", "现场未清理", "材料不完整", "其他"].map((r) => (
+            {[
+              "TC-01 · 处置结果与现场不符",
+              "TC-02 · 证据图不清晰",
+              "TC-03 · 处置未闭环（问题仍存在）",
+            ].map((r) => (
               <option key={r} value={r}>
                 {r}
               </option>
@@ -7129,10 +7152,10 @@ const recognitionEvents: RecognitionEvent[] = [
     location: "北新桥街道-网格B03",
     time: "08-18 14:52",
     camera: "CAM-BXQ-015",
-    agentStatus: "已完成查重（命中主事件 DC-2026-20561）",
+    agentStatus: "已完成查重（命中主事件 DC-2026-20416）",
     suggestedGrid: "北新桥街道网格",
     imgUrls: [eventImage("无证户外广告", "during")],
-    situation: { text: "重复上报 · 不新建", type: "warning" },
+    situation: { text: "查重命中主事件", type: "warning" },
     status: "重复过滤",
   },
   {
@@ -7148,6 +7171,20 @@ const recognitionEvents: RecognitionEvent[] = [
     imgUrls: [eventImage("违规停放机动车", "during")],
     situation: { text: "AI置信度较低，需人工确认", type: "info" },
     status: "待人工复核",
+  },
+  {
+    // 重复上报演示件（原待立案）：在全量识别判无效，原因选「重复上报（已存在主事件）NL-02」并关联主事件编号
+    id: "DC-2026-20561",
+    type: "占道经营",
+    level: "一般",
+    location: "东华门街道-网格A11",
+    time: "08-18 16:08",
+    camera: "CAM-BXQ-006",
+    agentStatus: "已完成查重（命中主事件 DC-2026-20555）",
+    suggestedGrid: "北新桥街道网格",
+    imgUrls: [eventImage("占道经营", "during")],
+    situation: { text: "查重命中主事件", type: "warning" },
+    status: "待立案",
   },
   {
     id: "DC-2026-20419",
@@ -7238,7 +7275,7 @@ const recognitionEvents: RecognitionEvent[] = [
     agentStatus: "已完成查重（命中主事件 DC-2026-20555）",
     suggestedGrid: "东华门街道网格",
     imgUrls: [eventImage("店外经营占道", "during")],
-    situation: { text: "重复上报 · 不新建", type: "warning" },
+    situation: { text: "查重命中主事件", type: "warning" },
     status: "重复过滤",
   },
   {
@@ -7317,7 +7354,7 @@ const recognitionEvents: RecognitionEvent[] = [
     agentStatus: "已完成查重（命中主事件 DC-2026-20404）",
     suggestedGrid: "安定门街道网格",
     imgUrls: [eventImage("无照经营", "during")],
-    situation: { text: "重复上报 · 不新建", type: "warning" },
+    situation: { text: "查重命中主事件", type: "warning" },
     status: "重复过滤",
   },
   {
@@ -7382,7 +7419,7 @@ const recognitionEvents: RecognitionEvent[] = [
     agentStatus: "已完成查重（命中主事件 DC-2026-20408）",
     suggestedGrid: "东四街道网格",
     imgUrls: [eventImage("共享单车占道", "during")],
-    situation: { text: "重复上报 · 不新建", type: "warning" },
+    situation: { text: "查重命中主事件", type: "warning" },
     status: "重复过滤",
   },
 ]
@@ -7415,6 +7452,12 @@ const recognitionEvents: RecognitionEvent[] = [
 
 type ReviewResult = "有效" | "无效"
 
+// 事件标准 · 无效原因字典（启用项；NL-03「证据不足以成立」已停用，不出现）
+const NL_REASONS = [
+  { code: "NL-01", text: "不属于事件范围" },
+  { code: "NL-02", text: "重复上报（已存在主事件）" },
+]
+
 interface ReviewRecord {
   result: ReviewResult
   by: string
@@ -7429,7 +7472,7 @@ const reviewLogs: Record<string, ReviewRecord[]> = {
       result: "无效",
       by: "张晓琳",
       at: "08-18 15:02",
-      reason: "重复上报：与主事件 DC-2026-20561 为同一现场，无需重复立案",
+      reason: "重复上报（已存在主事件）NL-02 · 主事件 DC-2026-20416",
     },
   ],
   "DC-2026-20410": [{ result: "有效", by: "赵敏", at: "08-17 13:40" }],
@@ -7603,8 +7646,16 @@ function ReviewModal({
   onSubmit: (result: ReviewResult, reason: string) => void
 }) {
   const [result, setResult] = useState<ReviewResult>("有效")
-  const [reason, setReason] = useState("")
+  const [reasonSel, setReasonSel] = useState("")
+  const [masterId, setMasterId] = useState("")
   const [err, setErr] = useState("")
+  // 无效原因取自事件标准字典；NL-02 需关联主事件编号
+  const reasonText =
+    reasonSel === "NL-02"
+      ? `重复上报（已存在主事件）NL-02${masterId.trim() ? ` · 主事件 ${masterId.trim()}` : ""}`
+      : reasonSel === "NL-01"
+        ? "不属于事件范围 NL-01"
+        : ""
   return (
     <div
       onClick={onClose}
@@ -7711,30 +7762,70 @@ function ReviewModal({
         {result === "无效" && (
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 8 }}>
-              无效原因<span style={{ color: T.red }}>（必填）</span>
+              无效原因<span style={{ color: T.red }}>（必选 · 来自事件标准）</span>
             </div>
-            <textarea
-              value={reason}
-              onChange={(e) => {
-                setReason(e.target.value)
-                setErr("")
-              }}
-              placeholder={"如：重复上报，与主事件为同一现场\n如：非事件，光线反射造成误识别"}
-              rows={3}
-              style={{
-                width: "100%",
-                padding: "8px 10px",
-                borderRadius: 8,
-                border: `1px solid ${err ? T.red : T.border}`,
-                backgroundColor: "transparent",
-                color: T.text,
-                fontSize: 12,
-                outline: "none",
-                resize: "vertical",
-                fontFamily: "inherit",
-                boxSizing: "border-box",
-              }}
-            />
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: reasonSel === "NL-02" ? 8 : 0 }}>
+              {NL_REASONS.map((r) => {
+                const on = reasonSel === r.code
+                return (
+                  <button
+                    key={r.code}
+                    type="button"
+                    onClick={() => {
+                      setReasonSel(r.code)
+                      setErr("")
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontSize: 12,
+                      color: on ? T.primary : T.text,
+                      border: `1px solid ${on ? "rgba(50,109,255,0.45)" : T.border}`,
+                      backgroundColor: on ? "rgba(50,109,255,0.06)" : "transparent",
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 14,
+                        height: 14,
+                        borderRadius: "50%",
+                        border: `1px solid ${on ? T.primary : T.borderStrong}`,
+                        backgroundColor: on ? T.primary : "transparent",
+                        flexShrink: 0,
+                      }}
+                    />
+                    {r.text} {r.code}
+                  </button>
+                )
+              })}
+            </div>
+            {reasonSel === "NL-02" && (
+              <input
+                value={masterId}
+                onChange={(e) => {
+                  setMasterId(e.target.value)
+                  setErr("")
+                }}
+                placeholder="关联主事件编号（必填），如 DC-2026-20555"
+                style={{
+                  width: "100%",
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  border: `1px solid ${err && !masterId.trim() ? T.red : T.border}`,
+                  backgroundColor: "transparent",
+                  color: T.text,
+                  fontSize: 12,
+                  outline: "none",
+                  fontFamily: T.mono,
+                  boxSizing: "border-box",
+                }}
+              />
+            )}
           </div>
         )}
 
@@ -7760,11 +7851,17 @@ function ReviewModal({
           </button>
           <button
             onClick={() => {
-              if (result === "无效" && reason.trim() === "") {
-                setErr("判「无效」必须填写无效原因")
-                return
+              if (result === "无效") {
+                if (!reasonSel) {
+                  setErr("判「无效」必须选择无效原因")
+                  return
+                }
+                if (reasonSel === "NL-02" && !masterId.trim()) {
+                  setErr("重复上报（NL-02）必须填写关联主事件编号")
+                  return
+                }
               }
-              onSubmit(result, reason.trim())
+              onSubmit(result, result === "无效" ? reasonText : "")
             }}
             style={{
               padding: "8px 18px",
@@ -7814,20 +7911,30 @@ function RecDetailDrawer({
   ]
   const currentImg = tabs.find((t) => t.key === imgTab)!.src
 
-  // 底部审核面板状态
+  // 底部审核面板状态（无效原因取自事件标准字典；NL-02 需关联主事件编号）
   const [reviewResult, setReviewResult] = useState<ReviewResult | null>(null)
-  const [reviewReason, setReviewReason] = useState("")
+  const [reasonSel, setReasonSel] = useState("")
+  const [masterId, setMasterId] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const reviewReason =
+    reasonSel === "NL-02"
+      ? `重复上报（已存在主事件）NL-02${masterId.trim() ? ` · 主事件 ${masterId.trim()}` : ""}`
+      : reasonSel === "NL-01"
+        ? "不属于事件范围 NL-01"
+        : ""
+  const reasonReady =
+    reviewResult === "无效" ? !!reasonSel && (reasonSel !== "NL-02" || !!masterId.trim()) : true
 
   function handleSubmit() {
     if (!reviewResult) return
-    if (reviewResult === "无效" && !reviewReason.trim()) return
+    if (reviewResult === "无效" && !reasonReady) return
     setSubmitting(true)
     setTimeout(() => {
-      onSubmitReview(reviewResult, reviewResult === "无效" ? reviewReason.trim() : undefined)
+      onSubmitReview(reviewResult, reviewResult === "无效" ? reviewReason : undefined)
       setSubmitting(false)
       setReviewResult(null)
-      setReviewReason("")
+      setReasonSel("")
+      setMasterId("")
     }, 200)
   }
 
@@ -8321,15 +8428,74 @@ function RecDetailDrawer({
               ✕ 无效
             </button>
           </div>
-          {reviewResult && (
+          {reviewResult === "无效" && (
+            <>
+              <div style={{ fontSize: 11, fontWeight: 700, color: T.text, marginBottom: 6 }}>
+                无效原因（必选 · 来自事件标准）
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: reasonSel === "NL-02" ? 8 : 10 }}>
+                {NL_REASONS.map((r) => {
+                  const on = reasonSel === r.code
+                  return (
+                    <button
+                      key={r.code}
+                      type="button"
+                      onClick={() => setReasonSel(r.code)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "8px 10px",
+                        borderRadius: 8,
+                        cursor: "pointer",
+                        textAlign: "left",
+                        fontSize: 12,
+                        color: on ? T.primary : T.text,
+                        border: `1px solid ${on ? "rgba(50,109,255,0.45)" : T.border}`,
+                        backgroundColor: on ? "rgba(50,109,255,0.06)" : "var(--card-2)",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: "50%",
+                          border: `1px solid ${on ? T.primary : T.borderStrong}`,
+                          backgroundColor: on ? T.primary : "transparent",
+                          flexShrink: 0,
+                        }}
+                      />
+                      {r.text} {r.code}
+                    </button>
+                  )
+                })}
+              </div>
+              {reasonSel === "NL-02" && (
+                <input
+                  value={masterId}
+                  onChange={(e) => setMasterId(e.target.value)}
+                  placeholder="关联主事件编号（必填），如 DC-2026-20555"
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    border: `1px solid ${T.border}`,
+                    backgroundColor: "var(--card-2)",
+                    color: T.text,
+                    fontSize: 12,
+                    outline: "none",
+                    fontFamily: T.mono,
+                    marginBottom: 10,
+                  }}
+                />
+              )}
+            </>
+          )}
+          {reviewResult === "有效" && (
             <textarea
-              value={reviewReason}
-              onChange={(e) => setReviewReason(e.target.value)}
-              placeholder={
-                reviewResult === "无效"
-                  ? "请填写无效原因…（必填）"
-                  : "确认理由（选填，可留空）"
-              }
+              onChange={() => { /* 确认理由选填，演示环境不做持久化 */ }}
+              placeholder="确认理由（选填，可留空）"
               rows={2}
               style={{
                 width: "100%",
@@ -8345,12 +8511,6 @@ function RecDetailDrawer({
                 outline: "none",
                 marginBottom: 10,
                 fontFamily: "inherit",
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = T.primary
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = T.border
               }}
             />
           )}
@@ -8371,26 +8531,26 @@ function RecDetailDrawer({
             </button>
             <button
               onClick={handleSubmit}
-              disabled={!reviewResult || (reviewResult === "无效" && !reviewReason.trim()) || submitting}
+              disabled={!reviewResult || !reasonReady || submitting}
               style={{
                 flex: 1,
                 padding: "8px 20px",
                 borderRadius: 8,
                 border: "none",
                 background:
-                  reviewResult && !(reviewResult === "无效" && !reviewReason.trim())
+                  reviewResult && reasonReady
                     ? `linear-gradient(135deg, ${T.primary} 0%, #5A8BFF 100%)`
                     : "#B8C4D6",
                 color: "#fff",
                 fontSize: 12,
                 fontWeight: 700,
                 cursor:
-                  reviewResult && !(reviewResult === "无效" && !reviewReason.trim()) && !submitting
+                  reviewResult && reasonReady && !submitting
                     ? "pointer"
                     : "not-allowed",
                 opacity: submitting ? 0.7 : 1,
                 boxShadow:
-                  reviewResult && !(reviewResult === "无效" && !reviewReason.trim())
+                  reviewResult && reasonReady
                     ? "0 4px 12px rgba(50,109,255,0.25)"
                     : "none",
               }}
@@ -8827,30 +8987,33 @@ function RecognitionInbox({
                     >
                       详情
                     </button>
-                    <button
-                      onClick={() => setDetailEvt(evt)}
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: T.primary,
-                        border: "1px solid rgba(50,109,255,0.40)",
-                        backgroundColor: "rgba(50,109,255,0.06)",
-                        borderRadius: 6,
-                        padding: "4px 12px",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor =
-                          "rgba(50,109,255,0.14)"
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor =
-                          "rgba(50,109,255,0.06)"
-                      }}
-                    >
-                      审核
-                    </button>
+                    {/* 已审核为「有效 / 无效」的行不再重复审核：只保留「详情」 */}
+                    {!latestReview(evt.id) && (
+                      <button
+                        onClick={() => setDetailEvt(evt)}
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: T.primary,
+                          border: "1px solid rgba(50,109,255,0.40)",
+                          backgroundColor: "rgba(50,109,255,0.06)",
+                          borderRadius: 6,
+                          padding: "4px 12px",
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor =
+                            "rgba(50,109,255,0.14)"
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor =
+                            "rgba(50,109,255,0.06)"
+                        }}
+                      >
+                        审核
+                      </button>
+                    )}
                   </div>
                 </div>
               )
@@ -9018,18 +9181,15 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
         : extraVoidEvents
   const events = [...baseEvents, ...extraEvents]
 
-  // 页签数字 = 当前这批里还要人决定的件数；自然消散不计入（MD《AI实时治理》§1/§3）
+  // 页签数字 = 当前这批里还要人决定的件数；自然消散件计入待立案（点「办理」可确认按自然消散结案）
   const caseDecisionCount = useMemo(
-    () =>
-      [...pendingCaseEvents, ...extraCaseEvents].filter(
-        (e) => e.situation.type !== "readonly",
-      ).length,
+    () => [...pendingCaseEvents, ...extraCaseEvents].length,
     [extraCaseEvents],
   )
   const inspectCount = pendingInspectEvents.length + extraInspectEvents.length
   const voidCount = pendingVoidEvents.length + extraVoidEvents.length
   // 顶上「待你决定」= 待立案 + 待核查 + 待作废审核里待这个账号决定的件数
-  // （不含全量识别，不含自然消散 · 只读；步骤盖不住的页签对该账号不存在，不计入）
+  // （不含全量识别，不含 Agent 处理池；步骤盖不住的页签对该账号不存在，不计入）
   const todoDecisionCount =
     (tabAllowed("case") ? caseDecisionCount : 0) +
     (tabAllowed("inspect") ? inspectCount : 0) +
@@ -9285,7 +9445,10 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
               border: "rgba(255,122,66,0.28)",
             }
           : {
-              label: activePool?.id === "watching" ? "无时限" : "时限内",
+              label:
+                activePool?.id === "watching" || activePool?.id === "case"
+                  ? "无时限"
+                  : "时限内",
               color: "var(--muted-foreground)",
               bg: "transparent",
               border: T.border,
@@ -9313,6 +9476,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
     const detailFields = poolEvent
       ? poolEvent.state === "case"
         ? [
+            { k: "已等待多久", v: waitedText(poolEvent.waitedH) },
             { k: "当前卡点", v: poolEvent.blocker },
             { k: "缺什么条件", v: `责任主体未定：${poolEvent.ownerRole}` },
             { k: "候选责任方", v: poolEvent.owner },
@@ -10389,26 +10553,29 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                     </option>
                   ))}
                 </select>
-                <button
-                  onClick={() => setPoolRiskOnly(!poolRiskOnly)}
-                  style={{
-                    fontSize: 11.5,
-                    padding: "5px 10px",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                    fontWeight: 600,
-                    color: poolRiskOnly ? "var(--red)" : T.textMuted,
-                    border: `1px solid ${
-                      poolRiskOnly ? "rgba(228,94,88,0.35)" : T.border
-                    }`,
-                    backgroundColor: poolRiskOnly
-                      ? "rgba(228,94,88,0.08)"
-                      : "transparent",
-                    transition: "all 0.2s ease",
-                  }}
-                >
-                  仅看时限风险
-                </button>
+                {/* 等待立案：立案阶段没有时限（时限从派发成功开始计算），不提供时限风险筛选 */}
+                {activePool?.id !== "case" && (
+                  <button
+                    onClick={() => setPoolRiskOnly(!poolRiskOnly)}
+                    style={{
+                      fontSize: 11.5,
+                      padding: "5px 10px",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      color: poolRiskOnly ? "var(--red)" : T.textMuted,
+                      border: `1px solid ${
+                        poolRiskOnly ? "rgba(228,94,88,0.35)" : T.border
+                      }`,
+                      backgroundColor: poolRiskOnly
+                        ? "rgba(228,94,88,0.08)"
+                        : "transparent",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    仅看时限风险
+                  </button>
+                )}
                 {(poolQuery !== "" ||
                   poolTypeFilter !== "all" ||
                   poolRiskOnly) && (
@@ -11191,11 +11358,6 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                 {activeTab === "case" ? caseDecisionCount : events.length}{" "}
                 件待审核。
               </span>
-              {activeTab === "case" && (
-                <span style={{ fontSize: 11, color: T.textMuted }}>
-                  自然消散不计入待办数
-                </span>
-              )}
               <div
                 style={{
                   marginLeft: "auto",
@@ -11266,7 +11428,8 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                 </div>
                 {events.map((evt) => {
                   const s = situationStyle(evt.situation.type)
-                  const actionText = evt.situation.type === "readonly" ? "查看" : "办理"
+                  // 自然消散件也计入待办：操作统一为「办理」，详情内确认「按自然消散结案」
+                  const actionText = "办理"
                   return (
                     <div
                       key={evt.id}
@@ -17638,7 +17801,7 @@ const DEFAULT_NAV_CONFIG: MenuAdminItem[] = [
   { id: "config", label: "治理配置", iconKey: "gear", builtin: true },
 ]
 
-const NAV_STORAGE_KEY = "app-nav-config-v1"
+const NAV_STORAGE_KEY = "app-nav-config-v1.1"
 
 function loadNavConfig(): MenuAdminItem[] {
   try {
@@ -18548,7 +18711,7 @@ function AppShell() {
   // 皮肤状态：清爽（浅色）/ 科技（深空蓝），持久化并同步 <html data-theme>
   const [skin, setSkin] = useState<"light" | "tech">(() => {
     try {
-      const v = localStorage.getItem("app-skin")
+      const v = localStorage.getItem("app-skin-v1.1")
       return v === "tech" ? "tech" : "light"
     } catch {
       return "light"
@@ -18558,7 +18721,7 @@ function AppShell() {
     // 用 data-skin 承载皮肤（宿主运行时会强制改写 data-theme，故与其解耦）
     document.documentElement.setAttribute("data-skin", skin)
     try {
-      localStorage.setItem("app-skin", skin)
+      localStorage.setItem("app-skin-v1.1", skin)
     } catch {
       /* ignore */
     }

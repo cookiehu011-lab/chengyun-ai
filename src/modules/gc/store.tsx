@@ -566,7 +566,8 @@ function reducer(state: GcState, action: Action): GcState {
 
 // ─── Context ────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = "gc-native-v1"
+// V1.1 起存储键带版本号：与 /v1/ 部署的 V1.0（gc-native-v1）互不读写、来回切换不互相覆盖
+const STORAGE_KEY = "gc-native-v1.1"
 interface GcStore {
   state: GcState
   dispatch: React.Dispatch<Action>

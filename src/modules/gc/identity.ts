@@ -17,7 +17,8 @@ export interface IdentityState {
   roleKey: string
 }
 
-export const IDENTITY_STORAGE_KEY = "app-identity-v1"
+// V1.1 起键带版本号：与 /v1/ 部署的 V1.0（app-identity-v1）互不读写
+export const IDENTITY_STORAGE_KEY = "app-identity-v1.1"
 
 export function loadIdentity(): IdentityState | null {
   try {

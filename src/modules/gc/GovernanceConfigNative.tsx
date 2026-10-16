@@ -231,8 +231,8 @@ function Shell({
             </div>
           </div>
 
-          {/* 保存即生效提示（变更记录页自身不显示） */}
-          {activeId !== "publish" && (
+          {/* 保存即生效提示（变更记录页自身不显示；生命周期与处置规则页为只读展示，同样不显示） */}
+          {activeId !== "publish" && activeId !== "lifecycle" && (
             <div style={{
               padding: "8px 12px", marginBottom: "12px", borderRadius: "7px", fontSize: "11px", lineHeight: 1.7,
               backgroundColor: "rgba(53,185,133,0.07)", border: "1px solid rgba(53,185,133,0.22)", color: "var(--green)",
