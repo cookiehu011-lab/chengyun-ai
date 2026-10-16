@@ -10890,7 +10890,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                     padding: "9px 0",
                     borderRadius: 8,
                     border: "none",
-                    background: `linear-gradient(135deg, ${activeMeta.color} 0%, ${activeMeta.color}CC 100%)`,
+                    background: `linear-gradient(135deg, rgba(${activeMeta.rgb},1) 0%, rgba(${activeMeta.rgb},0.8) 100%)`,
                     color: "#fff",
                     fontSize: 12.5,
                     fontWeight: 700,
