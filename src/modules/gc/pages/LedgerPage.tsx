@@ -5,7 +5,7 @@
 // - 角色：名称自定义（2–20 字，启用角色中唯一），步骤只能从冻结清单多选，互斥拒绝保存
 // - 账号：必填角色（可多选）；步骤并集不许违反互斥；范围按画像动态（全区/街道多选 或 网格多选）；
 //   负责的事件类型至少 1 个（来源=事件标准启用细类）；仅改配置/只看则范围固定全区、不配类型
-// - 保存即生效（不走草稿发布）；已派发事件与已派出外场任务不改人
+// - 保存即生效（保存后立即生效并写入变更记录）；已派发事件与已派出外场任务不改人
 import { useMemo, useState } from "react"
 import { useGc, useToast, type LedgerAccount, type LedgerRole } from "../store"
 import { Chip, ConfirmModal, Drawer, S } from "../engine"

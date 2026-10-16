@@ -1,8 +1,8 @@
 // 治理配置 · 原生版状态层
-// 职责：全部卡片行数据 + 模块发布状态 + 审计记录 + localStorage 持久化
-// 规则锚点（与静态原型一致）：
-// - 业务模块页只写草稿；「确认发布」只在「发布与审计」页，且必须经「发布前预览」冲突校验
-// - 各模块发布门控（gate）由模块定义提供，真源是行数据本身
+// 职责：全部卡片行数据 + 审计（变更记录）+ localStorage 持久化
+// 规则锚点：
+// - 所有模块统一「编辑 → 保存即生效」；每次保存通过 ledger-note 在 audit 里追加一条变更记录
+// - modules / versions / baseline 字段仅为兼容历史 localStorage 数据而保留，UI 已不再消费
 import {
   createContext,
   useContext,
@@ -23,20 +23,22 @@ export interface GcRow {
   values: string[] // 与 valueCols（cols 去掉 状态/操作）按位对齐
   status: RowStatus
 }
-export type ModulePubStatus = "已发布" | "草稿"
+/** 兼容字段：历史数据中的模块状态字符串，新架构下 UI 不再消费 */
+export type ModulePubStatus = string
 export interface AuditEntry {
+  /** 兼容字段：历史版本号；新留痕条目不再使用版本号（填 "—"） */
   version: string
   date: string
   author: string
   modules: string[]
   note: string
   rollbackOf?: string
-  /** 责任台账的即时生效留痕（不走版本发布，无回滚入口） */
+  /** 即时生效留痕（保存即生效，无版本流程） */
   immediate?: boolean
 }
 
 // ─── 责任台账（PRD 2026-09-22）：角色 / 账号结构化数据 ────────────────────────
-// 治理基础两页不走草稿发布：保存即生效；已派发事件与已派出外场任务不改人。
+// 治理基础两页保存即生效：已派发事件与已派出外场任务不改人。
 
 export interface LedgerRole {
   id: string
@@ -182,23 +184,24 @@ const SPACE_SEED: GcRow[] = [
   { values: ["G-0421", "东华门街道", "金宝街社区", "—（空）", "—", "—", "平台同步", "金宝街北网格"], status: "待定责" },
 ]
 
-// 时限与异常监控 · 时限矩阵（同一细类+等级+区域只能启用一条）
+// 办理时限与提醒 · 时限矩阵（同一细类+等级+区域只能启用一条）
 export const SLA_MATRIX_COLS = [
-  "事件类型", "细类", "等级", "区域", "处置时限", "核查时限", "到期前提醒", "超时后打升级标记",
+  "事件类型", "细类", "等级", "区域", "处置时限", "核查时限", "到期前提醒",
 ]
-const SLA_MATRIX_SEED: GcRow[] = [
-  { values: ["道路秩序", "共享单车乱停放", "一般", "全区", "90 分", "30 分", "提前 5 分钟 · 当前网格责任人", "打升级标记"], status: "启用" },
-  { values: ["道路秩序", "机动车违停", "一般", "全区", "60 分", "30 分", "提前 5 分钟 · 当前网格责任人", "打升级标记"], status: "启用" },
-  { values: ["道路秩序", "占道经营", "较重", "全区", "45 分", "20 分", "提前 10 分钟 · 街道值守", "打升级标记并短信"], status: "启用" },
-  { values: ["环境卫生", "乱堆垃圾", "一般", "全区", "4 小时", "1 小时", "提前 30 分钟 · 处置员", "打升级标记"], status: "启用" },
-  { values: ["环境卫生", "暴露垃圾", "较重", "全区", "2 小时", "40 分", "提前 15 分钟 · 处置员", "打升级标记并短信"], status: "启用" },
-  { values: ["宣传广告", "无证户外广告", "一般", "全区", "6 小时", "2 小时", "提前 30 分钟 · 处置员", "打升级标记"], status: "停用" },
+// 导出种子供页面识别「示例行」（演示数值不当默认值，需标注「示例」）
+export const SLA_MATRIX_SEED: GcRow[] = [
+  { values: ["道路秩序", "共享单车乱停放", "一般", "全区", "90 分", "30 分", "提前 5 分钟 · 当前网格责任人"], status: "启用" },
+  { values: ["道路秩序", "机动车违停", "一般", "全区", "60 分", "30 分", "提前 5 分钟 · 当前网格责任人"], status: "启用" },
+  { values: ["道路秩序", "占道经营", "较重", "全区", "45 分", "20 分", "提前 10 分钟 · 街道值守"], status: "启用" },
+  { values: ["环境卫生", "乱堆垃圾", "一般", "全区", "4 小时", "1 小时", "提前 30 分钟 · 处置员"], status: "启用" },
+  { values: ["环境卫生", "暴露垃圾", "较重", "全区", "2 小时", "40 分", "提前 15 分钟 · 处置员"], status: "启用" },
+  { values: ["宣传广告", "无证户外广告", "一般", "全区", "6 小时", "2 小时", "提前 30 分钟 · 处置员"], status: "停用" },
 ]
 
 // 责任台账 · 角色预置（PRD：预置不是冻结名单，管理员可改名或另建）
 const LEDGER_SEED: LedgerState = {
   roles: [
-    { id: "r-jt", name: "全局协调", steps: ["改配置"], menus: ["dashboard", "live", "archive", "stats", "workbench", "config"], configModules: ["org", "space", "eventstd", "lifecycle", "sla", "dispatch", "dedup", "metric", "publish"], liveTabs: ["recognition", "case", "inspect", "void"], appMenus: ["dashboard", "workbench", "archive"], appLiveTabs: [], appConfigModules: [], source: "平台预置", status: "启用" },
+    { id: "r-jt", name: "全局协调", steps: ["改配置"], menus: ["dashboard", "live", "archive", "stats", "workbench", "config"], configModules: ["org", "space", "eventstd", "lifecycle", "sla", "dispatch", "metric", "publish"], liveTabs: ["recognition", "case", "inspect", "void"], appMenus: ["dashboard", "workbench", "archive"], appLiveTabs: [], appConfigModules: [], source: "平台预置", status: "启用" },
     { id: "r-ld", name: "领导", steps: ["只看"], menus: ["dashboard", "archive", "stats"], configModules: [], appMenus: ["dashboard", "stats"], appLiveTabs: [], appConfigModules: [], source: "平台预置", status: "启用" },
     { id: "r-sh", name: "事件有效审核", steps: ["事件有效审核"], menus: ["live", "archive", "workbench", "stats", "config"], configModules: ["publish"], liveTabs: ["recognition", "case", "inspect", "void"], source: "平台预置", status: "启用" },
     { id: "r-pf", name: "立案派发", steps: ["立案派发"], menus: ["live", "archive", "workbench", "stats", "config"], configModules: ["publish"], liveTabs: ["recognition", "case", "inspect", "void"], source: "平台预置", status: "启用" },
@@ -300,23 +303,23 @@ const PLATFORM_SEED: PlatformState = {
   seeTime: SEETIME_SEED.map((s) => ({ ...s, perms: [...s.perms], displayCustomers: [...s.displayCustomers] })),
 }
 
-// 模块初始发布状态（与原型侧栏一致）
+// 模块状态（兼容字段：历史数据结构保留，新架构下 UI 不再消费，统一置「生效」）
 const MODULE_SEED: Record<string, ModulePubStatus> = {
-  org: "已发布",
-  space: "已发布",
-  eventstd: "已发布",
-  lifecycle: "草稿",
-  sla: "草稿",
-  dispatch: "草稿",
-  dedup: "已发布",
-  metric: "已发布",
-  publish: "已发布",
+  org: "生效",
+  space: "生效",
+  eventstd: "生效",
+  lifecycle: "生效",
+  sla: "生效",
+  dispatch: "生效",
+  metric: "生效",
+  publish: "生效",
 }
 
+// 变更记录种子（历史留痕演示数据）
 const AUDIT_SEED: AuditEntry[] = [
   { version: "V2.3.2", date: "2026-08-15", author: "李明", modules: ["事件标准"], note: "新增「乱堆杂物」微类3项，调整证据要求字段顺序" },
-  { version: "V2.3.1", date: "2026-08-10", author: "王志远", modules: ["组织、账号与权限"], note: "更新组织权限矩阵，新增全局协调角色升级权限" },
-  { version: "V2.3.0", date: "2026-07-01", author: "李明", modules: ["全部模块"], note: "V2.3基线发布，包含全量配置迁移" },
+  { version: "V2.3.1", date: "2026-08-10", author: "王志远", modules: ["组织、账号与权限"], note: "更新组织权限矩阵，新增全局协调角色" },
+  { version: "V2.3.0", date: "2026-07-01", author: "李明", modules: ["全部模块"], note: "V2.3基线导入，包含全量配置迁移" },
 ]
 
 // ─── 初始化：引擎卡行数据拆分（values + status） ─────────────────────────────
@@ -374,10 +377,8 @@ type Action =
   | { type: "set-status"; cardKey: string; index: number; status: RowStatus }
   | { type: "toggle"; cardKey: string; index: number }
   | { type: "set-switch"; key: string; on: boolean }
-  | { type: "publish"; modules: string[]; version: string; date: string; author: string }
-  | { type: "rollback"; entry: AuditEntry; author: string; date: string }
   | { type: "reset" }
-  // 责任台账（治理基础）：保存即生效，不经草稿发布；按客户隔离（cid）
+  // 责任台账（治理基础）：保存即生效；按客户隔离（cid）
   | { type: "ledger-role-upsert"; cid: string; role: LedgerRole }
   | { type: "ledger-role-remove"; cid: string; id: string }
   | { type: "ledger-role-status"; cid: string; id: string; status: "启用" | "停用" }
@@ -393,15 +394,6 @@ type Action =
   | { type: "customer-admin-assign"; cid: string; name: string; login: string }
   | { type: "seetime-upsert"; account: SeeTimeAccount }
   | { type: "seetime-status"; id: string; status: "启用" | "停用" }
-
-function nextReleaseVersion(audit: AuditEntry[]): string {
-  let max = 0
-  for (const a of audit) {
-    const m = a.version.match(/^V2\.3\.(\d+)$/)
-    if (m) max = Math.max(max, parseInt(m[1], 10))
-  }
-  return `V2.3.${max + 1}`
-}
 
 function reducer(state: GcState, action: Action): GcState {
   switch (action.type) {
@@ -437,36 +429,6 @@ function reducer(state: GcState, action: Action): GcState {
     }
     case "set-switch":
       return { ...state, switches: { ...state.switches, [action.key]: action.on } }
-    case "publish": {
-      const modules = { ...state.modules }
-      const versions = { ...state.versions }
-      for (const id of action.modules) {
-        modules[id] = "已发布"
-        versions[id] = action.version
-      }
-      const entry: AuditEntry = {
-        version: action.version, date: action.date, author: action.author,
-        modules: action.modules.map((m) => m), note: "经发布前预览冲突校验后确认发布",
-      }
-      return {
-        ...state, modules, versions,
-        baseline: { version: action.version, date: action.date },
-        audit: [entry, ...state.audit],
-      }
-    }
-    case "rollback": {
-      const modules = { ...state.modules }
-      for (const name of action.entry.modules) {
-        const id = moduleNameToId(name)
-        if (id) modules[id] = "草稿"
-      }
-      const entry: AuditEntry = {
-        version: action.entry.version + " · 回滚", date: action.date, author: action.author,
-        modules: action.entry.modules, note: `回滚 ${action.entry.version}，相关模块回到草稿待重发布`,
-        rollbackOf: action.entry.version,
-      }
-      return { ...state, modules, audit: [entry, ...state.audit] }
-    }
     case "reset":
       return initialState()
     // 责任台账动作：全部按 cid 定位该客户的台账（客户是隔离边界）
@@ -602,23 +564,12 @@ function reducer(state: GcState, action: Action): GcState {
   }
 }
 
-function moduleNameToId(name: string): string | null {
-  const map: Record<string, string> = {
-    "组织、账号与角色": "org", "组织、账号与权限": "org", // 旧名兼容历史审计记录
-    "空间与责任关系": "space", "事件标准": "eventstd",
-    "生命周期与处置规则": "lifecycle", "时限与异常监控": "sla", "Agent 派工与认领": "dispatch",
-    "查重与复发治理": "dedup", "治理评价标准": "metric",
-  }
-  return map[name] ?? null
-}
-
 // ─── Context ────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = "gc-native-v1"
 interface GcStore {
   state: GcState
   dispatch: React.Dispatch<Action>
-  releaseVersion: string
 }
 const GcCtx = createContext<GcStore | null>(null)
 
@@ -733,6 +684,13 @@ export function GcProvider({ children }: { children: ReactNode }) {
               return { ...r, values }
             })
           }
+          // 迁移：领取批次老结构为 4 列（末列是分配说明，已废弃），新结构为
+          // [批次, 面向角色, 单次最多领取件数]；老第 3 列数值语义一致直接保留，裁掉末列
+          const db = merged.rows["dc-batch"]
+          if (db) merged.rows["dc-batch"] = db.map((r) => ({ ...r, values: r.values.slice(0, 3) }))
+          // 迁移：时限矩阵老结构为 8 列（末列已废弃），新结构 7 列，裁掉末列
+          const sm = merged.rows["sla.matrix"]
+          if (sm) merged.rows["sla.matrix"] = sm.map((r) => ({ ...r, values: r.values.slice(0, SLA_MATRIX_COLS.length) }))
           return merged
         }
       }
@@ -742,8 +700,7 @@ export function GcProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)) } catch { /* ignore */ }
   }, [state])
-  const releaseVersion = useMemo(() => nextReleaseVersion(state.audit), [state.audit])
-  const value = useMemo(() => ({ state, dispatch, releaseVersion }), [state, releaseVersion])
+  const value = useMemo(() => ({ state, dispatch }), [state])
   return <GcCtx.Provider value={value}>{children}</GcCtx.Provider>
 }
 

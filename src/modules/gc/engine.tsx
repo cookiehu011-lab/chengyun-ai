@@ -1,5 +1,6 @@
-// 治理配置 · 原生版通用引擎（移植自 partials/gc-crud-engine.html 的卡契约）
+// 治理配置 · 原生版通用引擎（卡契约）
 // 卡：标题 + 说明 + 工具条（搜索 + 新增）+ 表格（状态列 + 操作列由引擎管理）+ 抽屉表单 + 删除确认
+// 规则：保存即生效；每次新增 / 更新 / 停用 / 启用 / 删除都通过 ledger-note 追加一条变更记录
 import { useMemo, useState, type ReactNode } from "react"
 import type { GeneratedCard, GeneratedField } from "./cards.generated"
 import { useGc, useToast, type GcRow, type RowStatus } from "./store"
@@ -211,6 +212,15 @@ function FieldInput({ f, value, onChange }: {
   )
 }
 
+// ─── 变更留痕 ────────────────────────────────────────────────────────────────
+
+/** 生成当前时间文本（变更记录「时间」列用，精确到分） */
+function nowText(): string {
+  const d = new Date()
+  const p = (n: number) => String(n).padStart(2, "0")
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
 // ─── CrudCard ───────────────────────────────────────────────────────────────
 
 export interface CrudCardProps {
@@ -223,11 +233,21 @@ export interface CrudCardProps {
   newStatus?: RowStatus
   /** 抽屉标题名词（如 机构 / 账号） */
   noun?: string
-  /** 内嵌模式（用于 Tab 面板）：卡头只保留说明，不重复显示标题 */
-  embedded?: boolean
+  /** 变更留痕：配置模块名（写入变更记录「配置模块」列） */
+  moduleName?: string
+  /** 变更留痕：操作人（当前身份 displayLabel） */
+  author?: string
+  /** 整卡只读：隐藏搜索 / 新增 / 行操作（流程规则页用） */
+  readOnly?: boolean
+  /** 允许新增（默认 true） */
+  canAdd?: boolean
+  /** 允许停用 / 启用（默认 true） */
+  canToggle?: boolean
+  /** 允许删除（默认 true） */
+  canRemove?: boolean
 }
 
-export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun, embedded }: CrudCardProps) {
+export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun, moduleName, author, readOnly = false, canAdd = true, canToggle = true, canRemove = true }: CrudCardProps) {
   const key = cardKey || def.id
   const { state, dispatch } = useGc()
   const toast = useToast()
@@ -235,7 +255,6 @@ export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun,
   const [drawer, setDrawer] = useState<{ mode: "add" | "edit"; index: number } | null>(null)
   const [confirmDel, setConfirmDel] = useState<number | null>(null)
 
-  const valueCols = useMemo(() => def.cols.filter((c) => c !== "状态" && c !== "操作"), [def.cols])
   const rows = state.rows[key] || []
   const filtered = useMemo(() => {
     const q = query.trim()
@@ -246,10 +265,26 @@ export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun,
   const [form, setForm] = useState<string[]>([])
   const [formErr, setFormErr] = useState("")
 
+  /** 变更留痕：写入变更记录（保存即生效，immediate = true） */
+  function logChange(verb: string, target: string) {
+    dispatch({
+      type: "ledger-note",
+      entry: {
+        version: "—",
+        date: nowText(),
+        author: author || "—",
+        modules: moduleName ? [moduleName] : [def.title],
+        note: `${def.title} · ${verb}「${target}」`,
+        immediate: true,
+      },
+    })
+  }
+
   function openDrawer(mode: "add" | "edit", index: number) {
     setFormErr("")
     if (mode === "add") {
-      setForm(def.fields.map((f) => f.def ?? ""))
+      // 新增表单一律空白起步，不预填演示数值
+      setForm(def.fields.map(() => ""))
     } else {
       const row = rows[index]
       setForm(def.fields.map((_, i) => row.values[i] ?? ""))
@@ -270,33 +305,38 @@ export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun,
     if (drawer.mode === "add" && nameIdx >= 0) {
       const dup = rows.findIndex((r) => r.values[nameIdx] === form[nameIdx].trim())
       if (dup >= 0) {
-        setFormErr(`「${form[nameIdx].trim()}」已存在（判重不建新行），请直接编辑原行`)
+        setFormErr(`「${form[nameIdx].trim()}」已存在，请直接编辑原行`)
         return
       }
     }
     const values = def.fields.map((_, i) => form[i].trim())
-    dispatch({ type: "upsert", cardKey: key, index: drawer.mode === "edit" ? drawer.index : -1, values })
-    toast(drawer.mode === "add" ? `已新增${noun || def.title}，写入草稿，尚未生效。` : `已更新${noun || def.title}，写入草稿，尚未生效。`)
+    dispatch({ type: "upsert", cardKey: key, index: drawer.mode === "edit" ? drawer.index : -1, values, status: drawer.mode === "edit" ? rows[drawer.index]?.status : newStatus })
+    logChange(drawer.mode === "add" ? "新增" : "更新", values[0] || (noun || def.title))
+    toast(drawer.mode === "add" ? `已新增${noun || def.title}，保存并生效，变更记录已生成。` : `${noun || def.title}已保存并生效，变更记录已生成。`)
     setDrawer(null)
   }
 
   return (
     <section style={{ ...S.card, marginBottom: "14px" }} aria-label={def.title}>
-      <header style={{ ...S.cardHead, alignItems: embedded ? "center" : "baseline" }}>
-        {!embedded && <h3 style={S.cardTitle}>{def.title}</h3>}
+      <header style={S.cardHead}>
+        <h3 style={S.cardTitle}>{def.title}</h3>
         <span style={S.cardNote}>{def.note}</span>
       </header>
-      <div style={S.toolbar}>
-        <input
-          style={S.search}
-          value={query}
-          placeholder={`搜索${def.title}`}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <button type="button" style={{ ...S.btnPrimary, marginLeft: "auto" }} onClick={() => openDrawer("add", -1)}>
-          ＋ 新增{noun || ""}
-        </button>
-      </div>
+      {!readOnly && (
+        <div style={S.toolbar}>
+          <input
+            style={S.search}
+            value={query}
+            placeholder={`搜索${def.title}`}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {canAdd && (
+            <button type="button" style={{ ...S.btnPrimary, marginLeft: "auto" }} onClick={() => openDrawer("add", -1)}>
+              ＋ 新增{noun || ""}
+            </button>
+          )}
+        </div>
+      )}
       <div style={{ overflowX: "auto" }}>
         <table style={S.table}>
           <thead>
@@ -304,14 +344,14 @@ export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun,
               {def.cols.filter((c) => c !== "操作").map((c) => (
                 <th key={c} style={{ ...S.th, ...(c === "状态" ? { width: "64px" } : {}) }}>{c}</th>
               ))}
-              <th style={{ ...S.th, textAlign: "right" }}>操作</th>
+              {!readOnly && <th style={{ ...S.th, textAlign: "right" }}>操作</th>}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={def.cols.length} style={S.empty}>
-                  {query ? "没有匹配的行，换个关键词试试" : "暂无数据，点击右上角新增"}
+                  {query ? "没有匹配的行，换个关键词试试" : readOnly ? "暂无数据" : "暂无数据，点击右上角新增"}
                 </td>
               </tr>
             )}
@@ -321,20 +361,27 @@ export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun,
                   <td key={ci} style={ci === 0 ? { ...S.td, ...S.tdName } : S.td}>{v}</td>
                 ))}
                 <td style={S.td}><Chip status={r.status} /></td>
-                <td style={{ ...S.td, ...S.tdActions }}>
-                  {rowButtons?.(r, i)}
-                  <button type="button" style={S.btnLink} onClick={() => openDrawer("edit", i)}>编辑</button>
-                  <button
-                    type="button" style={S.btnLink}
-                    onClick={() => {
-                      dispatch({ type: "toggle", cardKey: key, index: i })
-                      toast(r.status === "启用" ? "已停用，写入草稿，尚未生效。" : "已启用，写入草稿，尚未生效。")
-                    }}
-                  >
-                    {r.status === "启用" ? "停用" : "启用"}
-                  </button>
-                  <button type="button" style={S.btnLinkDanger} onClick={() => setConfirmDel(i)}>删除</button>
-                </td>
+                {!readOnly && (
+                  <td style={{ ...S.td, ...S.tdActions }}>
+                    {rowButtons?.(r, i)}
+                    <button type="button" style={S.btnLink} onClick={() => openDrawer("edit", i)}>编辑</button>
+                    {canToggle && (
+                      <button
+                        type="button" style={S.btnLink}
+                        onClick={() => {
+                          dispatch({ type: "toggle", cardKey: key, index: i })
+                          logChange(r.status === "启用" ? "停用" : "启用", r.values[0] || "")
+                          toast(r.status === "启用" ? "已停用并生效，变更记录已生成。" : "已启用并生效，变更记录已生成。")
+                        }}
+                      >
+                        {r.status === "启用" ? "停用" : "启用"}
+                      </button>
+                    )}
+                    {canRemove && (
+                      <button type="button" style={S.btnLinkDanger} onClick={() => setConfirmDel(i)}>删除</button>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -348,7 +395,7 @@ export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun,
           foot={
             <>
               <button type="button" style={S.btnSecondary} onClick={() => setDrawer(null)}>取消</button>
-              <button type="button" style={S.btnPrimary} onClick={saveDrawer}>保存到草稿</button>
+              <button type="button" style={S.btnPrimary} onClick={saveDrawer}>保存</button>
             </>
           }
         >
@@ -364,7 +411,7 @@ export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun,
             <div style={{ fontSize: "11px", color: "var(--red)", marginTop: "4px" }}>{formErr}</div>
           )}
           <div style={{ fontSize: "11px", color: "var(--muted-foreground)", marginTop: "10px", lineHeight: 1.7 }}>
-            保存写入草稿，尚未生效；发布需在「发布与审计」页经「发布前预览」冲突校验后确认。
+            保存后立即生效，并在「变更记录」中生成一条记录。
           </div>
         </Drawer>
       )}
@@ -372,11 +419,12 @@ export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun,
       {confirmDel !== null && (
         <ConfirmModal
           title="删除确认"
-          body={<>将删除「{rows[confirmDel]?.values[0]}」这一行。删除只影响草稿与后续发布，历史事件仍引用发布时的规则版本。</>}
+          body={<>将删除「{rows[confirmDel]?.values[0]}」这一行，删除后立即生效；历史事件仍引用删除前的规则。</>}
           confirmText="删除"
           onConfirm={() => {
+            logChange("删除", rows[confirmDel]?.values[0] || "")
             dispatch({ type: "remove", cardKey: key, index: confirmDel })
-            toast("已删除，写入草稿，尚未生效。")
+            toast("已删除并生效，变更记录已生成。")
             setConfirmDel(null)
           }}
           onClose={() => setConfirmDel(null)}
@@ -386,91 +434,28 @@ export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun,
   )
 }
 
-// 渲染一组引擎卡
-export function CardList({ defs, rowButtons, nouns }: {
+// 渲染一组引擎卡（能力开关 / 留痕参数透传给每张卡）
+export function CardList({ defs, rowButtons, nouns, moduleName, author, readOnly }: {
   defs: GeneratedCard[]
   rowButtons?: Record<string, (row: GcRow, index: number) => ReactNode>
   nouns?: Record<string, string>
+  moduleName?: string
+  author?: string
+  readOnly?: boolean
 }) {
   return (
     <>
       {defs.map((def) => (
-        <CrudCard key={def.id} def={def} rowButtons={rowButtons?.[def.id]} noun={nouns?.[def.id]} />
-      ))}
-    </>
-  )
-}
-
-// ─── CardTabs：多卡 Tab 切换（如 Agent 派工与认领：领取批次 / 回收与提醒 / 紧急置顶条件） ───
-// Tab 栏展示各卡的行数徽标；面板内为内嵌引擎卡（说明 + 搜索/新增 + 表格 + 抽屉表单）。
-// 切换 Tab 会重置该卡的搜索与抽屉状态（卸载重挂）。
-
-export function CardTabs({ defs, rowButtons, nouns }: {
-  defs: GeneratedCard[]
-  rowButtons?: Record<string, (row: GcRow, index: number) => ReactNode>
-  nouns?: Record<string, string>
-}) {
-  const { state } = useGc()
-  const [activeId, setActiveId] = useState(defs[0]?.id ?? "")
-  const active = defs.find((d) => d.id === activeId) ?? defs[0]
-  if (!active) return null
-  return (
-    <>
-      <div
-        role="tablist"
-        aria-label={`${defs.map((d) => d.title).join("、")}切换`}
-        style={{
-          display: "flex", alignItems: "center", gap: "2px", padding: "3px",
-          width: "fit-content", marginBottom: "12px", borderRadius: "10px",
-          border: "1px solid var(--border)", backgroundColor: "var(--card-2)",
-          boxShadow: "inset 0 1px 0 var(--inset-hi, rgba(255,255,255,0.4))",
-        }}
-      >
-        {defs.map((d) => {
-          const on = d.id === active.id
-          const count = state.rows[d.id]?.length ?? 0
-          return (
-            <button
-              key={d.id}
-              type="button"
-              role="tab"
-              aria-selected={on}
-              onClick={() => setActiveId(d.id)}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: "6px",
-                padding: "6px 14px", borderRadius: "7px", cursor: "pointer",
-                border: `1px solid ${on ? "var(--primary)" : "transparent"}`,
-                backgroundColor: on ? "rgba(50,109,255,0.1)" : "transparent",
-                color: on ? "var(--primary)" : "var(--muted-foreground)",
-                fontSize: "12px", fontWeight: on ? 600 : 500,
-                transition: "background 0.15s ease",
-              }}
-              onMouseEnter={(e) => { if (!on) e.currentTarget.style.backgroundColor = "var(--chip-bg-hover, rgba(148,163,184,0.14))" }}
-              onMouseLeave={(e) => { if (!on) e.currentTarget.style.backgroundColor = "transparent" }}
-            >
-              {d.title}
-              <span
-                style={{
-                  fontSize: "10px", lineHeight: "16px", padding: "0 6px", borderRadius: "999px",
-                  border: "1px solid var(--border)", backgroundColor: "var(--card)",
-                  color: on ? "var(--primary)" : "var(--muted-foreground)",
-                }}
-              >
-                {count}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-      <div role="tabpanel" aria-label={active.title}>
         <CrudCard
-          key={active.id}
-          def={active}
-          embedded
-          rowButtons={rowButtons?.[active.id]}
-          noun={nouns?.[active.id]}
+          key={def.id}
+          def={def}
+          rowButtons={rowButtons?.[def.id]}
+          noun={nouns?.[def.id]}
+          moduleName={moduleName}
+          author={author}
+          readOnly={readOnly}
         />
-      </div>
+      ))}
     </>
   )
 }

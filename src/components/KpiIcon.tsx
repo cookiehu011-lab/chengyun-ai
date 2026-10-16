@@ -329,7 +329,7 @@ const labelToIcon: Record<string, string> = {
   待立案: "filePlus",
   待核查: "search",
   待作废审核: "xCircle",
-  升级接管中: "arrowUpCircle",
+  转责任纠正中: "arrowUpCircle",
   AI整体覆盖率: "shieldCheck",
   发现有效率: "target",
   建议采纳率: "thumbsUp",

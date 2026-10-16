@@ -634,7 +634,7 @@ const aiAttentionEvents = [
     gridName: "北新桥五条网格",
     date: "8/15",
     time: "11:20",
-    status: "已无效",
+    status: "无效",
     imgUrl: eventImage("乱堆杂物（误报）", "during"),
     desc: "AI识别为乱堆杂物，人工复核为居民临时堆放，已劝离",
   },
@@ -1220,7 +1220,7 @@ const aiAttentionEvents = [
 
 // ─── 历史回放补全 ────────────────────────────────────────────────────────
 // 热力回放覆盖 8/05–8/19，但人工整理事件集中在 8/11 之后；
-// 8/05–8/10 按确定性规则从基础事件池派生归档事件（已结案/已无效），
+// 8/05–8/10 按确定性规则从基础事件池派生归档事件（已结案/无效），
 // 保证回放推进时「AI 实时研判事件」逐日联动、不再出现空档
 const REPLAY_BACKFILL_DATES = ["8/05", "8/06", "8/07", "8/08", "8/09", "8/10"]
 const REPLAY_BACKFILL_TIMES = ["07:40", "09:20", "14:05", "18:30"]
@@ -1233,7 +1233,7 @@ const historyReplayEvents = REPLAY_BACKFILL_DATES.flatMap((date, di) =>
       id: `DC-2026-H${di}${k}`,
       date,
       time: REPLAY_BACKFILL_TIMES[(di + k) % REPLAY_BACKFILL_TIMES.length],
-      status: k % 3 === 1 ? "已无效" : "已结案",
+      status: k % 3 === 1 ? "无效" : "已结案",
     }
   }),
 )
@@ -3221,7 +3221,7 @@ const pendingCaseEvents: BatchEvent[] = [
     suggestedGrid: "建国门街道网格",
     hasRisk: true,
     imgUrls: [eventImage("共享单车占道", "during")],
-    situation: { text: "规则预告：派发后将自动结案", type: "info" },
+    situation: { text: "Agent 建议：确认责任后由工作流派发", type: "info" },
   },
   {
     id: "DC-2026-20561",
@@ -3245,7 +3245,7 @@ const pendingCaseEvents: BatchEvent[] = [
     agentStatus: "已完成查重、空间匹配",
     suggestedGrid: "东四街道网格",
     imgUrls: [eventImage("疑似堆物", "during")],
-    situation: { text: "自然消散 · 只读", type: "readonly" },
+    situation: { text: "Agent 检测：现场画面已消散", type: "readonly" },
   },
 ]
 const pendingInspectEvents: BatchEvent[] = [
@@ -3653,7 +3653,7 @@ const pendingVoidEvents: BatchEvent[] = [
 
 // ─── Agent 处理池：五态对齐业务流程（Agent 监控全量事件，按业务状态分组）──────
 // 状态与事件处理业务一一对应：等待立案→等待处置反馈→等待核查→等待外场核查→持续监控
-// 等待立案 / 等待核查 数量与「我的待办」队列一致，用户在两处看到同一口径
+// 池内件数为演示数据（标注示例口径），不计入页签待办数，也不是人工待办
 type PoolStateId = "case" | "feedback" | "verify" | "inspection" | "watching"
 
 interface PoolStateMeta {
@@ -3691,8 +3691,8 @@ const agentPoolStats: PoolStateMeta[] = [
     rgb: T.amberRGB,
     hint: "已派给网格责任人，等待现场处置结果回传",
     firstScreen: "当前责任人、已等待多久、时限风险、下一触发条件",
-    agentAction: "派单衔接、时限监测、接近时限自动催办、归集外部反馈",
-    humanDecision: "处置结果是否成立，是否升级为外场核查",
+    agentAction: "派单衔接、时限监测、按客户配置提醒点提醒并标识超时（不改变事件状态）、归集外部反馈",
+    humanDecision: "处置结果是否成立，是否发起外场核查",
     riskNote: "已超时 11 件 · 临近超时 2 件",
   },
   {
@@ -3737,7 +3737,7 @@ const agentPoolStats: PoolStateMeta[] = [
     hint: "事件已终态，或进入规则要求的持续观察",
     firstScreen: "观察对象、监控规则、何种条件会形成后续动作",
     agentAction: "订阅复发识别规则、盯同点位复发、观察期留痕与归档预告",
-    humanDecision: "是否中止观察，是否触发结案复核",
+    humanDecision: "是否结束观察，是否触发结案复核",
   },
 ]
 
@@ -3747,7 +3747,7 @@ const AGENT_LABOR = [
   "类型、描述预填",
   "空间与责任候选匹配",
   "证据包整理与前后对照",
-  "时限监测与自动催办",
+  "时限监测与按配置提醒",
   "衔接外部反馈与外场",
   "持续监控与复发识别",
 ]
@@ -3755,10 +3755,10 @@ const AGENT_LABOR = [
 const HUMAN_HOLDS = [
   "是否立案",
   "责任主体确认",
-  "是否派发与升级",
+  "是否派发",
   "是否外场核查",
   "责任确认与结案",
-  "是否中止 / 争议接管",
+  "是否结束观察 / 争议接管",
 ]
 
 // 本态 Agent 已备齐的交付物：人只在准备好的材料上做决定
@@ -3828,7 +3828,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       blocker: "空间匹配命中两个相邻网格，责任主体待确认",
       owner: "待立案确认",
       ownerRole: "候选：街道值守岗 / 城管执法队",
-      nextTrigger: "责任主体确认后自动派发；超时未确认则升级至街道值守岗",
+      nextTrigger: "责任主体确认后，由工作流直接派发给责任人",
     },
     {
       type: "暴露垃圾",
@@ -3851,10 +3851,10 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       time: "08-18 12:35",
       waitedH: 4.4,
       deadlineH: 8,
-      blocker: "处置力量排班未覆盖该点位，等待责任方认领",
+      blocker: "处置力量排班未覆盖该点位，待立案人确认责任后派发",
       owner: "待立案确认",
       ownerRole: "候选：共享单车运维 / 街道值守岗",
-      nextTrigger: "责任方认领；或超时后按规则指派",
+      nextTrigger: "立案人确认责任后，由工作流直接派发给责任人",
     },
     {
       type: "店外经营占道",
@@ -3864,10 +3864,10 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       time: "08-18 11:20",
       waitedH: 5.7,
       deadlineH: 8,
-      blocker: "事件等级为一般，按规则进入批次派发而非即时派发",
+      blocker: "事件等级为一般，立案确认后统一派发",
       owner: "待立案确认",
       ownerRole: "候选：城管执法队",
-      nextTrigger: "批次生成后随批次派发",
+      nextTrigger: "立案确认后由工作流派发",
     },
     {
       type: "施工围挡破损",
@@ -3921,7 +3921,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       blocker: "处置后图与发生中图同机位比对通过，AI 判定整改完成，待人工复核",
       owner: "待核查确认",
       ownerRole: "核查岗：立案审核",
-      nextTrigger: "人工确认后自动结案并留存对照记录",
+      nextTrigger: "核查人确认结案后归档，留存对照记录",
     },
     {
       type: "共享单车占道",
@@ -3962,7 +3962,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       blocker: "责任人已到场处置，处置后图尚未回传",
       owner: "张伟",
       ownerRole: "朝阳门街道网格责任人",
-      nextTrigger: "处置后图回传后自动进入核查；超 24h 自动催办",
+      nextTrigger: "处置后图回传后进入核查；超时按客户配置提醒点提醒",
     },
     {
       type: "乱堆垃圾",
@@ -3988,7 +3988,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       blocker: "已处置，但处置说明缺整改依据，责任未闭环",
       owner: "王磊",
       ownerRole: "东华门街道网格责任人",
-      nextTrigger: "补充整改说明；已超时，触发二次催办",
+      nextTrigger: "补充整改说明；已超时，按客户配置提醒点提醒",
     },
     {
       type: "共享单车占道",
@@ -4014,7 +4014,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       blocker: "责任人两次未接单，已超时 10.3 小时",
       owner: "陈昊",
       ownerRole: "安定门街道网格责任人",
-      nextTrigger: "超时升级至街道值守岗，必要时改派",
+      nextTrigger: "超时按客户配置提醒点提醒并标识超时，必要时改派",
     },
     {
       type: "无证户外广告",
@@ -4040,7 +4040,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       blocker: "车主未联系上，现场处置停滞",
       owner: "周涛",
       ownerRole: "和平里街道网格责任人",
-      nextTrigger: "超时升级，转交交管协同处置",
+      nextTrigger: "超时按客户配置提醒点提醒并标识超时，转交交管协同处置",
     },
     {
       type: "暴露垃圾",
@@ -4138,7 +4138,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       blocker: "需确认路面遗撒是否清扫干净，含边沟",
       owner: "何静",
       ownerRole: "安定门街道监督员（外场）",
-      nextTrigger: "监督员反馈后由 Agent 复核结案",
+      nextTrigger: "监督员回传后由核查人确认结论",
       needEvidence: "需路面全景与边沟近景",
     },
     {
@@ -4152,7 +4152,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       blocker: "需确认家具已清运离场、地面无残留",
       owner: "马超",
       ownerRole: "景山街道监督员（外场）",
-      nextTrigger: "监督员反馈后由 Agent 复核结案",
+      nextTrigger: "监督员回传后由核查人确认结论",
       needEvidence: "需清运后地面照片",
     },
   ],
@@ -4209,7 +4209,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       blocker: "监控中：同一店铺每周三、周五出摊",
       owner: "—",
       ownerRole: "无人工责任主体（Agent 自动监控）",
-      nextTrigger: "规则命中后自动创建新事件并派发",
+      nextTrigger: "规则命中后生成候选，进入全量识别重新审核",
       monitorTarget: "东四北大街128号店外经营点位",
       monitorRule: "同点位 7 日内再次识别到店外经营即触发回访",
     },
@@ -4224,7 +4224,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       blocker: "监控中：楼道口堆物清零后每周复发",
       owner: "—",
       ownerRole: "无人工责任主体（Agent 自动监控）",
-      nextTrigger: "3 日内复发即创建新事件",
+      nextTrigger: "3 日内复发即生成候选，进入全量识别重新审核",
       monitorTarget: "交道口南大街甲2号楼道口",
       monitorRule: "同点位 3 日内再次识别到堆物即触发回访",
     },
@@ -4254,7 +4254,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       blocker: "监控中：已拆除点位是否存在重挂",
       owner: "—",
       ownerRole: "无人工责任主体（Agent 自动监控）",
-      nextTrigger: "识别到同类广告即创建新事件",
+      nextTrigger: "识别到同类广告即生成候选，进入全量识别重新审核",
       monitorTarget: "建国门内大街8号外墙",
       monitorRule: "同点位出现同类户外广告即触发回访",
     },
@@ -4269,7 +4269,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       blocker: "监控中：围挡整改后是否再次破损",
       owner: "—",
       ownerRole: "无人工责任主体（Agent 自动监控）",
-      nextTrigger: "再次破损即直接派发",
+      nextTrigger: "再次破损即生成候选，进入全量识别重新审核",
       monitorTarget: "北新桥三条18号施工围挡",
       monitorRule: "识别到围挡再次破损即触发派发",
     },
@@ -4284,7 +4284,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       blocker: "监控中：夜间固定投放点位",
       owner: "—",
       ownerRole: "无人工责任主体（Agent 自动监控）",
-      nextTrigger: "连续命中即升级为定点值守",
+      nextTrigger: "连续命中即转定点值守",
       monitorTarget: "东直门内大街212号门前",
       monitorRule: "连续 2 日出现暴露垃圾即触发回访",
     },
@@ -4301,9 +4301,9 @@ const poolTrails: Record<
     { dh: 1, actor: "系统", text: "等待立案审核确认，超时按规则提醒立案审核岗" },
   ],
   feedback: [
-    { dh: 0, actor: "Agent", text: "自动派发至网格责任人，附发生中图与定位" },
-    { dh: 0.4, actor: "网格责任人", text: "已接单并到场，现场处置中" },
-    { dh: 1.2, actor: "Agent", text: "等待处置后图回传，接近时限时自动催办" },
+    { dh: 0, actor: "系统", text: "立案人确认责任后，工作流将任务派发至网格责任人，附发生中图与定位" },
+    { dh: 0.4, actor: "网格责任人", text: "已接收任务并到场，现场处置中" },
+    { dh: 1.2, actor: "Agent", text: "等待处置后图回传，按客户配置提醒点提醒" },
   ],
   verify: [
     { dh: 0, actor: "网格责任人", text: "提交处置反馈，上传处置后图" },
@@ -4322,20 +4322,13 @@ const poolTrails: Record<
   ],
   watching: [
     { dh: 0, actor: "Agent", text: "事件已结案，按规则进入持续观察" },
-    { dh: 6, actor: "系统", text: "已订阅同点位复发识别规则，命中将自动创建新事件" },
+    { dh: 6, actor: "系统", text: "已订阅同点位复发识别规则，命中将生成候选并进入全量识别重新审核" },
     { dh: 30, actor: "Agent", text: "观察期内未命中复发条件，继续监控" },
   ],
 }
 
 // 处理池为按需追溯视图：列表默认加载最近更新的事件，可用搜索与筛选定位
 const POOL_LIST_LIMIT = 6
-
-// 入口驱动：Agent 已备好、等人拍板的件数 vs Agent 仍在推进监控的件数
-const poolCount = (id: PoolStateId) =>
-  agentPoolStats.find((s) => s.id === id)?.count || 0
-const POOL_READY = poolCount("case") + poolCount("verify") + poolCount("void")
-const POOL_AGENT_RUNNING =
-  poolCount("feedback") + poolCount("inspection") + poolCount("watching")
 
 // 池内六态 → 对应的人工办理队列（处理池只做去向指引，写操作一律在待办队列）
 // 等待处置反馈 / 等待外场核查：还在等现场反馈，未到人工处理环节，不展示办理去向
@@ -4344,13 +4337,13 @@ const POOL_DISPATCH: Record<
   { tab: "case" | "inspect" | "void"; label: string } | null
 > = {
   // 等待立案：立案与定责在「待立案」队列完成
-  case: { tab: "case", label: "去「待立案」队列办理" },
+  case: { tab: "case", label: "去办理" },
   feedback: null,
   // 等待核查：结论确认在「待核查」队列完成
-  verify: { tab: "inspect", label: "去「待核查」队列办理" },
+  verify: { tab: "inspect", label: "去办理" },
   inspection: null,
   // 等待作废审核：作废确认在「待作废审核」队列完成
-  void: { tab: "void", label: "去「待作废审核」队列办理" },
+  void: { tab: "void", label: "去办理" },
   // 持续监控：本态无人工办理入口，由 Agent 盯复发
   watching: null,
 }
@@ -4362,16 +4355,16 @@ const poolHoldLabel = (id: PoolStateId) =>
 // Agent 依据已完成的流程劳动给出的建议动作（只作草案，采纳与否由人决定）
 const poolSuggestion = (e: PoolEvent): string => {
   if (e.state === "case")
-    return `建议确认立案并采纳候选责任方（${e.ownerRole}）；采纳后由 Agent 自动派发`
+    return `建议确认立案并采纳候选责任方（${e.ownerRole}）；立案人确认责任后，由工作流直接派发给责任人`
   if (e.state === "feedback")
-    return "暂无需人工处理：Agent 盯处置反馈与时限，接近时限自动催办，回传后转入待核查"
+    return "暂无需人工处理：Agent 盯处置反馈与时限，按客户配置提醒点提醒并标识超时；不改变事件状态"
   if (e.state === "verify")
     return "建议核对处置前后影像与 AI 复核疑点；确认即结案，证据不足转外场核查"
   if (e.state === "inspection")
     return "暂无需人工处理：Agent 盯监督员外场进度，证据回传后自动比对并转入待核查"
   if (e.state === "void")
-    return "建议核对查重命中与作废理由；确认作废即归档，驳回则回到正常派发流程"
-  return "建议维持观察；命中复发条件会自动创建新事件并回流处理池"
+    return "建议核对申请依据与材料；是否批准作废由有权审核人决定。"
+  return "建议维持观察；命中复发条件会生成候选并进入全量识别重新审核"
 }
 
 const poolDayShift = (ts: string, hours: number) => {
@@ -4436,14 +4429,14 @@ function buildPoolEvents(): PoolEvent[] {
   return out
 }
 
-function AgentJudgment() {
+function AgentJudgment({ title = "Agent 分析 / 建议" }: { title?: string }) {
   const [exp, setExp] = useState(false)
   return (
     <div
       style={{
-        border: "1px solid rgba(36,214,210,0.2)",
+        border: `1px solid ${T.border}`,
         borderRadius: 8,
-        backgroundColor: "rgba(36,214,210,0.04)",
+        backgroundColor: T.card2,
         marginBottom: 12,
       }}
     >
@@ -4456,9 +4449,19 @@ function AgentJudgment() {
         }}
       >
         <span
-          style={{ fontSize: 12, fontWeight: 600, color: T.accent, flex: 1 }}
+          style={{ fontSize: 12, fontWeight: 600, color: T.text, flex: 1 }}
         >
-          Agent 可审查判断
+          {title}
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 500,
+              color: T.textMuted,
+              marginLeft: 8,
+            }}
+          >
+            仅供你参考，正式决定由你确认
+          </span>
         </span>
         <button
           onClick={() => setExp(!exp)}
@@ -4504,20 +4507,20 @@ function CaseDecisionPage({
   onBack: () => void
 }) {
   // 「当前情况」驱动详情动作（MD《AI实时治理》§3）：
-  // 自然消散 · 只读 → 仅查看；重复上报 · 不新建 → 只记到已有事件；
-  // 未能匹配网格 → 派发不可用，改点/定网格后可用；规则预告 → 派发后自动结案提示
-  const [submitted, setSubmitted] = useState<null | "dispatch" | "repeat">(
-    null,
-  )
+  // 自然消散 → Agent 给出前后对比，立案人确认后结案归档；重复上报 · 不新建 → 只记到已有事件；
+  // 未能匹配网格 → 派发不可用，改点/定网格后可用
+  const [submitted, setSubmitted] = useState<
+    null | "dispatch" | "repeat" | "dissipate"
+  >(null)
   const [selectedGrid, setSelectedGrid] = useState(event.suggestedGrid || "")
   const [editLevel, setEditLevel] = useState(event.level)
   const [editLocation, setEditLocation] = useState(event.location)
+  const [dissipateReason, setDissipateReason] = useState("")
   const sitType = event.situation.type
   const sitText = event.situation.text
-  const isReadonlySit = sitType === "readonly"
+  const isDissipateSit = sitType === "readonly"
   const isRepeatSit = sitText === "重复上报 · 不新建"
   const isNoGridSit = sitText === "未能匹配网格"
-  const isRulePreviewSit = sitType === "info"
   const gridMoved = selectedGrid !== (event.suggestedGrid || "")
   if (submitted)
     return (
@@ -4567,12 +4570,18 @@ function CaseDecisionPage({
               marginBottom: 6,
             }}
           >
-            {submitted === "repeat" ? "已记录到已有事件" : "已确认立案并派发"}
+            {submitted === "repeat"
+              ? "已记录到已有事件"
+              : submitted === "dissipate"
+                ? "已记录自然消散结案"
+                : "已确认立案并派发"}
           </div>
           <div style={{ fontSize: 12, color: T.textMuted }}>
             {submitted === "repeat"
               ? `事件 ${event.id} 判为重复上报 · 不新建：已记到在办事件上，未新建、未派发`
-              : `事件 ${event.id} 已派至${selectedGrid} · 责任人：李建国`}
+              : submitted === "dissipate"
+                ? `已记录自然消散结案，事件已归档。`
+                : `立案信息和责任已确认，工作流已派发给责任人（${selectedGrid} · 责任人：李建国）。`}
           </div>
         </div>
         <button
@@ -4677,17 +4686,34 @@ function CaseDecisionPage({
           }}
         >
           <Card style={{ padding: 12 }}>
+            <SectionLabel>发现事实与标准</SectionLabel>
             <ImageGallery urls={event.imgUrls} compact />
+            <div
+              style={{
+                marginTop: 10,
+                padding: "8px 10px",
+                border: `1px dashed ${T.border}`,
+                borderRadius: 7,
+                fontSize: 11,
+                color: T.textMuted,
+                lineHeight: 1.7,
+              }}
+            >
+              立案标准（示例）：{event.type} · 现场状态清晰、位置与责任可确认。
+              <br />
+              证据要求（示例）：发现前 / 发生中影像，可定位坐标。
+            </div>
           </Card>
           <Card style={{ padding: 14 }}>
+            <AgentJudgment />
+          </Card>
+          <Card style={{ padding: 14 }}>
+            <SectionLabel>由你确认立案信息与责任</SectionLabel>
             <GridMap
               suggested={event.suggestedGrid || ""}
               selected={selectedGrid}
               onSelect={setSelectedGrid}
             />
-          </Card>
-          <Card style={{ padding: 14 }}>
-            <AgentJudgment />
             {/* 问题类型 — 只读 */}
             <div
               style={{
@@ -4720,7 +4746,7 @@ function CaseDecisionPage({
                   color: T.primary,
                 }}
               >
-                Agent预填
+                建议值 · 待确认
               </span>
             </div>
             {/* 事件等级 — 可编辑下拉 */}
@@ -4778,7 +4804,7 @@ function CaseDecisionPage({
                   color: editLevel !== event.level ? T.amber : T.primary,
                 }}
               >
-                {editLevel !== event.level ? "已修改" : "Agent预填"}
+                {editLevel !== event.level ? "已修改" : "建议值 · 待确认"}
               </span>
             </div>
             {/* 位置描述 — 可编辑输入 */}
@@ -4832,7 +4858,7 @@ function CaseDecisionPage({
                   marginTop: 4,
                 }}
               >
-                {editLocation !== event.location ? "已修改" : "Agent预填"}
+                {editLocation !== event.location ? "已修改" : "建议值 · 待确认"}
               </span>
             </div>
             {/* 所属网格 — 由地图联动 */}
@@ -4879,7 +4905,7 @@ function CaseDecisionPage({
               >
                 {selectedGrid !== event.suggestedGrid
                   ? "已手动修改"
-                  : "自动匹配"}
+                  : "建议值 · 待确认"}
               </span>
             </div>
             {/* 网格责任人 */}
@@ -4913,8 +4939,54 @@ function CaseDecisionPage({
                   color: T.amber,
                 }}
               >
-                需确认
+                待确认
               </span>
+            </div>
+          </Card>
+          <Card style={{ padding: 14 }}>
+            <SectionLabel>工作流校验结果</SectionLabel>
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              {[
+                {
+                  ok: !isNoGridSit || gridMoved,
+                  text:
+                    isNoGridSit && !gridMoved
+                      ? "网格匹配未通过：坐标未落入辖区网格，需先改点 / 定网格"
+                      : `网格匹配通过：${selectedGrid || "—"}`,
+                },
+                { ok: true, text: "责任人校验通过：李建国 · 在岗 · 可接收派发" },
+                { ok: true, text: "证据材料校验通过：发现前 / 发生中影像已齐备" },
+              ].map((c, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    fontSize: 11.5,
+                    color: c.ok ? T.text : T.amber,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: "50%",
+                      flexShrink: 0,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 9,
+                      fontWeight: 700,
+                      color: "#fff",
+                      backgroundColor: c.ok ? T.green : T.amber,
+                    }}
+                  >
+                    {c.ok ? "✓" : "!"}
+                  </span>
+                  {c.text}
+                </div>
+              ))}
             </div>
           </Card>
         </div>
@@ -4926,7 +4998,7 @@ function CaseDecisionPage({
             padding: 16,
           }}
         >
-          {isReadonlySit ? (
+          {isDissipateSit ? (
             <div
               style={{
                 padding: 12,
@@ -4944,11 +5016,72 @@ function CaseDecisionPage({
                   marginBottom: 5,
                 }}
               >
-                自然消散 · 只读
+                Agent 检测：现场画面已消散
               </div>
-              <div style={{ fontSize: 11, color: T.textMuted, lineHeight: 1.6 }}>
-                发生状态已是「已消散」：不立案、不判无效、不进档案。本页仅支持查看；这一期仍留在待立案，不计入页签数字与「待你决定」。
+              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                {[
+                  { label: `发现时 · ${event.time}`, src: eventImage(event.type, "during") },
+                  { label: "当前 · 已消散", src: eventImage(event.type, "after") },
+                ].map((im) => (
+                  <div key={im.label} style={{ flex: 1, minWidth: 0 }}>
+                    <img
+                      src={im.src}
+                      alt={im.label}
+                      style={{
+                        width: "100%",
+                        height: 88,
+                        objectFit: "cover",
+                        borderRadius: 6,
+                        border: `1px solid ${T.border}`,
+                        display: "block",
+                      }}
+                    />
+                    <div style={{ fontSize: 10, color: T.textMuted, marginTop: 4, textAlign: "center" }}>
+                      {im.label}
+                    </div>
+                  </div>
+                ))}
               </div>
+              <div style={{ fontSize: 11, color: T.textMuted, lineHeight: 1.6, marginBottom: 8 }}>
+                前后画面已对比：现场违规状态已自然消散。是否按自然消散结案由你确认，确认后事件归档至事件档案。
+              </div>
+              <textarea
+                value={dissipateReason}
+                onChange={(e) => setDissipateReason(e.target.value)}
+                placeholder="请填写结案理由（必填）…"
+                rows={2}
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  padding: "8px 10px",
+                  backgroundColor: T.card,
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 6,
+                  color: T.text,
+                  fontSize: 12,
+                  resize: "none",
+                  fontFamily: "inherit",
+                  outline: "none",
+                  marginBottom: 8,
+                }}
+              />
+              <button
+                onClick={() => setSubmitted("dissipate")}
+                disabled={!dissipateReason.trim()}
+                style={{
+                  width: "100%",
+                  padding: 10,
+                  backgroundColor: dissipateReason.trim() ? T.green : T.border,
+                  color: T.cardSolid,
+                  border: "none",
+                  borderRadius: 6,
+                  cursor: dissipateReason.trim() ? "pointer" : "not-allowed",
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                确认自然消散并结案
+              </button>
             </div>
           ) : isRepeatSit ? (
             <div
@@ -4995,11 +5128,11 @@ function CaseDecisionPage({
                 这是否属于需要立案的城市治理事件？
               </div>
               <div style={{ fontSize: 11, color: T.textMuted, lineHeight: 1.6 }}>
-                若是，请确认字段后立案。若否，选择"不属于事件范围"，事件进入已无效档案。
+                若是，请确认字段后立案。若否，选择"不属于事件范围"，事件判为无效后归档至事件档案。
               </div>
             </div>
           )}
-          {!isReadonlySit && !isRepeatSit && (
+          {!isDissipateSit && !isRepeatSit && (
             <textarea
               style={{
                 width: "100%",
@@ -5026,7 +5159,7 @@ function CaseDecisionPage({
               marginTop: "auto",
             }}
           >
-            {isReadonlySit ? null : isRepeatSit ? (
+            {isDissipateSit ? null : isRepeatSit ? (
               <button
                 onClick={() => setSubmitted("repeat")}
                 style={{
@@ -5055,18 +5188,6 @@ function CaseDecisionPage({
                     }}
                   >
                     未能匹配网格：坐标未落入辖区网格（或落在网格边界上）。请先在左侧地图改点或定网格，再派发。
-                  </div>
-                )}
-                {isRulePreviewSit && (
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: T.primary,
-                      lineHeight: 1.6,
-                      padding: "0 2px",
-                    }}
-                  >
-                    规则预告：已发布的自动结案规则会在本次派发成功后命中，事件将直接已结案，不经处置和核查。
                   </div>
                 )}
                 <button
@@ -5698,7 +5819,11 @@ function InspectDecisionPage({
   /** 该网格协同监督为空或负责类型不含 → 「发送监督员核查」不可用 */
   supervisorMissing?: boolean
 }) {
-  const [submitted, setSubmitted] = useState(false)
+  const [submitted, setSubmitted] = useState<
+    null | "close" | "return" | "field"
+  >(null)
+  const [note, setNote] = useState("")
+  const [returnSel, setReturnSel] = useState("")
   const [cmpMode, setCmpMode] = useState<"side" | "overlay" | null>(null)
   const [cmpRightIdx, setCmpRightIdx] = useState(0)
   const prefix = eventPrefixOf(event.type)
@@ -5728,8 +5853,19 @@ function InspectDecisionPage({
             width: 52,
             height: 52,
             borderRadius: "50%",
-            backgroundColor: "rgba(53,185,133,0.1)",
-            border: `2px solid ${T.green}`,
+            backgroundColor:
+              submitted === "close"
+                ? "rgba(53,185,133,0.1)"
+                : submitted === "return"
+                  ? "rgba(255,122,66,0.1)"
+                  : "rgba(117,104,216,0.1)",
+            border: `2px solid ${
+              submitted === "close"
+                ? T.green
+                : submitted === "return"
+                  ? T.amber
+                  : T.purple
+            }`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -5740,7 +5876,13 @@ function InspectDecisionPage({
             height="24"
             viewBox="0 0 24 24"
             fill="none"
-            stroke={T.green}
+            stroke={
+              submitted === "close"
+                ? T.green
+                : submitted === "return"
+                  ? T.amber
+                  : T.purple
+            }
             strokeWidth="2.5"
           >
             <polyline points="20 6 9 17 4 12" />
@@ -5751,14 +5893,27 @@ function InspectDecisionPage({
             style={{
               fontSize: 15,
               fontWeight: 600,
-              color: T.green,
+              color:
+                submitted === "close"
+                  ? T.green
+                  : submitted === "return"
+                    ? T.amber
+                    : T.purple,
               marginBottom: 6,
             }}
           >
-            已确认结案
+            {submitted === "close"
+              ? "已确认完成并结案"
+              : submitted === "return"
+                ? "已退回处置"
+                : "已创建外场核查任务"}
           </div>
           <div style={{ fontSize: 12, color: T.textMuted }}>
-            事件 {event.id} 已归入事件档案
+            {submitted === "close"
+              ? `事件 ${event.id} 已归入事件档案`
+              : submitted === "return"
+                ? `事件 ${event.id} 已退回责任人重新处置，处置时限继续计算。`
+                : "已创建关联外场核查任务，核查时限已暂停。"}
           </div>
         </div>
         <button
@@ -5841,8 +5996,9 @@ function InspectDecisionPage({
             gap: 12,
           }}
         >
-          {/* 监控图片区 — 发生中 + 相机最新，并排可点击进入叠图模式 */}
+          {/* 证据时间线 — 发现前材料 / 处置后材料 / 外场回传，并排可点击进入叠图模式 */}
           <Card style={{ padding: 12 }}>
+            <SectionLabel>证据时间线（发现前材料 · 处置后材料 · 外场回传）</SectionLabel>
             <div
               style={{
                 fontSize: 10,
@@ -6284,7 +6440,7 @@ function InspectDecisionPage({
                       letterSpacing: "0.04em",
                     }}
                   >
-                    AI 复核
+                    Agent 证据对照 · AI 复核
                   </div>
                   <div
                     style={{
@@ -6327,7 +6483,67 @@ function InspectDecisionPage({
               </div>
             </div>
           )}
-          <AgentJudgment />
+          <AgentJudgment title="Agent 核查建议（仅供核查人参考）" />
+          <SectionLabel>核查人决定</SectionLabel>
+          <div
+            style={{
+              border: `1px solid ${T.border}`,
+              borderRadius: 8,
+              backgroundColor: T.card2,
+              padding: "8px 11px",
+              marginBottom: 10,
+              display: "flex",
+              flexDirection: "column",
+              gap: 5,
+              fontSize: 11,
+              color: T.textMuted,
+            }}
+          >
+            <div>工作流信息：处置责任人 李建国 · 派发快照网格 {event.suggestedGrid || "—"}</div>
+            <div>已退回 1 次 · 核查时限内（示例数据）</div>
+          </div>
+          <select
+            value={returnSel}
+            onChange={(e) => setReturnSel(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "7px 9px",
+              borderRadius: 7,
+              border: `1px solid ${T.border}`,
+              backgroundColor: T.card2,
+              color: T.text,
+              fontSize: 12,
+              outline: "none",
+              marginBottom: 8,
+            }}
+          >
+            <option value="">退回原因（退回时必选 · 来自事件标准 · 退回处置字典）</option>
+            {["处置未到位", "现场未清理", "材料不完整", "其他"].map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="核查说明（确认结案选填；退回 / 发起外场核查必填）…"
+            rows={3}
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              padding: "8px 10px",
+              backgroundColor: T.card2,
+              border: `1px solid ${T.border}`,
+              borderRadius: 6,
+              color: T.text,
+              fontSize: 12,
+              resize: "none",
+              fontFamily: "inherit",
+              outline: "none",
+              marginBottom: 10,
+            }}
+          />
           <div
             style={{
               display: "flex",
@@ -6337,7 +6553,7 @@ function InspectDecisionPage({
             }}
           >
             <button
-              onClick={() => setSubmitted(true)}
+              onClick={() => setSubmitted("close")}
               disabled={hasFieldReturnStep}
               title={
                 hasFieldReturnStep
@@ -6359,38 +6575,46 @@ function InspectDecisionPage({
               确认完成并结案
             </button>
             <button
+              onClick={() => returnSel !== "" && note.trim() !== "" && setSubmitted("return")}
+              disabled={!(returnSel !== "" && note.trim() !== "")}
               style={{
                 width: "100%",
                 padding: 10,
                 backgroundColor: "transparent",
-                color: T.amber,
-                border: "1px solid rgba(255,122,66,0.25)",
+                color: returnSel !== "" && note.trim() !== "" ? T.amber : T.textMuted,
+                border: `1px solid ${returnSel !== "" && note.trim() !== "" ? "rgba(255,122,66,0.35)" : T.border}`,
                 borderRadius: 6,
-                cursor: "pointer",
+                cursor: returnSel !== "" && note.trim() !== "" ? "pointer" : "not-allowed",
                 fontSize: 13,
               }}
             >
               未完成，退回处置
             </button>
             <button
-              style={{
-                width: "100%",
-                padding: 10,
-                backgroundColor: "transparent",
-                color: supervisorMissing ? T.textMuted : T.purple,
-                border: `1px solid ${supervisorMissing ? T.border : "rgba(117,104,216,0.25)"}`,
-                borderRadius: 6,
-                cursor: supervisorMissing ? "not-allowed" : "pointer",
-                fontSize: 13,
-                opacity: supervisorMissing ? 0.6 : 1,
-              }}
+              onClick={() => note.trim() !== "" && setSubmitted("field")}
+              disabled={note.trim() === "" || supervisorMissing}
               title={
                 supervisorMissing
                   ? "该网格协同监督为空或其负责类型不含这件，暂不可派（MD《AI实时治理》§4）"
                   : undefined
               }
+              style={{
+                width: "100%",
+                padding: 10,
+                backgroundColor: "transparent",
+                color:
+                  note.trim() !== "" && !supervisorMissing ? T.purple : T.textMuted,
+                border: `1px solid ${
+                  note.trim() !== "" && !supervisorMissing
+                    ? "rgba(117,104,216,0.35)"
+                    : T.border
+                }`,
+                borderRadius: 6,
+                cursor: note.trim() !== "" && !supervisorMissing ? "pointer" : "not-allowed",
+                fontSize: 13,
+              }}
             >
-              证据不足，发送监督员核查
+              证据不足，发起外场核查
             </button>
           </div>
         </Card>
@@ -6419,7 +6643,10 @@ function VoidDecisionPage({
   event: BatchEvent
   onBack: () => void
 }) {
-  const [submitted, setSubmitted] = useState(false)
+  const [submitted, setSubmitted] = useState<
+    null | "approve" | "reject" | "correct"
+  >(null)
+  const [voidNote, setVoidNote] = useState("")
   if (submitted)
     return (
       <div
@@ -6438,8 +6665,19 @@ function VoidDecisionPage({
             width: 52,
             height: 52,
             borderRadius: "50%",
-            backgroundColor: "rgba(53,185,133,0.1)",
-            border: `2px solid ${T.green}`,
+            backgroundColor:
+              submitted === "approve"
+                ? "rgba(53,185,133,0.1)"
+                : submitted === "reject"
+                  ? "rgba(50,109,255,0.1)"
+                  : "rgba(255,122,66,0.1)",
+            border: `2px solid ${
+              submitted === "approve"
+                ? T.green
+                : submitted === "reject"
+                  ? T.primary
+                  : T.amber
+            }`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -6450,7 +6688,13 @@ function VoidDecisionPage({
             height="24"
             viewBox="0 0 24 24"
             fill="none"
-            stroke={T.green}
+            stroke={
+              submitted === "approve"
+                ? T.green
+                : submitted === "reject"
+                  ? T.primary
+                  : T.amber
+            }
             strokeWidth="2.5"
           >
             <polyline points="20 6 9 17 4 12" />
@@ -6461,14 +6705,27 @@ function VoidDecisionPage({
             style={{
               fontSize: 15,
               fontWeight: 600,
-              color: T.green,
+              color:
+                submitted === "approve"
+                  ? T.green
+                  : submitted === "reject"
+                    ? T.primary
+                    : T.amber,
               marginBottom: 6,
             }}
           >
-            已批准作废
+            {submitted === "approve"
+              ? "已批准作废"
+              : submitted === "reject"
+                ? "已驳回申请"
+                : "已转责任纠正"}
           </div>
           <div style={{ fontSize: 12, color: T.textMuted }}>
-            事件 {event.id} 已归入已无效档案
+            {submitted === "approve"
+              ? `事件 ${event.id} 已作废（终态），已归档至事件档案。`
+              : submitted === "reject"
+                ? `事件 ${event.id} 已驳回申请并继续处置，处置时限恢复计算。`
+                : `事件 ${event.id} 已转责任纠正，处置时限保持暂停，待责任信息更正后继续。`}
           </div>
         </div>
         <button
@@ -6682,13 +6939,20 @@ function VoidDecisionPage({
                 marginBottom: 5,
               }}
             >
-              作废审核
+              作废审核 · 处置时限已暂停
             </div>
-            <div style={{ fontSize: 11, color: T.textMuted, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 11, color: T.textMuted, lineHeight: 1.6, marginBottom: 6 }}>
               若批准，事件进入已作废（终态）。若驳回，事件回到待处置，主责仍是派发快照上的责任人。
+            </div>
+            <div style={{ fontSize: 11, color: T.text, lineHeight: 1.6 }}>
+              Agent 建议：建议核对申请依据与材料；是否批准作废由有权审核人决定。
             </div>
           </div>
           <textarea
+            value={voidNote}
+            onChange={(e) => setVoidNote(e.target.value)}
+            placeholder="审核意见（必填，请说明理由）..."
+            rows={3}
             style={{
               width: "100%",
               padding: "8px 10px",
@@ -6703,7 +6967,6 @@ function VoidDecisionPage({
               marginBottom: 12,
               boxSizing: "border-box",
             }}
-            placeholder="填写审核意见（可选）..."
           />
           <div
             style={{
@@ -6714,15 +6977,16 @@ function VoidDecisionPage({
             }}
           >
             <button
-              onClick={() => setSubmitted(true)}
+              onClick={() => voidNote.trim() !== "" && setSubmitted("approve")}
+              disabled={voidNote.trim() === ""}
               style={{
                 width: "100%",
                 padding: 11,
-                backgroundColor: T.orange,
+                backgroundColor: voidNote.trim() !== "" ? T.orange : T.border,
                 color: T.cardSolid,
                 border: "none",
                 borderRadius: 6,
-                cursor: "pointer",
+                cursor: voidNote.trim() !== "" ? "pointer" : "not-allowed",
                 fontSize: 13,
                 fontWeight: 600,
               }}
@@ -6730,18 +6994,36 @@ function VoidDecisionPage({
               批准作废
             </button>
             <button
+              onClick={() => voidNote.trim() !== "" && setSubmitted("reject")}
+              disabled={voidNote.trim() === ""}
               style={{
                 width: "100%",
                 padding: 10,
                 backgroundColor: "transparent",
-                color: T.primary,
-                border: `1px solid rgba(22,119,255,0.25)`,
+                color: voidNote.trim() !== "" ? T.primary : T.textMuted,
+                border: `1px solid ${voidNote.trim() !== "" ? "rgba(22,119,255,0.35)" : T.border}`,
                 borderRadius: 6,
-                cursor: "pointer",
+                cursor: voidNote.trim() !== "" ? "pointer" : "not-allowed",
                 fontSize: 13,
               }}
             >
-              驳回，继续处置流程
+              驳回申请并继续处置
+            </button>
+            <button
+              onClick={() => voidNote.trim() !== "" && setSubmitted("correct")}
+              disabled={voidNote.trim() === ""}
+              style={{
+                width: "100%",
+                padding: 10,
+                backgroundColor: "transparent",
+                color: voidNote.trim() !== "" ? T.amber : T.textMuted,
+                border: `1px solid ${voidNote.trim() !== "" ? "rgba(255,122,66,0.35)" : T.border}`,
+                borderRadius: 6,
+                cursor: voidNote.trim() !== "" ? "pointer" : "not-allowed",
+                fontSize: 13,
+              }}
+            >
+              责任信息有误，转责任纠正
             </button>
           </div>
         </Card>
@@ -7907,7 +8189,9 @@ function RecDetailDrawer({
                 </div>
                 {latest.reason && (
                   <div style={{ fontSize: 12, color: T.text, marginTop: 9, lineHeight: 1.6 }}>
-                    <span style={{ color: T.textMuted }}>无效原因：</span>
+                    <span style={{ color: T.textMuted }}>
+                      {latest.result === "无效" ? "无效原因：" : "确认理由："}
+                    </span>
                     {latest.reason}
                   </div>
                 )}
@@ -8037,11 +8321,15 @@ function RecDetailDrawer({
               ✕ 无效
             </button>
           </div>
-          {reviewResult === "无效" && (
+          {reviewResult && (
             <textarea
               value={reviewReason}
               onChange={(e) => setReviewReason(e.target.value)}
-              placeholder="请填写无效原因…"
+              placeholder={
+                reviewResult === "无效"
+                  ? "请填写无效原因…（必填）"
+                  : "确认理由（选填，可留空）"
+              }
               rows={2}
               style={{
                 width: "100%",
@@ -8178,6 +8466,12 @@ function RecognitionInbox({
     setReviewSel((prev) => (prev.includes(o) ? prev.filter((x) => x !== o) : [...prev, o]))
   }
   function submitReview(eventId: string, result: ReviewResult, reason?: string) {
+    const existing = reviewLogs[eventId]
+    // 并发场景演示：该线索在提交时已被其他审核人处理 → 展示已生效结果，不再追加记录
+    if (existing && existing.length > 0) {
+      setToast("该线索已被审核，以下为已生效结果。")
+      return
+    }
     const log = reviewLogs[eventId] ?? (reviewLogs[eventId] = [])
     const now = new Date()
     const p = (n: number) => String(n).padStart(2, "0")
@@ -8185,10 +8479,14 @@ function RecognitionInbox({
       result,
       by: "张晓琳",
       at: `${p(now.getMonth() + 1)}-${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())}`,
-      ...(result === "无效" && reason ? { reason } : {}),
+      ...(reason ? { reason } : {}),
     })
     tick()
-    setToast(`已提交审核：${eventId} 判定为「${result}」，立即生效`)
+    setToast(
+      result === "有效"
+        ? "已确认有效，已进入待立案。"
+        : "已记录无效结论，事件已归档至事件档案。",
+    )
   }
 
   const controlStyle: React.CSSProperties = {
@@ -8241,7 +8539,7 @@ function RecognitionInbox({
           条。
         </span>
         <span style={{ fontSize: 11, color: T.textMuted, display: "inline-flex", alignItems: "center", gap: 8 }}>
-          Agent 已完成查重与空间匹配 · 立案决定由人工确认
+          全量线索由有权限审核人直接审核，不进入领取。审核通过后进入待立案；判无效后归档至事件档案。
           {/* 全量识别规则（RT_RULES.recognition）：悬停浮出 */}
           <RuleChip rules={RT_RULES} id="recognition" label="规则" />
         </span>
@@ -8607,7 +8905,7 @@ function RecognitionInbox({
 }
 
 function RealtimeGovernance({ identity }: { identity: IdentityState }) {
-  // 治理配置全局状态：领取批次的「默认领取量 / 状态」驱动待办队列的获取事件发牌
+  // 治理配置全局状态：待办领取的「单次最多领取件数 / 状态」驱动各页签的领取待办
   const { state: gcState } = useGc()
   // 当前身份 → 台账角色步骤：页签可见性（没有对应步骤的页签不出现）与按钮门禁
   const identityView = resolveIdentity(gcState, identity)
@@ -8676,12 +8974,17 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
   )
   const [extraVoidEvents, setExtraVoidEvents] = useState<BatchEvent[]>([])
   const [isDealing, setIsDealing] = useState(false)
-  // Agent 处理池：默认进入「待你决定」决策流（等待立案 / 等待核查 / 等待外场核查）
-  // 完整追溯模式才按五态展示事件列表
+  // 领取待办：数量选择对话框（当前可领取 N 件 × 单次最多领取件数）
+  const [claimOpen, setClaimOpen] = useState(false)
+  const [claimCount, setClaimCount] = useState(1)
+  const [toast, setToast] = useState("")
+  useEffect(() => {
+    if (!toast) return
+    const t = window.setTimeout(() => setToast(""), 2600)
+    return () => window.clearTimeout(t)
+  }, [toast])
+  // Agent 处理池：监控与追溯视图（不是人工待办），按五态展示事件明细
   const [poolStateId, setPoolStateId] = useState<PoolStateId>("case")
-  const [poolViewMode, setPoolViewMode] = useState<"decision" | "trace">(
-    "decision",
-  )
   const [poolEvent, setPoolEvent] = useState<PoolEvent | null>(null)
   const [poolQuery, setPoolQuery] = useState("")
   const [poolTypeFilter, setPoolTypeFilter] = useState("all")
@@ -8715,7 +9018,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
         : extraVoidEvents
   const events = [...baseEvents, ...extraEvents]
 
-  // 页签数字 = 当前这批里还要人决定的件数；自然消散 · 只读不计入（MD《AI实时治理》§1/§3）
+  // 页签数字 = 当前这批里还要人决定的件数；自然消散不计入（MD《AI实时治理》§1/§3）
   const caseDecisionCount = useMemo(
     () =>
       [...pendingCaseEvents, ...extraCaseEvents].filter(
@@ -8783,7 +9086,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
         location: grids[idx % grids.length],
         time: `08-18 ${String(8 + (idx % 10)).padStart(2, "0")}:${String((idx * 7) % 60).padStart(2, "0")}`,
         camera: `CAM-${String.fromCharCode(65 + (idx % 26))}${String(idx).padStart(3, "0")}`,
-        agentStatus: "Agent自动派发",
+        agentStatus: "Agent 分析完成 · 待人工确认",
         suggestedGrid: grids[idx % grids.length],
         imgUrls: [eventImage(t, "during")],
         situation: situations[type],
@@ -8792,8 +9095,8 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
     })
   }
 
-  // 治理配置 → Agent 派工与认领 → 领取批次：默认领取量即「获取事件」单次发牌数；
-  // 批次行「停用」= 关闭该页签的领取入口（与配置语义一致）
+  // 治理配置 → 待办领取 → 领取批次：「单次最多领取件数」即「领取待办」单次上限
+  //（留空 = 不设上限）；批次行「停用」= 关闭该页签的领取入口（与配置语义一致）
   type RtTab = "recognition" | "case" | "inspect" | "void"
   const batchKeyOf = (tab: RtTab) =>
     tab === "case" ? "待立案" : tab === "inspect" ? "待核查" : "待作废审核"
@@ -8802,21 +9105,30 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
     const key = batchKeyOf(tab)
     const row =
       rows.find((r) => (r.values[0] || "").includes(key)) ?? rows[0]
-    const parsed = parseInt(row?.values[2] ?? "10", 10)
-    const quota = Number.isFinite(parsed) ? Math.max(1, Math.min(30, parsed)) : 10
+    const raw = (row?.values[2] ?? "").toString().trim()
+    const parsed = parseInt(raw, 10)
+    const maxPerClaim =
+      raw !== "" && Number.isFinite(parsed) ? Math.max(1, parsed) : null
     return {
-      quota,
+      maxPerClaim,
       enabled: row ? row.status !== "停用" : true,
       batchName: row?.values[0] || `${key}批次`,
     }
   }
 
-  function handleFetchEvents() {
+  // 领取待办：演示用「当前可领取件数」（各页签固定一批示例量）
+  const claimAvailableOf = (tab: RtTab) =>
+    tab === "case" ? 12 : tab === "inspect" ? 8 : 6
+
+  function handleClaimConfirm() {
     if (isDealing) return
-    // 发牌数量来自治理配置 → Agent 派工与认领 → 领取批次的「默认领取量」
     const batch = claimBatchInfo(activeTab)
     if (!batch.enabled) return
+    const available = claimAvailableOf(activeTab)
+    const count = Math.min(claimCount, batch.maxPerClaim ?? available, available)
+    if (count < 1) return
     setIsDealing(true)
+    setClaimOpen(false)
     setTimeout(() => {
       const startIdx =
         activeTab === "case"
@@ -8826,7 +9138,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
             : pendingVoidEvents.length + extraVoidEvents.length
       const newEvents = generateBatchEvents(
         activeTab as "case" | "inspect" | "void",
-        batch.quota,
+        count,
         startIdx,
       )
       if (activeTab === "case") {
@@ -8837,6 +9149,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
         setExtraVoidEvents((prev) => [...prev, ...newEvents])
       }
       setIsDealing(false)
+      setToast(`已领取 ${count} 件，已加入本页待办。`)
     }, 700)
   }
 
@@ -8930,40 +9243,14 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
   if (view === "agent-pool") {
     const poolAll = buildPoolEvents()
     const poolTotal = agentPoolStats.reduce((sum, s) => sum + s.count, 0)
-    // 决策流：只呈现需要人拍板的三种状态（等待立案 / 等待核查 / 等待作废审核）
-    // 等待处置反馈 / 等待外场核查还在等现场反馈，由 Agent 盯办，未到人工处理环节
-    const decisionEvents = poolAll
-      .filter(
-        (e) =>
-          e.state === "case" ||
-          e.state === "verify" ||
-          e.state === "void",
-      )
-      .sort((a, b) => b.waitedH - a.waitedH)
-    const decisionMeta = {
-      id: "decision" as const,
-      label: "待你决定",
-      count: decisionEvents.length,
-      color: T.primary,
-      rgb: T.primaryRGB,
-      hint: "Agent 已备好证据与草案，等你做关键治理决定",
-      firstScreen: "",
-      agentAction: "",
-      humanDecision: "",
-    }
     const activePool = poolEvent
       ? agentPoolStats.find((s) => s.id === poolEvent.state) || null
-      : poolViewMode === "decision"
-        ? decisionMeta
-        : poolStateId
-          ? agentPoolStats.find((s) => s.id === poolStateId) || null
-          : null
-    const stateEvents =
-      poolViewMode === "decision"
-        ? decisionEvents
-        : activePool && activePool.id !== "decision"
-          ? poolAll.filter((e) => e.state === activePool.id)
-          : []
+      : poolStateId
+        ? agentPoolStats.find((s) => s.id === poolStateId) || null
+        : null
+    const stateEvents = activePool
+      ? poolAll.filter((e) => e.state === activePool.id)
+      : []
     const poolTypes = Array.from(new Set(stateEvents.map((e) => e.type)))
     const q = poolQuery.trim().toLowerCase()
     const matched = stateEvents
@@ -9005,9 +9292,8 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
             }
     const waitedText = (h: number) =>
       h >= 1 ? `${h.toFixed(1)} 小时` : `${Math.round(h * 60)} 分钟`
-    // 点击任一状态卡：自动进入完整追溯并定位该态（默认模式也能直接查看明细）
+    // 点击任一状态卡：进入该态事件明细
     const goList = (id: PoolStateId) => {
-      setPoolViewMode("trace")
       setPoolStateId(id)
       setPoolEvent(null)
       setPoolQuery("")
@@ -9112,7 +9398,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
             Agent 处理池
           </span>
           <span style={{ fontSize: 11, color: T.textMuted }}>
-            · Agent 监控全量事件状态 · 按业务环节分组 · 非人工待办
+            · 监控与追溯视图 · 不是人工待办
           </span>
           <span
             style={{
@@ -9158,7 +9444,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
               Agent 工作分布 · 点击任一状态查看该态明细
             </div>
             {agentPoolStats.map((pool) => {
-              const active = poolViewMode === "trace" && poolStateId === pool.id
+              const active = poolStateId === pool.id
               return (
                 <div
                   key={pool.id}
@@ -9686,7 +9972,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                         letterSpacing: "0.02em",
                       }}
                     >
-                      待你决定
+                      由你决定
                     </div>
                     <div
                       style={{
@@ -9781,7 +10067,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                           border: `1px solid ${T.border}`,
                         }}
                       >
-                        本态无人工办理入口：Agent 按规则盯复发，命中即自动创建新事件回流处理池。
+                        本态无人工办理入口：命中复发条件即生成候选，进入全量识别重新审核。
                       </div>
                     )}
                     <div
@@ -10015,110 +10301,36 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                   flexWrap: "wrap",
                 }}
               >
-                {poolViewMode === "decision" ? (
-                  <>
-                    <span
-                      style={{
-                        width: 3,
-                        height: 16,
-                        borderRadius: 3,
-                        backgroundColor: T.primary,
-                        boxShadow: `0 0 8px ${T.primary}`,
-                      }}
-                    />
-                    <span
-                      style={{ fontSize: 13, fontWeight: 700, color: T.text }}
-                    >
-                      待你决定
-                    </span>
-                    <span
-                      style={{
-                        fontFamily: T.mono,
-                        fontSize: 13,
-                        fontWeight: 800,
-                        color: T.primary,
-                      }}
-                    >
-                      {POOL_READY}
-                    </span>
-                    <span style={{ fontSize: 10.5, color: T.textMuted }}>
-                      Agent 已备好证据与草案，等你做关键治理决定
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span
-                      style={{
-                        width: 3,
-                        height: 16,
-                        borderRadius: 3,
-                        backgroundColor: activePool.color,
-                        boxShadow: `0 0 8px ${activePool.color}`,
-                      }}
-                    />
-                    <span
-                      style={{ fontSize: 13, fontWeight: 700, color: T.text }}
-                    >
-                      {activePool.label}
-                    </span>
-                    <span
-                      style={{
-                        fontFamily: T.mono,
-                        fontSize: 13,
-                        fontWeight: 800,
-                        color: activePool.color,
-                      }}
-                    >
-                      {activePool.count}
-                    </span>
-                    <span style={{ fontSize: 10.5, color: T.textMuted }}>
-                      {activePool.hint}
-                    </span>
-                  </>
-                )}
+                <>
+                  <span
+                    style={{
+                      width: 3,
+                      height: 16,
+                      borderRadius: 3,
+                      backgroundColor: activePool.color,
+                      boxShadow: `0 0 8px ${activePool.color}`,
+                    }}
+                  />
+                  <span
+                    style={{ fontSize: 13, fontWeight: 700, color: T.text }}
+                  >
+                    {activePool.label}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: T.mono,
+                      fontSize: 13,
+                      fontWeight: 800,
+                      color: activePool.color,
+                    }}
+                  >
+                    {activePool.count}
+                  </span>
+                  <span style={{ fontSize: 10.5, color: T.textMuted }}>
+                    {activePool.hint}
+                  </span>
+                </>
                 <span style={{ marginLeft: "auto" }} />
-                <button
-                  onClick={() => {
-                    if (poolViewMode === "decision") {
-                      setPoolViewMode("trace")
-                      setPoolStateId("case")
-                      setPoolEvent(null)
-                      setPoolQuery("")
-                      setPoolTypeFilter("all")
-                      setPoolRiskOnly(false)
-                      setPoolVisible(POOL_LIST_LIMIT)
-                    } else {
-                      setPoolViewMode("decision")
-                      setPoolStateId("case")
-                      setPoolEvent(null)
-                      setPoolQuery("")
-                      setPoolTypeFilter("all")
-                      setPoolRiskOnly(false)
-                      setPoolVisible(POOL_LIST_LIMIT)
-                    }
-                  }}
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    padding: "5px 11px",
-                    borderRadius: 7,
-                    cursor: "pointer",
-                    border: `1px solid ${
-                      poolViewMode === "decision" ? T.border : T.primary
-                    }`,
-                    backgroundColor:
-                      poolViewMode === "decision"
-                        ? "transparent"
-                        : "rgba(22,119,255,0.08)",
-                    color:
-                      poolViewMode === "decision" ? T.textMuted : T.primary,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {poolViewMode === "decision"
-                    ? `完整追溯（其余 ${POOL_AGENT_RUNNING} 件 Agent 监控中）`
-                    : "只看需我决定"}
-                </button>
                 <span
                   style={{
                     fontSize: 10.5,
@@ -10248,237 +10460,6 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                     <div style={{ fontSize: 11 }}>
                       当前条件下无结果，可放宽事件类型或时限风险条件
                     </div>
-                  </div>
-                ) : poolViewMode === "decision" ? (
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(2, 1fr)",
-                      gap: 10,
-                      alignContent: "start",
-                    }}
-                  >
-                    {poolShown.map((evt) => {
-                      const r = riskMeta(evt.risk)
-                      const stateMeta = agentPoolStats.find(
-                        (s) => s.id === evt.state,
-                      )!
-                      const dispatch = POOL_DISPATCH[evt.state]
-                      return (
-                        <div
-                          key={evt.id}
-                          style={{
-                            border: `1px solid ${T.border}`,
-                            borderRadius: 12,
-                            padding: 12,
-                            backgroundColor: "var(--row-bg)",
-                            transition: "all 0.2s ease",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 8,
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = `rgba(${stateMeta.rgb},0.45)`
-                            e.currentTarget.style.boxShadow = `0 8px 22px rgba(${stateMeta.rgb},0.12)`
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = T.border
-                            e.currentTarget.style.boxShadow = "none"
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 8,
-                              flexWrap: "wrap",
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontFamily: T.mono,
-                                fontSize: 12,
-                                fontWeight: 700,
-                                color: T.text,
-                              }}
-                            >
-                              {evt.id}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: 12,
-                                fontWeight: 600,
-                                color: T.text,
-                              }}
-                            >
-                              {evt.type}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: 10.5,
-                                padding: "2px 7px",
-                                borderRadius: 5,
-                                color: T.textMuted,
-                                border: `1px solid ${T.border}`,
-                                backgroundColor: T.card2,
-                              }}
-                            >
-                              {evt.level}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: 10.5,
-                                padding: "2px 7px",
-                                borderRadius: 5,
-                                fontWeight: 700,
-                                color: stateMeta.color,
-                                backgroundColor: `rgba(${stateMeta.rgb},0.10)`,
-                                border: `1px solid rgba(${stateMeta.rgb},0.30)`,
-                              }}
-                            >
-                              {stateMeta.label}
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "grid",
-                              gridTemplateColumns: "1fr 1fr",
-                              gap: 8,
-                            }}
-                          >
-                            {[
-                              { k: "位置", v: evt.location },
-                              { k: "网格", v: evt.grid },
-                              { k: "发生时间", v: evt.time },
-                              { k: "已等待", v: waitedText(evt.waitedH) },
-                            ].map((f) => (
-                              <div key={f.k}>
-                                <div
-                                  style={{ fontSize: 10, color: T.textMuted }}
-                                >
-                                  {f.k}
-                                </div>
-                                <div
-                                  style={{
-                                    fontSize: 12,
-                                    color: T.text,
-                                    marginTop: 2,
-                                    fontWeight: 600,
-                                  }}
-                                >
-                                  {f.v}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: 11,
-                              color: T.textSub,
-                              lineHeight: 1.55,
-                            }}
-                          >
-                            {evt.blocker}
-                          </div>
-                          <div
-                            style={{
-                              padding: "8px 10px",
-                              borderRadius: 8,
-                              backgroundColor: `rgba(${T.accentRGB},0.05)`,
-                              border: `1px dashed rgba(${T.accentRGB},0.35)`,
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontFamily: T.mono,
-                                fontSize: 9,
-                                fontWeight: 800,
-                                letterSpacing: "0.06em",
-                                color: T.accent,
-                              }}
-                            >
-                              AGENT 建议动作
-                            </div>
-                            <div
-                              style={{
-                                fontSize: 10.5,
-                                color: T.text,
-                                lineHeight: 1.55,
-                                marginTop: 3,
-                              }}
-                            >
-                              {poolSuggestion(evt)}
-                            </div>
-                          </div>
-                          <div
-                            style={{
-                              marginTop: "auto",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              gap: 8,
-                            }}
-                          >
-                            <span
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 4,
-                                fontSize: 11,
-                                padding: "3px 9px",
-                                borderRadius: 5,
-                                color: r.color,
-                                backgroundColor: r.bg,
-                                border: `1px solid ${r.border}`,
-                                fontWeight: 600,
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              <span
-                                style={{
-                                  width: 5,
-                                  height: 5,
-                                  borderRadius: "50%",
-                                  backgroundColor: r.color,
-                                }}
-                              />
-                              {r.label}
-                            </span>
-                            {dispatch ? (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setPoolEvent(null)
-                                  setActiveTab(dispatch.tab)
-                                  setView("overview")
-                                }}
-                                style={{
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                  color: "#fff",
-                                  backgroundColor: T.primary,
-                                  border: "none",
-                                  borderRadius: 7,
-                                  padding: "5px 10px",
-                                  cursor: "pointer",
-                                }}
-                              >
-                                {dispatch.label}
-                              </button>
-                            ) : (
-                              <span
-                                style={{
-                                  fontSize: 10,
-                                  color: T.textMuted,
-                                }}
-                              >
-                                {poolHoldLabel(evt.state)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
                   </div>
                 ) : (
                   <div
@@ -10710,20 +10691,14 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                 <span>
                   已展示 {poolShown.length} / {matched.length} 件
                 </span>
-                <span>
-                  {poolViewMode === "decision"
-                    ? `待你决定总量 ${POOL_READY} 件`
-                    : `该态存续总量 ${activePool.count} 件`}
-                </span>
+                <span>该态存续总量 {activePool.count} 件</span>
                 <span
                   style={{
                     paddingLeft: 12,
                     borderLeft: `1px solid ${T.border}`,
                   }}
                 >
-                  {poolViewMode === "decision"
-                    ? "决策流只含等待立案、等待核查与等待作废审核"
-                    : "列表为按需追溯样本，与六态总量口径不同"}
+                  列表为按需追溯样本，与六态总量口径不同；件数不计入人工待办
                 </span>
                 {poolVisible < matched.length ? (
                   <button
@@ -10773,6 +10748,184 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
     void: { label: "待作废审核", color: T.orange, rgb: T.orangeRGB, desc: "待作废审核当前批次还有" },
   }
   const activeMeta = tabMeta[activeTab]
+
+  // 领取待办对话框：显示「当前可领取 N 件」与单次上限（治理配置 · 待办领取）
+  const claimDialogOverlay = claimOpen
+    ? (() => {
+        const batch = claimBatchInfo(activeTab)
+        const available = claimAvailableOf(activeTab)
+        const cap = batch.maxPerClaim ?? available
+        return (
+          <div
+            onClick={() => setClaimOpen(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(22,45,77,0.45)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: 380,
+                maxWidth: "calc(100vw - 48px)",
+                borderRadius: 14,
+                backgroundColor: "var(--panel-solid, var(--card))",
+                boxShadow: "0 24px 64px rgba(22,45,77,0.30)",
+                padding: "20px 22px 18px",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: T.text,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                领取待办
+                <span style={{ fontSize: 11, fontWeight: 500, color: T.textMuted }}>
+                  {batch.batchName}
+                </span>
+              </div>
+              <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ fontSize: 12.5, color: T.text }}>
+                  当前可领取{" "}
+                  <span style={{ fontFamily: T.mono, fontWeight: 800, color: T.primary }}>
+                    {available}
+                  </span>{" "}
+                  件
+                </div>
+                <div style={{ fontSize: 11.5, color: T.textMuted }}>
+                  {batch.maxPerClaim
+                    ? `本次最多领取 ${Math.min(cap, available)} 件（来自治理配置 · 单次最多领取件数）`
+                    : "未设单次领取上限（来自治理配置 · 待办领取）"}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}>
+                  <span style={{ fontSize: 12, color: T.text }}>领取件数</span>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      border: `1px solid ${T.border}`,
+                      borderRadius: 8,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <button
+                      onClick={() => setClaimCount((n) => Math.max(1, n - 1))}
+                      style={{
+                        width: 30,
+                        height: 30,
+                        border: "none",
+                        backgroundColor: T.card2,
+                        color: T.text,
+                        fontSize: 15,
+                        cursor: "pointer",
+                      }}
+                    >
+                      −
+                    </button>
+                    <input
+                      value={claimCount}
+                      onChange={(e) => {
+                        const n = parseInt(e.target.value, 10)
+                        setClaimCount(Number.isFinite(n) ? Math.max(1, Math.min(cap, available, n)) : 1)
+                      }}
+                      style={{
+                        width: 52,
+                        height: 30,
+                        border: "none",
+                        outline: "none",
+                        textAlign: "center",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: T.text,
+                        backgroundColor: "transparent",
+                      }}
+                    />
+                    <button
+                      onClick={() => setClaimCount((n) => Math.min(cap, available, n + 1))}
+                      style={{
+                        width: 30,
+                        height: 30,
+                        border: "none",
+                        backgroundColor: T.card2,
+                        color: T.text,
+                        fontSize: 15,
+                        cursor: "pointer",
+                      }}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+                <button
+                  onClick={() => setClaimOpen(false)}
+                  style={{
+                    flex: 1,
+                    padding: "9px 0",
+                    borderRadius: 8,
+                    border: `1px solid ${T.border}`,
+                    backgroundColor: "transparent",
+                    color: T.textSub,
+                    fontSize: 12.5,
+                    cursor: "pointer",
+                  }}
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleClaimConfirm}
+                  style={{
+                    flex: 2,
+                    padding: "9px 0",
+                    borderRadius: 8,
+                    border: "none",
+                    background: `linear-gradient(135deg, ${activeMeta.color} 0%, ${activeMeta.color}CC 100%)`,
+                    color: "#fff",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    boxShadow: `0 4px 14px rgba(${activeMeta.rgb},0.32)`,
+                  }}
+                >
+                  领取所选事件
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()
+    : null
+
+  const toastOverlay = toast ? (
+    <div
+      style={{
+        position: "fixed",
+        top: 70,
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: 10000,
+        backgroundColor: "rgba(22,45,77,0.92)",
+        color: "#fff",
+        fontSize: 12.5,
+        padding: "9px 18px",
+        borderRadius: 8,
+        boxShadow: "0 8px 24px rgba(22,45,77,0.35)",
+      }}
+    >
+      {toast}
+    </div>
+  ) : null
 
   const situationStyle = (type: RtSituationType) => {
     switch (type) {
@@ -10827,7 +10980,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
         </div>
         <button
           onClick={() => setView("agent-pool")}
-          title="Agent 处理池：Agent 监控全量事件，按业务状态分组，只读追溯"
+          title="Agent 处理池：监控与追溯视图，不是人工待办"
           style={{
             color: T.accent,
             border: "1px solid rgba(36,214,210,0.30)",
@@ -10874,19 +11027,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                 whiteSpace: "nowrap",
               }}
             >
-              Agent 已备齐
-              <span
-                style={{
-                  fontFamily: T.mono,
-                  fontSize: 14,
-                  fontWeight: 800,
-                  color: T.accent,
-                  lineHeight: 1.1,
-                }}
-              >
-                {todoDecisionCount}
-              </span>
-              件待你决定
+              Agent 处理池
             </span>
             <span
               style={{
@@ -10898,7 +11039,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                 whiteSpace: "nowrap",
               }}
             >
-              待你决定 {todoDecisionCount} 件 · 其余 {POOL_AGENT_RUNNING} 件 Agent 监控中
+              监控与追溯视图 · 不是人工待办
             </span>
           </span>
           <span
@@ -11052,7 +11193,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
               </span>
               {activeTab === "case" && (
                 <span style={{ fontSize: 11, color: T.textMuted }}>
-                  自然消散 · 只读不计入
+                  自然消散不计入待办数
                 </span>
               )}
               <div
@@ -11318,6 +11459,8 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
             )}
               {(() => {
                 const batch = claimBatchInfo(activeTab)
+                const available = claimAvailableOf(activeTab)
+                const cap = batch.maxPerClaim ?? available
                 return (
                   <div
                     style={{
@@ -11329,7 +11472,11 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                     }}
                   >
                     <button
-                      onClick={() => batch.enabled && handleFetchEvents()}
+                      onClick={() => {
+                        if (!batch.enabled || isDealing) return
+                        setClaimCount(Math.min(cap, available))
+                        setClaimOpen(true)
+                      }}
                       disabled={isDealing || !batch.enabled}
                       style={{
                         fontSize: 12,
@@ -11376,10 +11523,10 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                         />
                       )}
                       {isDealing
-                        ? "Agent 派发中..."
+                        ? "领取中..."
                         : !batch.enabled
-                          ? "获取事件（已停用）"
-                          : "获取事件"}
+                          ? "领取待办（已停用）"
+                          : "领取待办"}
                     </button>
                     <span
                       style={{
@@ -11388,7 +11535,11 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                       }}
                     >
                       {batch.enabled
-                        ? `Agent 按「${batch.batchName}」默认领取量 ${batch.quota} 件发牌`
+                        ? `来自治理配置 · 待办领取：${
+                            batch.maxPerClaim
+                              ? `单次最多领取 ${batch.maxPerClaim} 件`
+                              : "未设单次领取上限"
+                          }`
                         : "该批次已在治理配置中停用，领取入口已关闭"}
                     </span>
                     {/* 获取事件规则（RT_RULES.fetch）：悬停浮出 */}
@@ -11403,7 +11554,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
 
         {isDealing && (
           <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9998 }}>
-            {Array.from({ length: claimBatchInfo(activeTab).quota }).map((_, i) => {
+            {Array.from({ length: Math.min(claimCount, 12) }).map((_, i) => {
               const angle = -20 + i * 4
               const spreadX = -80 - i * 35
               const spreadY = 120 + i * 28
@@ -11425,6 +11576,8 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
           </div>
         )}
 
+        {claimDialogOverlay}
+        {toastOverlay}
         {previewOverlay}
       </div>
     </div>
@@ -11435,7 +11588,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
 
 interface ArchiveEvent {
   id: string
-  finalStatus: "已结案" | "已中止" | "已无效"
+  finalStatus: "已结案" | "已作废" | "无效"
   type: string
   location: string
   happenTime: string
@@ -11478,7 +11631,7 @@ const archiveEvents: ArchiveEvent[] = [
   },
   {
     id: "DC-2026-08138",
-    finalStatus: "已中止",
+    finalStatus: "已作废",
     type: "违规施工",
     location: "建国门外大街16号在建项目",
     happenTime: "2026-08-16 07:30",
@@ -11490,7 +11643,7 @@ const archiveEvents: ArchiveEvent[] = [
   },
   {
     id: "DC-2026-08129",
-    finalStatus: "已无效",
+    finalStatus: "无效",
     type: "乱堆杂物（误报）",
     location: "北新桥三条胡同深处",
     happenTime: "2026-08-15 21:18",
@@ -11518,13 +11671,13 @@ const archiveEvents: ArchiveEvent[] = [
 ]
 const stColor: Record<string, string> = {
   已结案: T.green,
-  已中止: T.textMuted,
-  已无效: T.red,
+  已作废: T.textMuted,
+  无效: T.red,
 }
 const stBg: Record<string, string> = {
   已结案: "rgba(53,185,133,0.08)",
-  已中止: "rgba(110,129,151,0.08)",
-  已无效: "rgba(228,94,88,0.08)",
+  已作废: "rgba(110,129,151,0.08)",
+  无效: "rgba(228,94,88,0.08)",
 }
 
 // 时间线步骤（已结案事件专用）
@@ -11892,7 +12045,7 @@ function EventArchive() {
                 boxShadow: "inset 0 1px 2px rgba(22,45,77,0.04)",
               }}
             >
-              {["全部", "已结案", "已中止", "已无效"].map((s) => {
+              {["全部", "已结案", "已作废", "无效"].map((s) => {
                 const active = filterStatus === s
                 return (
                   <button
@@ -12792,8 +12945,8 @@ function EventArchive() {
                       backgroundColor: stColor[selected.finalStatus],
                     }}
                   />
-                  {selected.finalStatus === "已中止"
-                    ? "该事件因不满足继续流转条件已由审核人中止。"
+                  {selected.finalStatus === "已作废"
+                    ? "该事件已作废（终态），已归档至事件档案。"
                     : "该事件经审核判定不属于治理事件范围，已标记为无效归档。"}
                 </div>
               )}
@@ -13109,8 +13262,8 @@ const statData = {
   returnAbort: [
     { label: "退回处置（待处置）", value: 1 },
     { label: "待作废审核", value: 2 },
-    { label: "已中止", value: 1 },
-    { label: "升级接管", value: 0 },
+    { label: "已作废", value: 1 },
+    { label: "转责任纠正", value: 0 },
   ],
   gridPending: [
     { label: "A11 责任人", value: 3 },
@@ -13169,7 +13322,7 @@ const agentBanners: Record<StatCat, string> = {
   events:
     "类型用构成看结构，空间用排序看热点，时段用柱状看峰谷，来源用构成看来路，用来改巡检、不办理单件。",
   process:
-    "待立案和待核查是人工瓶颈。超时率为配置口径示意，退回/作废/升级用当前状态计数，用来改规则而不是订盘。",
+    "待立案和待核查是人工瓶颈。超时率为配置口径示意，退回/作废用当前状态计数，用来改规则而不是订盘。",
   efficiency:
     '效能必须在同类问题下比网格。当前样本少，时长和一次通过用示意比率占位，避免把"谁件多"当成"谁干得好"。',
   quality:

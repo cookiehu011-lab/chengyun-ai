@@ -3,7 +3,7 @@ import { assetUrl } from "../assetUrl"
 
 interface ArchiveEvent {
   id: string
-  finalStatus: "已结案" | "已中止" | "已无效"
+  finalStatus: "已结案" | "已作废" | "无效"
   type: string
   location: string
   camera: string
@@ -47,7 +47,7 @@ const archiveEvents: ArchiveEvent[] = [
   },
   {
     id: "DC-2026-08138",
-    finalStatus: "已中止",
+    finalStatus: "已作废",
     type: "违规施工",
     location: "建国门外大街16号在建项目",
     camera: "CAM-JGM-023",
@@ -61,7 +61,7 @@ const archiveEvents: ArchiveEvent[] = [
   },
   {
     id: "DC-2026-08129",
-    finalStatus: "已无效",
+    finalStatus: "无效",
     type: "乱堆杂物（误报）",
     location: "北新桥三条胡同深处",
     camera: "CAM-BXQ-009",
@@ -110,13 +110,13 @@ archiveEvents.forEach((e) => {
 
 const statusColors: Record<string, string> = {
   已结案: "#35B985",
-  已中止: "#6E8197",
-  已无效: "#E45E58",
+  已作废: "#6E8197",
+  无效: "#E45E58",
 }
 const statusBg: Record<string, string> = {
   已结案: "rgba(53,185,133,0.12)",
-  已中止: "rgba(110,129,151,0.1)",
-  已无效: "rgba(228,94,88,0.08)",
+  已作废: "rgba(110,129,151,0.1)",
+  无效: "rgba(228,94,88,0.08)",
 }
 
 function ArchiveDetailPanel({
@@ -676,7 +676,7 @@ export default function EventArchive() {
                 width: "220px",
               }}
             />
-            {["全部", "已结案", "已中止", "已无效"].map((s) => (
+            {["全部", "已结案", "已作废", "无效"].map((s) => (
               <button
                 key={s}
                 onClick={() => setFilterStatus(s)}
@@ -689,9 +689,9 @@ export default function EventArchive() {
                     filterStatus === s
                       ? s === "已结案"
                         ? "#35B985"
-                        : s === "已中止"
+                        : s === "已作废"
                           ? "#6E8197"
-                          : s === "已无效"
+                          : s === "无效"
                             ? "#E45E58"
                             : "#326DFF"
                       : "var(--border)"

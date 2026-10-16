@@ -138,7 +138,7 @@ const statData = {
     { label: "等待处置", value: 1 },
     { label: "等待外场核查", value: 0 },
   ],
-  // 退回 / 作废（升级不展示）
+  // 退回 / 作废（转责任纠正不展示）
   returnAbort: [
     { label: "核查退回", value: 1 },
     { label: "待作废审核", value: 2 },
@@ -163,7 +163,7 @@ const statData = {
   // 治理质量：有效 vs 无效 vs 消散
   qualityComposition: [
     { label: "立案有效", value: 15, color: C.primary },
-    { label: "已无效", value: 2, color: C.danger },
+    { label: "无效", value: 2, color: C.danger },
     { label: "自然消散", value: 1, color: C.muted },
   ],
   // AI 分类/位置/网格准确率
@@ -250,11 +250,11 @@ const agentBanners: Record<StatCat, string> = {
   efficiency:
     "责任网格在办 A11 责任人 3 件最多。本版不计时限，响应时长、处置时长、超时率、一次通过暂不计算。处置时长分布、一次通过 vs 退回、网格相对快慢本版不展示。",
   quality:
-    "立案有效 15 件、已无效 2 件、自然消散 1 件。事件有效率 88.2%，一次核查通过率 —，退回率 7.4%。群众满意度、返工原因本版不展示。",
+    "立案有效 15 件、无效 2 件、自然消散 1 件。事件有效率 88.2%，一次核查通过率 —，退回率 7.4%。群众满意度、返工原因本版不展示。",
   ai:
     "本版来源几乎全是相机识别，AI 整体覆盖率暂不计算。发现有效率 87%，分类准确率 91%、位置准确率 88%、网格准确率 85%，信息补全采纳率 91%，建议一致率 82%。空间匹配失败 18 次。其他运行风险本版字段未齐，暂不计算。",
   topics:
-    "当前范围无观察中专题。本版不发布复发规则，专题暂不计算。",
+    "当前范围无观察中专题。本版不配置复发规则，专题暂不计算。",
 }
 
 const chartAnswers: Record<
@@ -328,10 +328,10 @@ const chartAnswers: Record<
     followups: ["A11 网格的件是什么类型？", "按人均负荷看是否均衡？"],
   },
   "有效 vs 无效 vs 消散": {
-    conclusion: "立案有效 15 件占绝大多数，已无效 2 件，自然消散 1 件。",
-    evidence: "立案有效 15，已无效 2，自然消散 1。分母 18。",
+    conclusion: "立案有效 15 件占绝大多数，无效 2 件，自然消散 1 件。",
+    evidence: "立案有效 15，无效 2，自然消散 1。分母 18。",
     correlation: "消散不计入待立案存量，只出现在治理质量。",
-    followups: ["自然消散的 1 件是什么情况？", "已无效的 2 件原因是什么？"],
+    followups: ["自然消散的 1 件是什么情况？", "无效的 2 件原因是什么？"],
   },
   AI运行风险: {
     conclusion: "本周空间匹配失败 18 次，其他运行风险本版字段未齐暂不计算。",
@@ -861,7 +861,7 @@ function ProcessCategory({ skin }: { skin: "light" | "tech" }) {
         <KpiCard label="待立案" value="7" unit="件" sub="不含自然消散" color={C.warning} ruleId="pr_pending" />
         <KpiCard label="待核查" value="5" unit="件" color={C.purple} ruleId="pr_inspect" />
         <KpiCard label="待作废审核" value="2" unit="件" color={C.danger} ruleId="pr_void" />
-        <KpiCard label="升级接管中" value="0" unit="件" sub="本版无升级" color={C.success} ruleId="pr_escalate" />
+        <KpiCard label="转责任纠正中" value="0" unit="件" sub="本版无责任纠正环节" color={C.success} ruleId="pr_escalate" />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
         <ChartCard title="环节存量" question="哪个环节卡住了？" ruleId="pr_stages"
@@ -940,7 +940,7 @@ function QualityCategory({ skin }: { skin: "light" | "tech" }) {
       </AgentInsight>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
         <KpiCard label="立案有效" value="15" unit="件" color={C.primary} ruleId="ql_valid" />
-        <KpiCard label="已无效" value="2" unit="件" color={C.danger} ruleId="ql_invalid" />
+        <KpiCard label="无效" value="2" unit="件" color={C.danger} ruleId="ql_invalid" />
         <KpiCard label="自然消散" value="1" unit="件" sub="不计入待立案" color={C.muted} ruleId="ql_dissipated" />
         <KpiCard label="退回率" value="7.4" unit="%" color={C.warning} ruleId="ql_return_rate" />
       </div>
@@ -1005,7 +1005,7 @@ function AICategory({ skin }: { skin: "light" | "tech" }) {
 function TopicsCategory() {
   return (
     <>
-      <AgentInsight meta="本版不发布复发规则">
+      <AgentInsight meta="本版不配置复发规则">
         {agentBanners.topics}
       </AgentInsight>
       <div
@@ -1026,7 +1026,7 @@ function TopicsCategory() {
         <div style={{ fontSize: 13, color: C.muted, fontWeight: 500, lineHeight: 1.8 }}>
           当前范围无观察中专题
           <br />
-          本版不发布复发规则，专题暂不计算
+          本版不配置复发规则，专题暂不计算
         </div>
       </div>
     </>

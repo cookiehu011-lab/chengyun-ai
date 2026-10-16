@@ -5,12 +5,11 @@
 // - 身份模型（平台全局）：账号 → 客户上下文 → 活动角色；由 App 顶栏统一持有，本页只消费
 // - 客户身份按「当前所选角色 → 功能菜单权限」看治理配置子模块（非角色并集）；
 //   SeeTime 身份：超管 → 平台模块；客户展示 → 无权限空态
-// - 业务规则模块只写草稿，发布在「发布与审计」；责任台账（治理基础 / 平台）保存即生效
+// - 所有模块统一「编辑 → 保存即生效」；每次保存写入变更记录
 import { useEffect, useMemo, useState } from "react"
 import { ToastProvider, useGc } from "./store"
 import { ModuleContent } from "./defs"
 import { GROUPS, MODULES } from "./meta"
-import { S } from "./engine"
 import { isCustomerExpired } from "./identity"
 import {
   availablePersonas,
@@ -18,20 +17,6 @@ import {
   resolveIdentity,
   type IdentityState,
 } from "./identity"
-
-function StatusChip({ status }: { status: "已发布" | "草稿" | "即时生效" }) {
-  const style =
-    status === "草稿"
-      ? { backgroundColor: "rgba(255,122,66,0.12)", color: "var(--amber)" }
-      : status === "即时生效"
-        ? { backgroundColor: "rgba(50,109,255,0.1)", color: "var(--primary)" }
-        : { backgroundColor: "rgba(53,185,133,0.12)", color: "var(--green)" }
-  return (
-    <span style={{ fontSize: "9px", padding: "1px 6px", borderRadius: "999px", whiteSpace: "nowrap", ...style }}>
-      {status}
-    </span>
-  )
-}
 
 function ModeChip({ mode }: { mode: "saas" | "private" }) {
   return (
@@ -107,8 +92,6 @@ function Shell({
     }
   }
 
-  const pubStatus = state.modules[activeId] ?? "已发布"
-
   return (
     <div style={{ height: "100%", display: "flex", overflow: "hidden", backgroundColor: T_BG }}>
       {/* 左导航 */}
@@ -152,7 +135,7 @@ function Shell({
                     {g}
                   </div>
                   {mods.map((m) => (
-                    <NavBtn key={m.id} m={m} on={m.id === activeId} onClick={() => setActiveId(m.id)} chip={state.modules[m.id] ?? "已发布"} ledgerMode={m.mode === "ledger"} />
+                    <NavBtn key={m.id} m={m} on={m.id === activeId} onClick={() => setActiveId(m.id)} />
                   ))}
                 </div>
               )
@@ -166,7 +149,7 @@ function Shell({
                     {g}
                   </div>
                   {mods.map((m) => (
-                    <NavBtn key={m.id} m={m} on={m.id === activeId} onClick={() => setActiveId(m.id)} chip={state.modules[m.id] ?? "已发布"} ledgerMode={m.mode === "ledger"} />
+                    <NavBtn key={m.id} m={m} on={m.id === activeId} onClick={() => setActiveId(m.id)} />
                   ))}
                 </div>
               )
@@ -246,37 +229,16 @@ function Shell({
               <h1 style={{ fontSize: "17px", fontWeight: 600, margin: 0, marginBottom: "4px" }}>{meta.h1}</h1>
               <div style={{ fontSize: "12px", color: "var(--muted-foreground)", lineHeight: 1.6 }}>{meta.desc}</div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-              <StatusChip status={meta.mode === "ledger" ? "即时生效" : pubStatus} />
-              {meta.mode !== "ledger" && (
-                <span style={{ fontSize: "11px", color: "var(--muted-foreground)", fontFamily: "JetBrains Mono, monospace" }}>
-                  {state.versions[activeId] || "—"}
-                </span>
-              )}
-            </div>
           </div>
 
-          {meta.mode === "ledger" ? (
-            <div style={{
-              padding: "8px 12px", marginBottom: "12px", borderRadius: "7px", fontSize: "11px", lineHeight: 1.7,
-              backgroundColor: "rgba(50,109,255,0.07)", border: "1px solid rgba(50,109,255,0.22)", color: "var(--primary)",
-            }}>
-              责任台账：保存即写入并立即生效——对新事件、新待办、新派发、新外场任务生效；已派发事件与已派出任务的责任人保持不变，不走草稿发布。
-              {!platformPersona && customer ? `当前客户：${customer.name}。` : ""}
-            </div>
-          ) : pubStatus === "草稿" ? (
-            <div style={{
-              padding: "8px 12px", marginBottom: "12px", borderRadius: "7px", fontSize: "11px", lineHeight: 1.7,
-              backgroundColor: "rgba(255,122,66,0.08)", border: "1px solid rgba(255,122,66,0.25)", color: "var(--amber)",
-            }}>
-              草稿编辑中：改动写入草稿，尚未生效；发布需在「发布与审计」页经「发布前预览」冲突校验后确认。
-            </div>
-          ) : (
+          {/* 保存即生效提示（变更记录页自身不显示） */}
+          {activeId !== "publish" && (
             <div style={{
               padding: "8px 12px", marginBottom: "12px", borderRadius: "7px", fontSize: "11px", lineHeight: 1.7,
               backgroundColor: "rgba(53,185,133,0.07)", border: "1px solid rgba(53,185,133,0.22)", color: "var(--green)",
             }}>
-              当前显示生效中配置（{state.versions[activeId] || "—"}）；在此修改会写入草稿，发布后才对业务生效。
+              修改保存后立即生效，并写入「变更记录」；已派发事件与已派出外场任务的责任人保持不变。
+              {!platformPersona && customer ? `当前客户：${customer.name}。` : ""}
             </div>
           )}
 
@@ -317,14 +279,11 @@ function Shell({
   )
 }
 
-function NavBtn({ m, on, onClick, chip, ledgerMode }: {
+function NavBtn({ m, on, onClick }: {
   m: { id: string; name: string }
   on: boolean
   onClick: () => void
-  chip: "已发布" | "草稿"
-  ledgerMode: boolean
 }) {
-  const st = ledgerMode ? ("即时生效" as const) : chip
   return (
     <button
       key={m.id}
@@ -341,7 +300,6 @@ function NavBtn({ m, on, onClick, chip, ledgerMode }: {
       }}
     >
       <span style={{ flex: 1, fontWeight: on ? 600 : 400 }}>{m.name}</span>
-      <StatusChip status={st} />
     </button>
   )
 }

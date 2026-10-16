@@ -7,7 +7,7 @@
 //   组织角色绑定（客户 + 组织 + 角色 + 相机权限范围 + 设为默认组织，至少 1 条，可添加多个租户）；
 //   角色 = 功能权限（超管 / 客户展示），由绑定派生；客户展示至少绑定 1 个客户；
 //   相机权限范围在客户相机权限分配区域内多选（同一层级）；环境必须保留至少一名启用的超管
-// - 保存即生效（责任台账，不走草稿发布）；SeeTime 任何权限不能改客户治理基础
+// - 保存即生效（保存后立即生效并写入变更记录）；SeeTime 任何权限不能改客户治理基础
 import { useMemo, useState } from "react"
 import { useGc, useToast, type Customer, type SeeTimeAccount, type SeeTimeBind, type SeeTimePerm } from "../store"
 import { adminLedgerSkeleton } from "../store"
