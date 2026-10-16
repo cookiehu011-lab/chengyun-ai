@@ -14848,6 +14848,8 @@ function AIWorkbench() {
     initialWbConversations
   )
   const [chatInput, setChatInput] = useState("")
+  // 对话记录检索关键词
+  const [wbSearch, setWbSearch] = useState("")
   const [showOpPreview, setShowOpPreview] = useState(false)
   // 静态演示交互反馈（查看更多 / 确认生成 / 调整条件等）
   const [wbToast, setWbToast] = useState("")
@@ -14855,6 +14857,17 @@ function AIWorkbench() {
   const msgsBoxRef = useRef<HTMLDivElement>(null)
   const [wbRulesOpen, setWbRulesOpen] = useState(false)
   const activeConvNow = conversations[activeDialogId] || []
+  // 对话记录检索：按标题 + 消息内容过滤，点击结果即查看该对话并可继续
+  const wbSearchKw = wbSearch.trim().toLowerCase()
+  const filteredDialogs = wbSearchKw
+    ? dialogs.filter((d) => {
+        const inTitle = d.title.toLowerCase().includes(wbSearchKw)
+        const inMsgs = (conversations[d.id] || []).some((m) =>
+          m.content.toLowerCase().includes(wbSearchKw)
+        )
+        return inTitle || inMsgs
+      })
+    : dialogs
   useEffect(() => {
     const el = msgsBoxRef.current
     if (el) el.scrollTop = el.scrollHeight
@@ -15610,6 +15623,68 @@ function AIWorkbench() {
           <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
             {activeTab === "dialogs" && (
               <>
+                <div style={{ position: "relative", marginBottom: 8 }}>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={T.textMuted}
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    style={{
+                      position: "absolute",
+                      left: 9,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      pointerEvents: "none",
+                    }}
+                  >
+                    <circle cx="11" cy="11" r="7" />
+                    <line x1="21" y1="21" x2="16.5" y2="16.5" />
+                  </svg>
+                  <input
+                    value={wbSearch}
+                    onChange={(e) => setWbSearch(e.target.value)}
+                    placeholder="检索对话记录"
+                    style={{
+                      width: "100%",
+                      padding: "7px 24px 7px 26px",
+                      fontSize: 12,
+                      color: T.text,
+                      backgroundColor: "var(--chip-bg)",
+                      border: `1px solid ${T.border}`,
+                      borderRadius: 8,
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  {wbSearch && (
+                    <button
+                      onClick={() => setWbSearch("")}
+                      title="清空检索"
+                      style={{
+                        position: "absolute",
+                        right: 6,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        width: 16,
+                        height: 16,
+                        lineHeight: "15px",
+                        textAlign: "center",
+                        padding: 0,
+                        border: "none",
+                        borderRadius: "50%",
+                        background: "rgba(0,0,0,0.25)",
+                        color: "#fff",
+                        fontSize: 10,
+                        cursor: "pointer",
+                      }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
                 <button
                   onClick={() => setNewEntry("qa")}
                   style={{
@@ -15628,7 +15703,7 @@ function AIWorkbench() {
                 >
                   + 新建对话
                 </button>
-                {dialogs.map((d) => (
+                {filteredDialogs.map((d) => (
                   <div
                     key={d.id}
                     onClick={() => setActiveDialogId(d.id)}
@@ -15703,6 +15778,18 @@ function AIWorkbench() {
                     </div>
                   </div>
                 ))}
+                {filteredDialogs.length === 0 && (
+                  <div
+                    style={{
+                      padding: "18px 10px",
+                      textAlign: "center",
+                      fontSize: 11,
+                      color: T.textMuted,
+                    }}
+                  >
+                    未找到与「{wbSearch.trim()}」相关的对话
+                  </div>
+                )}
               </>
             )}
             {activeTab === "files" &&
