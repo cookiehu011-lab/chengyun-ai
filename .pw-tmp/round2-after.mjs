@@ -23,16 +23,13 @@ async function shot(name) {
 async function clickVisibleButton(text, timeout = 4000) {
   await page.locator("button:visible").filter({ hasText: text }).first().click({ timeout })
 }
-async function clickVisibleRow(re, name) {
-  const rows = page.locator(`text=${re}`)
-  const n = await rows.count()
-  for (let i = 0; i < Math.min(n, 12); i++) {
-    const el = rows.nth(i)
-    if (await el.isVisible()) {
-      try { await el.click({ timeout: 2500 }); await shot(name); return true } catch {}
-    }
+async function clickAction(names, timeout = 2500) {
+  for (const n of names) {
+    try {
+      await page.locator("button:visible").filter({ hasText: n }).first().click({ timeout })
+      return true
+    } catch {}
   }
-  console.log("row miss:", name)
   return false
 }
 async function back() {
@@ -43,17 +40,23 @@ async function back() {
 await clickVisibleButton("AI实时治理")
 await page.waitForTimeout(1400)
 
-// 默认页签（待立案）+ 领取待办对话框
+// 待立案：列表 → 领取对话框 → 办理详情 → 自然消散详情
 {
   await shot("rt-待立案")
-  const ok = await clickVisibleRow("/DC-\\d{4}-\\d+/", "rt-待立案-详情")
-  if (ok) await back()
   try {
     await clickVisibleButton("领取待办", 3000)
     await shot("rt-待立案-领取对话框")
     await clickVisibleButton("取消", 2000)
     await page.waitForTimeout(400)
   } catch { console.log("claim dialog miss") }
+  if (await clickAction(["办理"])) { await shot("rt-待立案-详情"); await back() }
+  else console.log("detail miss: 待立案")
+  // 自然消散行（查看按钮）
+  try {
+    await page.locator("button:visible").filter({ hasText: "查看" }).last().click({ timeout: 3000 })
+    await shot("rt-待立案-自然消散详情")
+    await back()
+  } catch { console.log("dissipate detail miss") }
 }
 
 for (const tab of ["待核查", "待作废审核"]) {
@@ -61,23 +64,23 @@ for (const tab of ["待核查", "待作废审核"]) {
     await clickVisibleButton(tab, 3500)
     await page.waitForTimeout(900)
     await shot(`rt-${tab}`)
-    const ok = await clickVisibleRow("/DC-\\d{4}-\\d+/", `rt-${tab}-详情`)
-    if (ok) await back()
+    if (await clickAction(["办理", "审核", "查看"])) { await shot(`rt-${tab}-详情`); await back() }
+    else console.log("detail miss:", tab)
   } catch { console.log("tab miss:", tab) }
 }
 
 // 全量识别 + 详情
 try { await clickVisibleButton("全量识别", 3500); await page.waitForTimeout(900) } catch { console.log("recognition miss") }
 await shot("rt-全量识别")
-await clickVisibleRow("/DC-\\d{4}-\\d+/", "rt-全量识别-详情")
-await back()
+if (await clickAction(["办理", "审核", "查看"])) { await shot("rt-全量识别-详情"); await back() }
+else console.log("detail miss: 全量识别")
 
 // Agent 处理池
 try {
   await page.locator('button[title*="Agent 处理池"]').first().click({ timeout: 3500 })
   await shot("rt-Agent处理池")
-  await clickVisibleRow("/DC-\\d{4}-\\d+/", "rt-Agent处理池-详情")
-  await back()
+  if (await clickAction(["查看", "去办理"])) { await shot("rt-Agent处理池-详情"); await back() }
+  else console.log("detail miss: pool")
 } catch { console.log("pool miss") }
 
 // ── 治理配置 ───────────────────────────────────────────────
