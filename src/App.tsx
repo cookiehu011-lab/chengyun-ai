@@ -14041,19 +14041,33 @@ let wbQaSeq = 0
 const wbConsumed = new Set<string>()
 
 /** 轻量规则标签：?（用户口径）/ 规则（给研发），悬停显示说明，不挡内容 */
-function WbHint({ label = "?", text, down }: { label?: string; text: string; down?: boolean }) {
+function WbHint({
+  label = "?",
+  text,
+  down,
+  compact,
+  right,
+}: {
+  label?: string
+  text: string
+  down?: boolean
+  /** 紧凑尺寸（用于页签内嵌） */
+  compact?: boolean
+  /** 气泡右对齐（靠近容器右缘时避免被裁剪） */
+  right?: boolean
+}) {
   const [open, setOpen] = useState(false)
   const round = label === "?"
   return (
     <span
-      style={{ position: "relative", display: "inline-flex", marginLeft: 6, verticalAlign: "middle", flexShrink: 0, cursor: "help" }}
+      style={{ position: "relative", display: "inline-flex", marginLeft: compact ? 3 : 6, verticalAlign: "middle", flexShrink: 0, cursor: "help" }}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
       onClick={() => setOpen(!open)}
     >
       <span
         style={{
-          fontSize: 9,
+          fontSize: compact ? 8 : 9,
           fontWeight: 600,
           color: T.textMuted,
           border: `1px solid ${T.border}`,
@@ -14061,7 +14075,7 @@ function WbHint({ label = "?", text, down }: { label?: string; text: string; dow
           borderRadius: round ? "50%" : 4,
           width: round ? 13 : undefined,
           height: round ? 13 : undefined,
-          padding: round ? 0 : "1px 5px",
+          padding: round ? 0 : compact ? "0 4px" : "1px 5px",
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
@@ -14076,7 +14090,7 @@ function WbHint({ label = "?", text, down }: { label?: string; text: string; dow
           style={{
             position: "absolute",
             ...(down ? { top: "calc(100% + 6px)" } : { bottom: "calc(100% + 6px)" }),
-            left: -8,
+            ...(right ? { right: -8 } : { left: -8 }),
             zIndex: 60,
             width: 256,
             backgroundColor: "rgba(22,45,77,0.94)",
@@ -14086,7 +14100,7 @@ function WbHint({ label = "?", text, down }: { label?: string; text: string; dow
             padding: "8px 10px",
             borderRadius: 8,
             boxShadow: "0 6px 18px rgba(22,45,77,0.25)",
-            whiteSpace: "normal",
+            whiteSpace: "pre-line",
             textAlign: "left",
           }}
         >
@@ -14837,6 +14851,11 @@ function wbDetailBlocks(no: string): WbBlock[] {
     },
   ]
 }
+
+// ── AI 工作台三处「规则」文案（给研发和 AI 读，静态说明，不接模型/接口） ──
+const WB_RULE_DIALOGS = "同一份列表。业务问答和分析成稿都在这里，用类型区分。每条显示主题、类型、最近时间。已经生成文件的成稿标出有文件，点开仍是这条对话。\n打开时显示当时的问题、已完成答案、已确认条件和数据时点，不重新查询，也不改写旧答案。\n沉淀这些：问题、已完成回答、已确认条件、数据引用、每条回答的查询范围和数据时点。生成过报告的，再带上报告和版本。发送失败的不记成已完成回答。\n保留多久沿用平台已有规则。"
+const WB_RULE_NEW = "这是唯一的新建入口。一条新对话里可以即时问答，可以直接生成报告，也可以先问答再整理成报告。\n不带上一条对话的区域、事件、报告和查询条件。\n还没有完成的业务答案时，不出现「整理成报告」。\n不创建定时任务，不修改事件状态、责任人或派发。"
+const WB_RULE_FILES = "只收生成成功的报告。取消、生成失败、只有问答还没有成稿的，不进这里。\n一条记录是一份报告。首次成功是 V1。同一版本同时有 PDF 和 DOCX，内容一致。换格式不新增版本，也不另开一条记录。\n列表显示报告名称、版本、格式、数据时点，并能回到来源对话。\n只打开、下载、换格式或追问，不产生新版本。预览只读，不在系统内改正文。"
 
 function AIWorkbench() {
   const [activeTab, setActiveTab] = useState<WbTab>("dialogs")
@@ -15603,7 +15622,7 @@ function AIWorkbench() {
                 onClick={() => setActiveTab(tab.id)}
                 style={{
                   flex: 1,
-                  padding: "10px 6px",
+                  padding: "10px 2px",
                   border: "none",
                   cursor: "pointer",
                   backgroundColor: "transparent",
@@ -15617,6 +15636,22 @@ function AIWorkbench() {
                 }}
               >
                 {tab.label}
+                {tab.id === "dialogs" && (
+                  <span
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ display: "inline-flex", verticalAlign: "middle" }}
+                  >
+                    <WbHint compact down label="规则" text={WB_RULE_DIALOGS} />
+                  </span>
+                )}
+                {tab.id === "files" && (
+                  <span
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ display: "inline-flex", verticalAlign: "middle" }}
+                  >
+                    <WbHint compact down right label="规则" text={WB_RULE_FILES} />
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -15685,24 +15720,34 @@ function AIWorkbench() {
                     </button>
                   )}
                 </div>
-                <button
-                  onClick={() => setNewEntry("qa")}
+                <div
                   style={{
-                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
                     marginBottom: 8,
-                    padding: "8px 10px",
-                    background: `linear-gradient(135deg, ${T.primary} 0%, #5A8BFF 100%)`,
-                    border: "none",
-                    borderRadius: 8,
-                    color: "#fff",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    boxShadow: "0 4px 12px rgba(50,109,255,0.25)",
                   }}
                 >
-                  + 新建对话
-                </button>
+                  <button
+                    onClick={() => setNewEntry("qa")}
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      padding: "8px 10px",
+                      background: `linear-gradient(135deg, ${T.primary} 0%, #5A8BFF 100%)`,
+                      border: "none",
+                      borderRadius: 8,
+                      color: "#fff",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      boxShadow: "0 4px 12px rgba(50,109,255,0.25)",
+                    }}
+                  >
+                    + 新建对话
+                  </button>
+                  <WbHint down right label="规则" text={WB_RULE_NEW} />
+                </div>
                 {filteredDialogs.map((d) => (
                   <div
                     key={d.id}
