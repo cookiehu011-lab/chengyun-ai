@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="270" viewBox="0 0 480 270">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F3FAFF"/>
+      <stop offset="100%" stop-color="#E4F3FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="270" fill="url(#bg)"/>
+  <g transform="translate(190, 85)">
+    <rect x="10" y="10" width="80" height="80" rx="8" fill="#326DFF" opacity="0.1" stroke="#326DFF" stroke-width="2"/>
+    <circle cx="50" cy="50" r="20" fill="#326DFF" opacity="0.15"/>
+    <rect x="35" y="35" width="30" height="30" rx="4" fill="#FFFFFF" opacity="0.7"/>
+  </g>
+  <text x="240" y="230" text-anchor="middle" font-size="14" fill="#6E8197" font-family="Noto Sans SC, Inter, sans-serif">城运现场场景</text>
+</svg>
