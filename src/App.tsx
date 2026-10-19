@@ -9441,7 +9441,10 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
       )
       .sort((a, b) => b.waitedH - a.waitedH)
     const poolShown = matched.slice(0, poolVisible)
-    const POOL_COLS = "64px 112px 104px 1.4fr 78px 80px 1.6fr 150px"
+    const POOL_COLS =
+      activePool?.id === "void"
+        ? "64px 112px 104px 1.4fr 78px 118px 1.6fr 150px"
+        : "64px 112px 104px 1.4fr 78px 80px 1.6fr 150px"
     const riskMeta = (r: PoolEvent["risk"]) =>
       r === "overtime"
         ? {
