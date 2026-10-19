@@ -17610,6 +17610,7 @@ function TopNav({
           </div>
           <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 500, letterSpacing: "0.03em" }}>东城城指中心</div>
         </div>
+        <span style={{ fontSize: 10.5, fontWeight: 600, color: T.textMuted, whiteSpace: "nowrap", marginLeft: 12 }}>原型版本 V1.0</span>
       </div>
 
       {/* Divider */}
