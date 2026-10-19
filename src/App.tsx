@@ -4179,7 +4179,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       waitedH: 1.8,
       deadlineH: 12,
       blocker:
-        "责任人现场反馈无法处置：车主出示场内停车证，停放合规（ZF-01 责任主体判定错误）",
+        "责任人现场反馈无法处置：该地块产权方不在本辖区，责任主体判定错误（ZF-01）",
       owner: "李建国",
       ownerRole: "网格责任人 · 已提交作废申请",
       nextTrigger: "作废审核批准后流程终止并归档；驳回则回到待处置继续派发",
@@ -9461,7 +9461,9 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
               label:
                 activePool?.id === "watching" || activePool?.id === "case"
                   ? "无时限"
-                  : "时限内",
+                  : activePool?.id === "void"
+                    ? "处置时限已暂停"
+                    : "时限内",
               color: "var(--muted-foreground)",
               bg: "transparent",
               border: T.border,
