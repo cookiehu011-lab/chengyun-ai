@@ -203,7 +203,7 @@ export const STATS2_ALGO_RULES: Record<string, DashRule> = {
   ov_closed: {
     title: "区间闭环",
     lines: [
-      "时间窗内进入终态件数；终态=已结案+已作废+无效；卡片拆开结案 vs 非结案。",
+      "时间窗内进入终态件数；终态=已结案+已作废+已无效；卡片拆开结案 vs 非结案。",
       "标题随筛选：今日闭环 / 近7日闭环 / 近30日闭环；禁止在近7日下仍写「今日闭环」。",
     ],
   },
@@ -307,7 +307,7 @@ export const STATS2_ALGO_RULES: Record<string, DashRule> = {
   ql_composition: {
     title: "有效 / 无效 / 消散",
     lines: [
-      "按所选时间区间计：立案有效、无效、发生状态已消散且未立案；构成分母=三者之和。改时间会变。",
+      "按所选时间区间计：立案有效、已无效、发生状态已消散且未立案；构成分母=三者之和。改时间会变。",
     ],
   },
   ql_effective_rate: {

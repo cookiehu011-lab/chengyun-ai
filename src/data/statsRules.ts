@@ -11,7 +11,7 @@ export const STATS_USER_RULES: Record<string, DashRule> = {
       "这一页只看结构，不办理。点图不跳待立案 / 待核查 / 待作废。终态切片可以去事件档案。",
       "所有卡和图只看当前范围内的：客户、账号范围、事件类型、本页时间空间类型筛选。七类同一套范围。",
       "件数按事件计，不按识别行。归日用发现时间。",
-      "存续 = 待立案（不含自然消散）+ 待处置 + 待核查 + 待作废审核。终态 = 已结案 / 已作废 / 无效。",
+      "存续 = 待立案（不含自然消散）+ 待处置 + 待核查 + 待作废审核。终态 = 已结案 / 已作废 / 已无效。",
       "空和 0 不是一回事。件数没有显示 0。率、时长算不出来显示「—」。这一期不展示的图写「本图口径本版不展示」。",
       "切片：实算且件数 ≥ 1 才能点开。换账号之后整页重算。",
     ],
@@ -27,7 +27,7 @@ export const STATS_USER_RULES: Record<string, DashRule> = {
   ov_closed: {
     title: "今日闭环",
     lines: [
-      "今日闭环 = 当日已结案 + 当日已作废 + 当日无效。卡片拆开展示结案与非结案。",
+      "今日闭环 = 当日已结案 + 当日已作废 + 当日已无效。卡片拆开展示结案与非结案。",
     ],
   },
   ov_severe: {
@@ -143,9 +143,9 @@ export const STATS_USER_RULES: Record<string, DashRule> = {
     ],
   },
   pr_escalate: {
-    title: "转责任纠正中",
+    title: "升级接管中",
     lines: [
-      "作废审核中转责任纠正的件数；本版固定为 0。",
+      "本版无升级接管，此卡固定为 0。",
     ],
   },
   pr_stages: {
@@ -179,9 +179,9 @@ export const STATS_USER_RULES: Record<string, DashRule> = {
     ],
   },
   pr_escalate_chart: {
-    title: "转责任纠正",
+    title: "升级",
     lines: [
-      "本版无转责任纠正环节，不在此图展示。",
+      "本版无升级接管，不在此图展示。",
     ],
   },
 
@@ -243,9 +243,9 @@ export const STATS_USER_RULES: Record<string, DashRule> = {
     ],
   },
   ql_invalid: {
-    title: "无效",
+    title: "已无效",
     lines: [
-      "无效 = 终态为无效的事件件数。",
+      "已无效 = 终态为已无效的事件件数。",
     ],
   },
   ql_dissipated: {
@@ -257,7 +257,7 @@ export const STATS_USER_RULES: Record<string, DashRule> = {
   ql_composition: {
     title: "有效 vs 无效 vs 消散",
     lines: [
-      "立案有效 + 无效 + 自然消散三者画构成。之和为 0 时不画环。",
+      "立案有效 + 已无效 + 自然消散三者画构成。之和为 0 时不画环。",
     ],
   },
   ql_effective_rate: {
@@ -351,7 +351,7 @@ export const STATS_USER_RULES: Record<string, DashRule> = {
   tp_topics: {
     title: "专题统计",
     lines: [
-      "本版不配置复发规则，专题暂不计算。",
+      "本版不发布复发规则，专题暂不计算。",
     ],
   },
 }
@@ -367,9 +367,9 @@ export const STATS_RULES: Record<string, DashRule> = {
       "当前范围 = 第 1 节四道过滤之后的事件集合。率 = 区间内分子合计 ÷ 区间内分母合计，禁止先算每日率再平均。",
       "进数：当前客户 + 账号数据范围 + 负责的事件类型 + 本页时间 / 空间 / 类型。七类同一套范围。切分类不换口径。",
       "件数按事件计，不按识别全量每一行。归日用发现时间；测试事件没有发现时间时用创建时间。",
-      "存续 = 待立案（不含自然消散·只读）+ 待处置 + 待核查 + 待作废审核。终态 = 已结案 ∪ 已作废 ∪ 无效。",
+      "存续 = 待立案（不含自然消散·只读）+ 待处置 + 待核查 + 待作废审核。终态 = 已结案 ∪ 已作废 ∪ 已无效。",
       "自然消散·只读：发生状态=已消散、尚未立案结论。进治理质量消散构成，不进待立案存量，不进存续。",
-      "这一版没有时限，也不接人工上报，不配置复发规则。",
+      "这一版没有时限，也不接人工上报，不发布复发规则。",
       "空和 0 不是一回事。件数没有显示 0。率、时长算不出来显示 —。环形图不画 0/0。趋势保留轴、线上无点。排行空列表。环节存量 0 柱保留但不可点切片。本版不算的图写「本图口径本版不展示」。",
       "切片：实算且件数 ≥ 1 才能点开。换账号之后整页重算。",
     ],
@@ -385,7 +385,7 @@ export const STATS_RULES: Record<string, DashRule> = {
   ov_closed: {
     title: "今日闭环",
     lines: [
-      "当前范围内、当日进入终态的事件件数。终态 = 已结案 ∪ 已作废 ∪ 无效。卡片上拆开展示：已结案件数、非结案终态件数（已作废+无效）",
+      "当前范围内、当日进入终态的事件件数。终态 = 已结案 ∪ 已作废 ∪ 已无效。卡片上拆开展示：已结案件数、非结案终态件数（已作废+已无效）",
     ],
   },
   ov_severe: {
@@ -501,9 +501,9 @@ export const STATS_RULES: Record<string, DashRule> = {
     ],
   },
   pr_escalate: {
-    title: "转责任纠正中",
+    title: "升级接管中",
     lines: [
-      "这一期没有转责任纠正，固定 0",
+      "这一期没有升级，固定 0",
     ],
   },
   pr_stages: {
@@ -537,7 +537,7 @@ export const STATS_RULES: Record<string, DashRule> = {
     ],
   },
   pr_escalate_chart: {
-    title: "转责任纠正",
+    title: "升级",
     lines: [
       "这一期不算，不进这张图",
     ],
@@ -601,9 +601,9 @@ export const STATS_RULES: Record<string, DashRule> = {
     ],
   },
   ql_invalid: {
-    title: "无效",
+    title: "已无效",
     lines: [
-      "范围内终态=无效",
+      "范围内终态=已无效",
     ],
   },
   ql_dissipated: {
@@ -709,7 +709,7 @@ export const STATS_RULES: Record<string, DashRule> = {
   tp_topics: {
     title: "专题统计",
     lines: [
-      "这一期不配置复发规则，不算专题。不展示示例卡片。",
+      "这一期不发布复发规则，不算专题。不展示示例卡片。",
     ],
   },
 }

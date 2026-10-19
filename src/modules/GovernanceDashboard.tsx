@@ -42,8 +42,8 @@ const lifecycleData = [
   { label: "待核查", count: 67, color: "#8B5CF6", risk: "5件待外场核查" },
   { label: "待作废审核", count: 12, color: "#F97316", risk: "" },
   { label: "已结案(今)", value: 71, count: 71, color: "#10B981", risk: "" },
-  { label: "已作废(今)", count: 7, color: "#6B7280", risk: "" },
-  { label: "无效(今)", count: 5, color: "#EF4444", risk: "" },
+  { label: "已中止(今)", count: 7, color: "#6B7280", risk: "" },
+  { label: "已无效(今)", count: 5, color: "#EF4444", risk: "" },
 ]
 
 const topGrids = [

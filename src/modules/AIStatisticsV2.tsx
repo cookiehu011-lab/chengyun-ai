@@ -317,8 +317,8 @@ const FUNNEL_STAGES: { key: FunnelKey; label: string; sub: string; ruleId: strin
 
 // 各阶切片的事件池过滤（按本环节完成后所在阶段取行）
 const FUNNEL_SLICE_STAGES: Record<FunnelKey, string[]> = {
-  found: ["待立案", "待处置", "待核查", "已结案", "已作废", "无效"],
-  reviewed: ["待处置", "待核查", "已结案", "已作废", "无效"],
+  found: ["待立案", "待处置", "待核查", "已结案", "已作废", "已无效"],
+  reviewed: ["待处置", "待核查", "已结案", "已作废", "已无效"],
   filed: ["待处置", "待核查", "已结案"],
   disposed: ["待核查", "已结案"],
   inspected: ["已结案"],
@@ -472,10 +472,10 @@ function SliceDrawer({
                     <span
                       style={{
                         fontSize: 10, fontWeight: 700, padding: "1px 8px", borderRadius: 999,
-                        background: r.stage === "已结案" || r.stage === "已作废" || r.stage === "无效"
+                        background: r.stage === "已结案" || r.stage === "已作废" || r.stage === "已无效"
                           ? "rgba(46,155,104,0.12)"
                           : "rgba(50,109,255,0.10)",
-                        color: r.stage === "已结案" || r.stage === "已作废" || r.stage === "无效"
+                        color: r.stage === "已结案" || r.stage === "已作废" || r.stage === "已无效"
                           ? "var(--green)"
                           : "var(--primary)",
                       }}
@@ -890,7 +890,7 @@ export default function AIStatisticsV2({
     if (cat === "process") {
       return `截止此刻（不随时间筛选）：待立案 ${v.stages[0].value}、待处置 ${v.stages[1].value}、待核查 ${v.stages[2].value}、待作废审核 ${v.stages[3].value}，合计存续 ${v.sustained} 件。网格侧 ${v.gridOnDuty[0]?.name ?? "—"} 在办 ${v.gridOnDuty[0]?.value ?? 0} 件最多。`
     }
-    return `${filterMeta}：区间内立案有效 ${v.quality.valid} 件、无效 ${v.quality.invalid} 件、自然消散 ${v.quality.dissipated} 件；事件有效率 ${v.quality.effectiveRate}、退回率 ${v.quality.returnRate}。AI 成效（按区间计）：发现有效率 ${v.aiRates.discoveryRate}、预填类型一致率 ${v.aiRates.prefillType}、建议一致率 ${v.aiRates.suggestMatch}；空间匹配失败 ${v.aiRates.spaceFail} 件，待收敛。`
+    return `${filterMeta}：区间内立案有效 ${v.quality.valid} 件、已无效 ${v.quality.invalid} 件、自然消散 ${v.quality.dissipated} 件；事件有效率 ${v.quality.effectiveRate}、退回率 ${v.quality.returnRate}。AI 成效（按区间计）：发现有效率 ${v.aiRates.discoveryRate}、预填类型一致率 ${v.aiRates.prefillType}、建议一致率 ${v.aiRates.suggestMatch}；空间匹配失败 ${v.aiRates.spaceFail} 件，待收敛。`
   }, [cat, v, filterMeta, street])
 
   return (
@@ -1063,7 +1063,7 @@ export default function AIStatisticsV2({
               sub={`结案 ${v.closedCase} 件 · 作废/无效 ${v.closedNonCase} 件`}
               onClick={v.closedAll >= 1 ? () => openSlice({
                 title: CLOSED_LABEL[win], userLine: STATS2_USER_RULES.ov_closed.lines[0], kind: "终态",
-                rows: filterPool({ street, type, stages: ["已结案", "已作废", "无效"] }),
+                rows: filterPool({ street, type, stages: ["已结案", "已作废", "已无效"] }),
               }) : undefined}
             />
           </div>
@@ -1425,7 +1425,7 @@ export default function AIStatisticsV2({
               sliceEnabled={v.quality.valid + v.quality.invalid + v.quality.dissipated >= 1}
               onSlice={() => openSlice({
                 title: "有效 / 无效 / 消散", userLine: STATS2_USER_RULES.ql_composition.lines[0], kind: "终态",
-                rows: filterPool({ street, stages: ["已结案", "已作废", "无效", "待立案"] }),
+                rows: filterPool({ street, stages: ["已结案", "已作废", "已无效", "待立案"] }),
               })}
             >
               {v.quality.valid + v.quality.invalid + v.quality.dissipated === 0 ? (
@@ -1434,7 +1434,7 @@ export default function AIStatisticsV2({
                 <EchartsPie
                   data={[
                     { label: "立案有效", value: v.quality.valid, color: C.primary },
-                    { label: "无效", value: v.quality.invalid, color: C.danger },
+                    { label: "已无效", value: v.quality.invalid, color: C.danger },
                     { label: "自然消散", value: v.quality.dissipated, color: C.muted },
                   ]}
                   skin={skin}
@@ -1450,7 +1450,7 @@ export default function AIStatisticsV2({
                 sub={`立案有效 ${v.quality.valid} 件 · 候选不含自然消散`}
                 onClick={() => openSlice({
                   title: "事件有效率", userLine: STATS2_USER_RULES.ql_effective_rate.lines[0], kind: "终态",
-                  rows: filterPool({ street, stages: ["已结案", "已作废", "无效", "待立案"] }),
+                  rows: filterPool({ street, stages: ["已结案", "已作废", "已无效", "待立案"] }),
                 })}
               />
               <KpiCard2

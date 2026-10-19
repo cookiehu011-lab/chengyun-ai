@@ -1,6 +1,6 @@
 // 治理配置 · 模块内容路由（标准引擎卡页 + 自定义页）
-// 规则：所有页面保存即生效；生命周期 / 指标等流程规则页只读展示
-import { CardList, CrudCard, S } from "./engine"
+import { CardList, CardTabs, S, Switch } from "./engine"
+import { useGc } from "./store"
 import { CARDS } from "./cards.generated"
 import { LedgerPage } from "./pages/LedgerPage"
 import { SpacePage } from "./pages/SpacePage"
@@ -10,62 +10,27 @@ import { CustomersPage, SeeTimePage } from "./pages/PlatformPages"
 
 const NOUNS: Record<string, string> = {
   dict: "细类", nl: "原因", tc: "原因", zf: "原因",
-  "lc-stage": "阶段", "lc-rule": "规则项",
-  "dc-batch": "批次",
+  "lc-stage": "阶段", "lc-rule": "规则项", "lc-autoclose": "细类",
+  "dc-batch": "批次", "dc-recycle": "环节", "dc-urgent": "置顶条件",
+  "dr-dup": "判重条件", "dr-recur": "判定项", "dr-topic": "口径项",
   ver: "版本", base: "考核目标", metric: "指标", factor: "因子", sup: "口径项",
   "sla-caliber": "口径项",
 }
 
-// ─── metric：治理评价标准（流程规则页，只读） ────────────────────────────────
+// ─── metric：难度校正开关 + 引擎卡 ───────────────────────────────────────────
 
-function MetricPage({ author }: { author: string }) {
+function MetricPage() {
+  const { state, dispatch } = useGc()
+  const adjustOn = state.switches.metricAdjust !== false
   return (
     <>
-      <div style={{ ...S.card, marginBottom: "14px", padding: "12px 16px" }}>
+      <div style={{ ...S.card, marginBottom: "14px", padding: "12px 16px", display: "flex", alignItems: "center", gap: "14px" }}>
+        <Switch on={adjustOn} label="难度校正" onChange={(v) => dispatch({ type: "set-switch", key: "metricAdjust", on: v })} />
         <span style={{ fontSize: "11px", color: "var(--muted-foreground)", lineHeight: 1.6 }}>
-          流程规则由系统固定，本页只读展示。平均处置时长参与人员 / 网格比较时，必须同时开启难度校正，否则不能用于排名。
+          平均处置时长参与人员 / 网格比较时，必须同时开启难度校正，否则发布前校验会拒绝。
         </span>
       </div>
-      <CardList defs={CARDS.metric} nouns={NOUNS} moduleName="治理评价标准" author={author} readOnly />
-    </>
-  )
-}
-
-// ─── lifecycle：生命周期与处置规则（流程规则页，只读） ───────────────────────
-
-function LifecyclePage({ author }: { author: string }) {
-  return (
-    <>
-      <CardList defs={CARDS.lifecycle} nouns={NOUNS} moduleName="生命周期与处置规则" author={author} readOnly />
-      <div style={{ ...S.card, marginBottom: "14px", padding: "12px 16px" }}>
-        <span style={{ fontSize: "11px", color: "var(--muted-foreground)", lineHeight: 1.6 }}>
-          阶段和底线规则由系统固定；如需修改业务标准，请前往「事件标准」。
-        </span>
-      </div>
-    </>
-  )
-}
-
-// ─── dispatch：待办领取（只留领取批次，行可编辑、不可增删 / 停启用） ─────────
-
-function DispatchPage({ author }: { author: string }) {
-  const batch = CARDS.dispatch[0]
-  return (
-    <>
-      <CrudCard
-        def={batch}
-        noun={NOUNS[batch.id]}
-        moduleName="待办领取"
-        author={author}
-        canAdd={false}
-        canToggle={false}
-        canRemove={false}
-      />
-      <div style={{ ...S.card, marginBottom: "14px", padding: "12px 16px" }}>
-        <span style={{ fontSize: "11px", color: "var(--muted-foreground)", lineHeight: 1.6 }}>
-          全量识别不走领取；责任人收到派发后直接办理，无需领取。分配顺序、领取后回收、账号停用释放由系统执行。
-        </span>
-      </div>
+      <CardList defs={CARDS.metric} nouns={NOUNS} />
     </>
   )
 }
@@ -78,12 +43,13 @@ export function ModuleContent({ id, author, cid, orgSynced }: { id: string; auth
     case "seetime": return <SeeTimePage author={author} />
     case "org": return <LedgerPage cid={cid} orgSynced={orgSynced} author={author} />
     case "space": return <SpacePage author={author} cid={cid} orgSynced={orgSynced} />
-    case "eventstd": return <CardList defs={CARDS.eventstd} nouns={NOUNS} moduleName="事件标准" author={author} />
-    case "lifecycle": return <LifecyclePage author={author} />
-    case "sla": return <SlaPage author={author} />
-    case "dispatch": return <DispatchPage author={author} />
-    case "metric": return <MetricPage author={author} />
-    case "publish": return <PublishPage />
+    case "eventstd": return <CardList defs={CARDS.eventstd} nouns={NOUNS} />
+    case "lifecycle": return <CardList defs={CARDS.lifecycle} nouns={NOUNS} />
+    case "sla": return <SlaPage />
+    case "dispatch": return <CardTabs defs={CARDS.dispatch} nouns={NOUNS} />
+    case "dedup": return <CardList defs={CARDS.dedup} nouns={NOUNS} />
+    case "metric": return <MetricPage />
+    case "publish": return <PublishPage author={author} />
     default: return null
   }
 }
