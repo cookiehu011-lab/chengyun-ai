@@ -22,10 +22,10 @@ export const MODULES: GcModuleMeta[] = [
   { id: "seetime", name: "SeeTime 用户", group: "平台", h1: "SeeTime 用户", mode: "ledger", platform: true, desc: "SeeTime 账号按功能权限配置：超管 / 客户展示（至少 1 项）；环境保留至少一名启用的超管；不办理、不改客户治理基础" },
   { id: "org", name: "组织、账号与角色", group: "治理基础", h1: "组织、账号与角色", mode: "ledger", desc: "自定义角色绑定冻结步骤；账号配置角色、范围、负责的事件类型；保存即生效" },
   { id: "space", name: "空间与责任关系", group: "治理基础", h1: "空间与责任关系", mode: "ledger", desc: "网格同步只读；每格唯一主责与一名协同监督；待定责或主责停用时派发不可用；保存即生效" },
-  { id: "eventstd", name: "事件标准", group: "流程运行", h1: "事件标准", desc: "维护本区域事件分类、立案标准和办理所需材料。保存后系统自动校验并生效。" },
+  { id: "eventstd", name: "事件标准", group: "流程运行", h1: "事件标准", desc: "维护本区域事件分类、立案标准和办理所需材料。保存后立即生效。" },
   { id: "lifecycle", name: "生命周期与处置规则", group: "流程运行", h1: "生命周期与处置规则", desc: "阶段与底线规则由系统固定；本页只读展示。" },
   { id: "sla", name: "办理时限与提醒", group: "流程运行", h1: "办理时限与提醒", desc: "全局计时口径与时限矩阵；超时只提醒并显示超时标识，不改变事件状态。" },
-  { id: "dispatch", name: "待办领取", group: "流程运行", h1: "待办领取", desc: "领取批次与单次最多领取件数；保存后立即生效" },
+  { id: "dispatch", name: "待办领取", group: "流程运行", h1: "待办领取", desc: "配置每次领取件数；保存后立即生效" },
   { id: "metric", name: "治理评价标准", group: "持续治理", h1: "治理评价标准", desc: "考核目标、指标口径、难度校正；流程规则由系统固定，本页只读展示。" },
   { id: "publish", name: "变更记录", group: "配置管理", h1: "变更记录", desc: "所有配置保存后自动留痕：时间、操作人、配置模块与变更内容" },
 ]

@@ -3624,7 +3624,7 @@ const pendingVoidEvents: BatchEvent[] = [
     time: "08-18 08:20",
     camera: "CAM-CYM-047",
     agentStatus:
-      "网格员申请作废：责任主体判定错误 ZF-01 · 车主出示场内停车证，停放合规，无法按原定责处置",
+      "网格员申请作废：责任主体判定错误 · 车主出示场内停车证，停放合规，无法按原定责处置",
     suggestedGrid: "北新桥街道网格",
     imgUrls: [eventImage("违规停放机动车", "during")],
     situation: { text: "正常作废审核", type: "normal" },
@@ -3637,7 +3637,7 @@ const pendingVoidEvents: BatchEvent[] = [
     time: "08-18 08:05",
     camera: "CAM-DST-031",
     agentStatus:
-      "网格员申请作废：重复立案（已有主事件）ZF-02 · 同点位同批货物已由在办事件处置",
+      "网格员申请作废：重复立案（已有主事件） · 同点位同批货物已由在办事件处置",
     suggestedGrid: "东四街道网格",
     imgUrls: [eventImage("店外经营占道", "during")],
     situation: { text: "正常作废审核", type: "normal" },
@@ -3650,7 +3650,7 @@ const pendingVoidEvents: BatchEvent[] = [
     time: "08-18 07:48",
     camera: "CAM-JGM-023",
     agentStatus:
-      "网格员申请作废：责任主体判定错误 ZF-01 · 点位已取得临时宣传设施设置审批，非无证设置",
+      "网格员申请作废：责任主体判定错误 · 点位已取得临时宣传设施设置审批，非无证设置",
     suggestedGrid: "景山街道网格",
     hasRisk: true,
     imgUrls: [eventImage("无证户外广告", "during")],
@@ -3737,7 +3737,7 @@ const agentPoolStats: PoolStateMeta[] = [
     color: T.red,
     rgb: T.redRGB,
     hint: "网格责任人现场反馈无法处置，已提交作废申请，等作废审核岗确认（对应「待作废审核」队列）",
-    firstScreen: "作废申请原因（事件标准字典）、现场证据、申请人与其申请时间",
+    firstScreen: "作废申请原因、现场证据、申请人与其申请时间",
     agentAction: "归集申请理由与现场证据、生成作废审核清单",
     humanDecision: "是否同意作废：作废后流程终止并归档",
   },
@@ -4179,7 +4179,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       waitedH: 1.8,
       deadlineH: 12,
       blocker:
-        "责任人现场反馈无法处置：该地块产权方不在本辖区，责任主体判定错误（ZF-01）",
+        "责任人现场反馈无法处置：该地块产权方不在本辖区，责任主体判定错误",
       owner: "李建国",
       ownerRole: "网格责任人 · 已提交作废申请",
       nextTrigger: "作废审核批准后流程终止并归档；驳回则回到待处置继续派发",
@@ -4193,7 +4193,7 @@ const poolSeeds: Record<PoolStateId, PoolSeed[]> = {
       waitedH: 2.9,
       deadlineH: 12,
       blocker:
-        "责任人现场反馈无法处置：同点位同批货物已由在办事件处置（ZF-02 重复立案（已有主事件））",
+        "责任人现场反馈无法处置：同点位同批货物已由在办事件处置（重复立案（已有主事件））",
       owner: "李建国",
       ownerRole: "网格责任人 · 已提交作废申请",
       nextTrigger: "作废审核批准后流程终止并归档；驳回则回到待处置继续派发",
@@ -4334,7 +4334,7 @@ const poolTrails: Record<
   ],
   void: [
     { dh: 0, actor: "网格责任人", text: "现场反馈无法处置，提交作废申请" },
-    { dh: 0.2, actor: "系统", text: "作废申请转入待作废审核，附现场证据与申请原因（事件标准 · 作废申请原因字典）" },
+    { dh: 0.2, actor: "系统", text: "作废申请转入待作废审核，附现场证据与申请原因" },
     { dh: 1, actor: "系统", text: "等待作废审核确认，超时按规则提醒作废审核岗" },
   ],
   watching: [
@@ -6549,11 +6549,12 @@ function InspectDecisionPage({
               marginBottom: 8,
             }}
           >
-            <option value="">退回原因（退回时必选 · 来自事件标准 · 退回处置字典）</option>
+            <option value="">退回原因（退回时必选）</option>
             {[
-              "TC-01 · 处置结果与现场不符",
-              "TC-02 · 证据图不清晰",
-              "TC-03 · 处置未闭环（问题仍存在）",
+              "处置结果与现场不符",
+              "证据图不清晰",
+              "处置未闭环（问题仍存在）",
+              "其他",
             ].map((r) => (
               <option key={r} value={r}>
                 {r}
@@ -7465,10 +7466,12 @@ const recognitionEvents: RecognitionEvent[] = [
 
 type ReviewResult = "有效" | "无效"
 
-// 事件标准 · 无效原因字典（启用项；NL-03「证据不足以成立」已停用，不出现）
+// 无效原因（固定选项；选「其他」需手填）
 const NL_REASONS = [
   { code: "NL-01", text: "不属于事件范围" },
   { code: "NL-02", text: "重复上报（已存在主事件）" },
+  { code: "NL-03", text: "证据不足以成立" },
+  { code: "NL-99", text: "其他" },
 ]
 
 interface ReviewRecord {
@@ -7661,14 +7664,19 @@ function ReviewModal({
   const [result, setResult] = useState<ReviewResult>("有效")
   const [reasonSel, setReasonSel] = useState("")
   const [masterId, setMasterId] = useState("")
+  const [otherReason, setOtherReason] = useState("")
   const [err, setErr] = useState("")
-  // 无效原因取自事件标准字典；NL-02 需关联主事件编号
+  // 无效原因（固定选项）；NL-02 需关联主事件编号；NL-99 其他需手填
   const reasonText =
     reasonSel === "NL-02"
       ? `重复上报（已存在主事件）NL-02${masterId.trim() ? ` · 主事件 ${masterId.trim()}` : ""}`
       : reasonSel === "NL-01"
         ? "不属于事件范围 NL-01"
-        : ""
+        : reasonSel === "NL-03"
+          ? "证据不足以成立 NL-03"
+          : reasonSel === "NL-99"
+            ? `其他${otherReason.trim() ? `：${otherReason.trim()}` : ""}`
+            : ""
   return (
     <div
       onClick={onClose}
@@ -7775,7 +7783,7 @@ function ReviewModal({
         {result === "无效" && (
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 8 }}>
-              无效原因<span style={{ color: T.red }}>（必选 · 来自事件标准）</span>
+              无效原因<span style={{ color: T.red }}>（必选）</span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: reasonSel === "NL-02" ? 8 : 0 }}>
               {NL_REASONS.map((r) => {
@@ -7839,6 +7847,27 @@ function ReviewModal({
                 }}
               />
             )}
+            {reasonSel === "NL-99" && (
+              <input
+                value={otherReason}
+                onChange={(e) => {
+                  setOtherReason(e.target.value)
+                  setErr("")
+                }}
+                placeholder="请填写具体原因（必填）"
+                style={{
+                  width: "100%",
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  border: `1px solid ${err && !otherReason.trim() ? T.red : T.border}`,
+                  backgroundColor: "transparent",
+                  color: T.text,
+                  fontSize: 12,
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            )}
           </div>
         )}
 
@@ -7871,6 +7900,10 @@ function ReviewModal({
                 }
                 if (reasonSel === "NL-02" && !masterId.trim()) {
                   setErr("重复上报（NL-02）必须填写关联主事件编号")
+                  return
+                }
+                if (reasonSel === "NL-99" && !otherReason.trim()) {
+                  setErr("选择「其他」必须填写具体原因")
                   return
                 }
               }
@@ -9152,7 +9185,8 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
   const [isDealing, setIsDealing] = useState(false)
   // 领取待办：数量选择对话框（当前可领取 N 件 × 单次最多领取件数）
   const [claimOpen, setClaimOpen] = useState(false)
-  const [claimCount, setClaimCount] = useState(1)
+  const [claimCount, setClaimCount] = useState(1) // 保留变量名，实际领取数由治理配置决定
+  const [lastClaimCount, setLastClaimCount] = useState(0)
   const [toast, setToast] = useState("")
   useEffect(() => {
     if (!toast) return
@@ -9296,10 +9330,11 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
   function handleClaimConfirm() {
     if (isDealing) return
     const batch = claimBatchInfo(activeTab)
-    if (!batch.enabled) return
+    if (!batch.enabled || !batch.maxPerClaim) return
     const available = claimAvailableOf(activeTab)
-    const count = Math.min(claimCount, batch.maxPerClaim ?? available, available)
+    const count = Math.min(batch.maxPerClaim, available)
     if (count < 1) return
+    setLastClaimCount(count)
     setIsDealing(true)
     setClaimOpen(false)
     setTimeout(() => {
@@ -10989,7 +11024,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                   {batch.batchName}
                 </span>
               </div>
-              <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
                 <div style={{ fontSize: 12.5, color: T.text }}>
                   当前可领取{" "}
                   <span style={{ fontFamily: T.mono, fontWeight: 800, color: T.primary }}>
@@ -10997,70 +11032,21 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                   </span>{" "}
                   件
                 </div>
-                <div style={{ fontSize: 11.5, color: T.textMuted }}>
-                  {batch.maxPerClaim
-                    ? `本次最多领取 ${Math.min(cap, available)} 件（来自治理配置 · 单次最多领取件数）`
-                    : "未设单次领取上限（来自治理配置 · 待办领取）"}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}>
-                  <span style={{ fontSize: 12, color: T.text }}>领取件数</span>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      border: `1px solid ${T.border}`,
-                      borderRadius: 8,
-                      overflow: "hidden",
-                    }}
-                  >
-                    <button
-                      onClick={() => setClaimCount((n) => Math.max(1, n - 1))}
-                      style={{
-                        width: 30,
-                        height: 30,
-                        border: "none",
-                        backgroundColor: T.card2,
-                        color: T.text,
-                        fontSize: 15,
-                        cursor: "pointer",
-                      }}
-                    >
-                      −
-                    </button>
-                    <input
-                      value={claimCount}
-                      onChange={(e) => {
-                        const n = parseInt(e.target.value, 10)
-                        setClaimCount(Number.isFinite(n) ? Math.max(1, Math.min(cap, available, n)) : 1)
-                      }}
-                      style={{
-                        width: 52,
-                        height: 30,
-                        border: "none",
-                        outline: "none",
-                        textAlign: "center",
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: T.text,
-                        backgroundColor: "transparent",
-                      }}
-                    />
-                    <button
-                      onClick={() => setClaimCount((n) => Math.min(cap, available, n + 1))}
-                      style={{
-                        width: 30,
-                        height: 30,
-                        border: "none",
-                        backgroundColor: T.card2,
-                        color: T.text,
-                        fontSize: 15,
-                        cursor: "pointer",
-                      }}
-                    >
-                      +
-                    </button>
+                {batch.maxPerClaim ? (
+                  <div style={{ fontSize: 12, color: T.textSub, lineHeight: 1.8 }}>
+                    按治理配置领取{" "}
+                    <span style={{ fontFamily: T.mono, fontWeight: 800, color: T.primary }}>{batch.maxPerClaim}</span>{" "}
+                    件；当前可领{" "}
+                    <span style={{ fontFamily: T.mono, fontWeight: 700 }}>{available}</span>{" "}
+                    件；本次实际领取{" "}
+                    <span style={{ fontFamily: T.mono, fontWeight: 800, color: T.primary }}>{Math.min(batch.maxPerClaim, available)}</span>{" "}
+                    件。
                   </div>
-                </div>
+                ) : (
+                  <div style={{ fontSize: 12, color: "var(--amber)", lineHeight: 1.8 }}>
+                    请先在治理配置 · 待办领取中设置每次领取件数。
+                  </div>
+                )}
               </div>
               <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
                 <button
@@ -11080,20 +11066,24 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                 </button>
                 <button
                   onClick={handleClaimConfirm}
+                  disabled={!batch.maxPerClaim}
                   style={{
                     flex: 2,
                     padding: "9px 0",
                     borderRadius: 8,
                     border: "none",
-                    background: `linear-gradient(135deg, rgba(${activeMeta.rgb},1) 0%, rgba(${activeMeta.rgb},0.8) 100%)`,
+                    background: batch.maxPerClaim
+                      ? `linear-gradient(135deg, rgba(${activeMeta.rgb},1) 0%, rgba(${activeMeta.rgb},0.8) 100%)`
+                      : "var(--border)",
                     color: "#fff",
                     fontSize: 12.5,
                     fontWeight: 700,
-                    cursor: "pointer",
-                    boxShadow: `0 4px 14px rgba(${activeMeta.rgb},0.32)`,
+                    cursor: batch.maxPerClaim ? "pointer" : "not-allowed",
+                    boxShadow: batch.maxPerClaim ? `0 4px 14px rgba(${activeMeta.rgb},0.32)` : "none",
+                    opacity: batch.maxPerClaim ? 1 : 0.6,
                   }}
                 >
-                  领取所选事件
+                  确认领取
                 </button>
               </div>
             </div>
@@ -11745,7 +11735,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
 
         {isDealing && (
           <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9998 }}>
-            {Array.from({ length: Math.min(claimCount, 12) }).map((_, i) => {
+            {Array.from({ length: Math.min(lastClaimCount, 12) }).map((_, i) => {
               const angle = -20 + i * 4
               const spreadX = -80 - i * 35
               const spreadY = 120 + i * 28

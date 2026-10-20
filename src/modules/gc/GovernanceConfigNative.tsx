@@ -52,18 +52,26 @@ function Shell({
   // 客户身份：所选角色的功能菜单决定治理配置子模块；台账无同名账号 → 不限制（历史行为）
   // SeeTime 身份：超管 → 平台两页；客户展示 → 治理配置内无可用页面
   const { visibleIds, navGroups } = useMemo(() => {
+    // 客户侧隐藏：生命周期与处置规则、治理评价标准（持续治理分组随 metric 一同消失）
+    const CUSTOMER_HIDDEN = new Set(["lifecycle", "metric"])
     if (persona.kind === "seetime") {
-      const ids = roleKey === "super" ? MODULES.filter((m) => m.platform).map((m) => m.id) : []
-      return { visibleIds: ids, navGroups: ["平台"] as const }
+      const platformIds = roleKey === "super" ? MODULES.filter((m) => m.platform).map((m) => m.id) : []
+      // SeeTime 账号（系统运营 / 陆遥）可维护治理评价标准
+      const ids = [...platformIds, "metric"]
+      return { visibleIds: ids, navGroups: ["平台", "持续治理"] as const }
     }
     if (accountMissing || !ledger) {
-      return { visibleIds: MODULES.filter((m) => !m.platform).map((m) => m.id), navGroups: null }
+      const ids = MODULES.filter((m) => !m.platform && !CUSTOMER_HIDDEN.has(m.id)).map((m) => m.id)
+      return { visibleIds: ids, navGroups: null }
     }
     const role = ledger.roles.find((r) => r.id === roleKey)
     if (!role || role.status !== "启用") return { visibleIds: [] as string[], navGroups: null }
     const hasConfig = (role.menus ?? []).includes("config")
     const ids = hasConfig
-      ? (role.configModules ?? []).filter((id) => !MODULES.find((m) => m.id === id)?.platform)
+      ? (role.configModules ?? []).filter((id) => {
+          const m = MODULES.find((x) => x.id === id)
+          return !!m && !m.platform && !CUSTOMER_HIDDEN.has(id)
+        })
       : []
     return { visibleIds: ids, navGroups: null }
   }, [persona, ledger, roleKey, accountMissing])

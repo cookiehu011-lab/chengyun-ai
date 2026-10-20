@@ -9,7 +9,7 @@ import { PublishPage } from "./pages/PublishPage"
 import { CustomersPage, SeeTimePage } from "./pages/PlatformPages"
 
 const NOUNS: Record<string, string> = {
-  dict: "细类", nl: "原因", tc: "原因", zf: "原因",
+  dict: "细类",
   "lc-stage": "阶段", "lc-rule": "规则项",
   "dc-batch": "批次",
   ver: "版本", base: "考核目标", metric: "指标", factor: "因子", sup: "口径项",
@@ -78,7 +78,18 @@ export function ModuleContent({ id, author, cid, orgSynced }: { id: string; auth
     case "seetime": return <SeeTimePage author={author} />
     case "org": return <LedgerPage cid={cid} orgSynced={orgSynced} author={author} />
     case "space": return <SpacePage author={author} cid={cid} orgSynced={orgSynced} />
-    case "eventstd": return <CardList defs={CARDS.eventstd} nouns={NOUNS} moduleName="事件标准" author={author} />
+    case "eventstd": {
+      const dictDef = CARDS.eventstd.find((c) => c.id === "dict")!
+      return (
+        <CrudCard
+          def={dictDef}
+          noun={NOUNS[dictDef.id]}
+          moduleName="事件标准"
+          author={author}
+          canRemove={false}
+        />
+      )
+    }
     case "lifecycle": return <LifecyclePage author={author} />
     case "sla": return <SlaPage author={author} />
     case "dispatch": return <DispatchPage author={author} />

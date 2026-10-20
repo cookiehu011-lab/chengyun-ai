@@ -9,3 +9,4 @@ v1.0-dist-backup
 ai-model-validation/.venv
 ai-model-validation/.env
 **/.env
+dist-repo/

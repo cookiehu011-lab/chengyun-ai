@@ -204,6 +204,15 @@ function FieldInput({ f, value, onChange }: {
   if (f.type === "textarea") {
     return <textarea style={S.textarea} value={value} placeholder={f.ph || ""} onChange={(e) => onChange(e.target.value)} />
   }
+  if (f.type === "number") {
+    return (
+      <input
+        type="number" min="1" step="1"
+        style={S.input} value={value} placeholder={f.ph || ""}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    )
+  }
   return (
     <input
       style={S.input} value={value} placeholder={f.ph || ""}
@@ -300,6 +309,13 @@ export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun,
         setFormErr(`「${f.label}」为必填项`)
         return
       }
+      if (f.type === "number" && form[i].trim() !== "") {
+        const n = Number(form[i].trim())
+        if (!Number.isInteger(n) || n <= 0) {
+          setFormErr(`「${f.label}」必须为正整数`)
+          return
+        }
+      }
     }
     const nameIdx = def.fields.findIndex((f) => f.kind === "name")
     if (drawer.mode === "add" && nameIdx >= 0) {
@@ -312,7 +328,11 @@ export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun,
     const values = def.fields.map((_, i) => form[i].trim())
     dispatch({ type: "upsert", cardKey: key, index: drawer.mode === "edit" ? drawer.index : -1, values, status: drawer.mode === "edit" ? rows[drawer.index]?.status : newStatus })
     logChange(drawer.mode === "add" ? "新增" : "更新", values[0] || (noun || def.title))
-    toast(drawer.mode === "add" ? `已新增${noun || def.title}，保存并生效，变更记录已生成。` : `${noun || def.title}已保存并生效，变更记录已生成。`)
+    if (moduleName === "待办领取") {
+      toast("每次领取件数已保存并生效。")
+    } else {
+      toast(drawer.mode === "add" ? `已新增${noun || def.title}，保存并生效，变更记录已生成。` : `${noun || def.title}已保存并生效，变更记录已生成。`)
+    }
     setDrawer(null)
   }
 
