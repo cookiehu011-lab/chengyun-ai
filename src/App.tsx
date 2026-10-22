@@ -5836,8 +5836,14 @@ function InspectDecisionPage({
   >(null)
   const [note, setNote] = useState("")
   const [returnSel, setReturnSel] = useState("")
+  const [returnOther, setReturnOther] = useState("")
   const [cmpMode, setCmpMode] = useState<"side" | "overlay" | null>(null)
   const [cmpRightIdx, setCmpRightIdx] = useState(0)
+  // 退回原因固定选项；选「其他」必须手填具体原因
+  const returnReady =
+    returnSel !== "" &&
+    (returnSel !== "其他" || returnOther.trim() !== "") &&
+    note.trim() !== ""
   const prefix = eventPrefixOf(event.type)
   const occurringUrl = eventImage(event.type, "during")
   const latestUrl = eventImage(event.type, "after")
@@ -6561,6 +6567,25 @@ function InspectDecisionPage({
               </option>
             ))}
           </select>
+          {returnSel === "其他" && (
+            <input
+              value={returnOther}
+              onChange={(e) => setReturnOther(e.target.value)}
+              placeholder="请填写具体退回原因（必填）"
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                padding: "7px 9px",
+                borderRadius: 7,
+                border: `1px solid ${T.border}`,
+                backgroundColor: T.card2,
+                color: T.text,
+                fontSize: 12,
+                outline: "none",
+                marginBottom: 8,
+              }}
+            />
+          )}
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -6612,16 +6637,16 @@ function InspectDecisionPage({
               确认完成并结案
             </button>
             <button
-              onClick={() => returnSel !== "" && note.trim() !== "" && setSubmitted("return")}
-              disabled={!(returnSel !== "" && note.trim() !== "")}
+              onClick={() => returnReady && setSubmitted("return")}
+              disabled={!returnReady}
               style={{
                 width: "100%",
                 padding: 10,
                 backgroundColor: "transparent",
-                color: returnSel !== "" && note.trim() !== "" ? T.amber : T.textMuted,
-                border: `1px solid ${returnSel !== "" && note.trim() !== "" ? "rgba(255,122,66,0.35)" : T.border}`,
+                color: returnReady ? T.amber : T.textMuted,
+                border: `1px solid ${returnReady ? "rgba(255,122,66,0.35)" : T.border}`,
                 borderRadius: 6,
-                cursor: returnSel !== "" && note.trim() !== "" ? "pointer" : "not-allowed",
+                cursor: returnReady ? "pointer" : "not-allowed",
                 fontSize: 13,
               }}
             >
@@ -7957,19 +7982,28 @@ function RecDetailDrawer({
   ]
   const currentImg = tabs.find((t) => t.key === imgTab)!.src
 
-  // 底部审核面板状态（无效原因取自事件标准字典；NL-02 需关联主事件编号）
+  // 底部审核面板状态（无效原因固定选项；NL-02 需关联主事件编号；NL-99 其他需手填）
   const [reviewResult, setReviewResult] = useState<ReviewResult | null>(null)
   const [reasonSel, setReasonSel] = useState("")
   const [masterId, setMasterId] = useState("")
+  const [otherReason, setOtherReason] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const reviewReason =
     reasonSel === "NL-02"
       ? `重复上报（已存在主事件）NL-02${masterId.trim() ? ` · 主事件 ${masterId.trim()}` : ""}`
       : reasonSel === "NL-01"
         ? "不属于事件范围 NL-01"
-        : ""
+        : reasonSel === "NL-03"
+          ? "证据不足以成立 NL-03"
+          : reasonSel === "NL-99"
+            ? `其他${otherReason.trim() ? `：${otherReason.trim()}` : ""}`
+            : ""
   const reasonReady =
-    reviewResult === "无效" ? !!reasonSel && (reasonSel !== "NL-02" || !!masterId.trim()) : true
+    reviewResult === "无效"
+      ? !!reasonSel &&
+        (reasonSel !== "NL-02" || !!masterId.trim()) &&
+        (reasonSel !== "NL-99" || !!otherReason.trim())
+      : true
 
   function handleSubmit() {
     if (!reviewResult) return
@@ -7981,6 +8015,7 @@ function RecDetailDrawer({
       setReviewResult(null)
       setReasonSel("")
       setMasterId("")
+      setOtherReason("")
     }, 200)
   }
 
@@ -8477,7 +8512,7 @@ function RecDetailDrawer({
           {reviewResult === "无效" && (
             <>
               <div style={{ fontSize: 11, fontWeight: 700, color: T.text, marginBottom: 6 }}>
-                无效原因（必选 · 来自事件标准）
+                无效原因（必选）
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: reasonSel === "NL-02" ? 8 : 10 }}>
                 {NL_REASONS.map((r) => {
@@ -8532,6 +8567,25 @@ function RecDetailDrawer({
                     fontSize: 12,
                     outline: "none",
                     fontFamily: T.mono,
+                    marginBottom: 10,
+                  }}
+                />
+              )}
+              {reasonSel === "NL-99" && (
+                <input
+                  value={otherReason}
+                  onChange={(e) => setOtherReason(e.target.value)}
+                  placeholder="请填写具体原因（必填）"
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    border: `1px solid ${T.border}`,
+                    backgroundColor: "var(--card-2)",
+                    color: T.text,
+                    fontSize: 12,
+                    outline: "none",
                     marginBottom: 10,
                   }}
                 />
@@ -9302,8 +9356,8 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
     })
   }
 
-  // 治理配置 → 待办领取 → 领取批次：「单次最多领取件数」即「领取待办」单次上限
-  //（留空 = 不设上限）；批次行「停用」= 关闭该页签的领取入口（与配置语义一致）
+  // 治理配置 → 待办领取 → 领取批次：「每次领取件数」即「领取待办」单次上限
+  //（未配置正整数 = 确认领取不可用）；批次行「停用」= 关闭该页签的领取入口（与配置语义一致）
   type RtTab = "recognition" | "case" | "inspect" | "void"
   const batchKeyOf = (tab: RtTab) =>
     tab === "case" ? "待立案" : tab === "inspect" ? "待核查" : "待作废审核"
@@ -11716,11 +11770,9 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                       }}
                     >
                       {batch.enabled
-                        ? `来自治理配置 · 待办领取：${
-                            batch.maxPerClaim
-                              ? `单次最多领取 ${batch.maxPerClaim} 件`
-                              : "未设单次领取上限"
-                          }`
+                        ? batch.maxPerClaim
+                          ? `来自治理配置 · 待办领取：单次最多领取 ${batch.maxPerClaim} 件`
+                          : "请先在治理配置 · 待办领取中设置每次领取件数"
                         : "该批次已在治理配置中停用，领取入口已关闭"}
                     </span>
                     {/* 获取事件规则（RT_RULES.fetch）：悬停浮出 */}

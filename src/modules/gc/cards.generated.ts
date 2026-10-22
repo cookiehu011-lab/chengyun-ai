@@ -676,7 +676,7 @@ export const CARDS: Record<string, GeneratedCard[]> = {
   {
    "id": "dc-batch",
    "title": "领取批次",
-   "note": "一行一类领取批次；每次领取件数为正整数，保存后立即生效。全量识别不走领取。",
+   "note": "一行一类领取批次；每次领取件数为正整数，保存后立即生效；表中件数为示例数值。全量识别不走领取。",
    "fields": [
     {
      "k": "batch",
@@ -684,11 +684,13 @@ export const CARDS: Record<string, GeneratedCard[]> = {
      "kind": "name",
      "required": true,
      "primary": true,
+     "readOnly": true,
      "ph": "如 待立案批次"
     },
     {
      "k": "role",
      "label": "面向角色（来自组织与授权）",
+     "readOnly": true,
      "ph": "如 立案审核 / 监督员"
     },
     {
@@ -703,27 +705,23 @@ export const CARDS: Record<string, GeneratedCard[]> = {
     "批次名称",
     "面向角色",
     "每次领取件数",
-    "状态",
     "操作"
    ],
    "rows": [
     [
      "待立案批次",
      "立案审核",
-     "10",
-     "启用"
+     "5"
     ],
     [
      "待核查批次",
      "监督员 / 立案审核",
-     "10",
-     "启用"
+     "10"
     ],
     [
      "待作废审核批次",
      "监督员 / 立案审核",
-     "10",
-     "启用"
+     "10"
     ]
    ]
   }
@@ -1091,6 +1089,8 @@ export interface GeneratedField {
   options?: string[]
   def?: string
   required?: boolean
+  /** 只读字段：编辑弹窗中不可修改（由系统预置） */
+  readOnly?: boolean
   ph?: string
   full?: boolean
 }

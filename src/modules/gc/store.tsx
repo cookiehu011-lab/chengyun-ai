@@ -160,6 +160,8 @@ export interface PlatformState {
 }
 
 export interface GcState {
+  /** 种子数据版本（SEED_REV）；本地缓存版本不一致时整体回种子，避免旧结构行数据覆盖新种子 */
+  seedRev?: number
   rows: Record<string, GcRow[]>
   modules: Record<string, ModulePubStatus>
   versions: Record<string, string>
@@ -342,6 +344,7 @@ function initialState(): GcState {
   rows["space.grid"] = SPACE_SEED.map((r) => ({ values: [...r.values], status: r.status }))
   rows["sla.matrix"] = SLA_MATRIX_SEED.map((r) => ({ values: [...r.values], status: r.status }))
   return {
+    seedRev: SEED_REV,
     rows,
     modules: { ...MODULE_SEED },
     versions: {
@@ -568,6 +571,8 @@ function reducer(state: GcState, action: Action): GcState {
 
 // V1.1 起存储键带版本号：与 /v1/ 部署的 V1.0（gc-native-v1）互不读写、来回切换不互相覆盖
 const STORAGE_KEY = "gc-native-v1.1"
+/** 种子数据版本：卡片列结构 / 种子内容变化时 +1；本地缓存 seedRev 不一致则丢弃缓存、整体回种子 */
+const SEED_REV = 2
 interface GcStore {
   state: GcState
   dispatch: React.Dispatch<Action>
@@ -580,7 +585,8 @@ export function GcProvider({ children }: { children: ReactNode }) {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<GcState>
-        if (parsed && parsed.rows && parsed.modules) {
+        // seedRev 不一致 = 缓存来自旧种子（列结构 / 行内容已变），整体丢弃、回种子
+        if (parsed && parsed.rows && parsed.modules && parsed.seedRev === SEED_REV) {
           const base = initialState()
           const merged: GcState = {
             ...base,

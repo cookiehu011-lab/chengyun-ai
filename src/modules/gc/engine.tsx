@@ -265,6 +265,8 @@ export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun,
   const [confirmDel, setConfirmDel] = useState<number | null>(null)
 
   const rows = state.rows[key] || []
+  // 状态列仅在 cols 声明时渲染（待办领取三类固定，无状态列 / 开关）
+  const hasStatusCol = def.cols.includes("状态")
   const filtered = useMemo(() => {
     const q = query.trim()
     if (!q) return rows.map((r, i) => ({ r, i }))
@@ -378,20 +380,28 @@ export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun,
             {filtered.map(({ r, i }) => (
               <tr key={i}>
                 {r.values.map((v, ci) => {
-                  // 待办领取 · 单次最多领取件数：留空 = 不设上限（展示为灰字说明）
-                  const emptyQuota =
-                    def.id === "dc-batch" && def.fields[ci]?.k === "quota" && v.trim() === ""
+                  // 待办领取 · 每次领取件数：种子演示数值标注「示例」
+                  const demoQuota =
+                    def.id === "dc-batch" && def.fields[ci]?.k === "quota" && v.trim() !== ""
                   return (
                     <td key={ci} style={ci === 0 ? { ...S.td, ...S.tdName } : S.td}>
-                      {emptyQuota ? (
-                        <span style={{ color: "var(--muted-foreground)" }}>不设上限</span>
-                      ) : (
-                        v
+                      {v}
+                      {demoQuota && (
+                        <span
+                          style={{
+                            marginLeft: "6px", padding: "1px 6px", borderRadius: "999px",
+                            fontSize: "10px", color: "var(--muted-foreground)",
+                            backgroundColor: "var(--card-2)", border: "1px solid var(--border)",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          示例
+                        </span>
                       )}
                     </td>
                   )
                 })}
-                <td style={S.td}><Chip status={r.status} /></td>
+                {hasStatusCol && <td style={S.td}><Chip status={r.status} /></td>}
                 {!readOnly && (
                   <td style={{ ...S.td, ...S.tdActions }}>
                     {rowButtons?.(r, i)}
@@ -433,9 +443,22 @@ export function CrudCard({ def, cardKey, rowButtons, newStatus = "启用", noun,
           {def.fields.map((f, i) => (
             <div key={f.k} style={{ marginBottom: "12px" }}>
               <label style={S.fieldLabel}>
-                {f.label}{f.required ? "（必填）" : ""}
+                {f.label}{f.required && !f.readOnly ? "（必填）" : ""}
               </label>
-              <FieldInput f={f} value={form[i] ?? ""} onChange={(v) => setForm((prev) => prev.map((x, j) => (j === i ? v : x)))} />
+              {f.readOnly ? (
+                <>
+                  <input
+                    style={{ ...S.input, backgroundColor: "var(--card-2)", color: "var(--muted-foreground)" }}
+                    value={form[i] ?? ""}
+                    disabled
+                  />
+                  <div style={{ fontSize: "10px", color: "var(--muted-foreground)", marginTop: "4px" }}>
+                    由系统预置，不可修改
+                  </div>
+                </>
+              ) : (
+                <FieldInput f={f} value={form[i] ?? ""} onChange={(v) => setForm((prev) => prev.map((x, j) => (j === i ? v : x)))} />
+              )}
             </div>
           ))}
           {formErr && (
