@@ -14210,11 +14210,13 @@ function WbBlockView({
   files,
   onPreview,
   onAction,
+  onFollowUp,
 }: {
   b: WbBlock
   files: WbFile[]
   onPreview: (id: string) => void
   onAction: (label: string) => void
+  onFollowUp?: (id: string) => void
 }) {
   const box: CSSProperties = {
     border: `1px solid ${T.border}`,
@@ -14516,6 +14518,29 @@ function WbBlockView({
                   {f.version} · {f.size}
                 </span>
               </span>
+              {onFollowUp && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onFollowUp(f.id)
+                  }}
+                  title={`针对《${f.name}》追问`}
+                  style={{
+                    marginLeft: 4,
+                    fontSize: 10,
+                    color: "#fff",
+                    backgroundColor: T.primary,
+                    border: "none",
+                    padding: "3px 9px",
+                    borderRadius: 5,
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    flexShrink: 0,
+                  }}
+                >
+                  追问
+                </button>
+              )}
             </div>
           )
         })}
@@ -15058,6 +15083,13 @@ function AIWorkbench() {
     setWbZoom(1)
     setWbWide(false)
   }
+  // 针对文件的追问：设置后输入框围绕该文件追问，右侧同步预览该文件；切换会话后自动清除
+  const [wbFollowFileId, setWbFollowFileId] = useState<string | null>(null)
+  const wbFollowFile = (wbFollowFileId && files.find((f) => f.id === wbFollowFileId)) || null
+  function startWbFollowUp(fileId: string) {
+    setWbFollowFileId(fileId)
+    openWbPreview(fileId)
+  }
   // 新建对话：两档业务入口（业务问答 / 分析成稿）
   const [newEntry, setNewEntry] = useState<WbDialogType | null>(null)
   // 业务问答 → 整理为报告：确认页（标题 / 纳入轮次 / 意图）
@@ -15081,6 +15113,11 @@ function AIWorkbench() {
     (activeDialog?.fileId && files.find((f) => f.id === activeDialog.fileId)) ||
     null
   const qaQuestionCount = activeConv.filter((m) => m.role === "user").length
+
+  // 切换会话后清除文件追问上下文（追问只属于发起它的那个会话）
+  useEffect(() => {
+    setWbFollowFileId(null)
+  }, [activeDialogId])
 
   function setMsgs(dialogId: string, fn: (prev: WbMsg[]) => WbMsg[]) {
     setConversations((prev) => ({ ...prev, [dialogId]: fn(prev[dialogId] || []) }))
@@ -15361,10 +15398,38 @@ function AIWorkbench() {
     )
   }
 
+  // 针对文件追问：围绕该文件内容作答（示例口径），不改动文件本身
+  function sendFollowUp(dialogId: string, fileId: string, text: string) {
+    const f = files.find((x) => x.id === fileId)
+    const name = f?.name ?? "该文件"
+    setMsgs(dialogId, (prev) => [
+      ...prev,
+      { role: "user", content: text },
+      { role: "status", content: "" },
+    ])
+    runAgentFlow(
+      dialogId,
+      {
+        think: "深度思考中…",
+        thinkDetail: `定位《${name}》的内容结构与数据口径，围绕文件本身作答，不引入文件外新数据。`,
+        acts: [`读取《${name}》内容`, "围绕文件内容生成回答"],
+      },
+      {
+        role: "ai",
+        content: `围绕《${name}》回答：\n\n• 核心结论：本周发现事件 312 件，闭环 265 件，闭环率 85%，处置时长 2.4h\n• 数据口径：${f?.scope || "近7日 · 全区"} · 网格巡查 + AI 识别 + 市民上报（去重）\n• 高发区域：朝阳门、东直门街道\n\n以上为围绕该文件的示例回答（演示数据）。可继续追问，或点击右侧文件对照查看。`,
+      }
+    )
+  }
+
   function sendMessage() {
     if (!chatInput.trim() || !activeDialog || gen) return
     const text = chatInput.trim()
     setChatInput("")
+    if (wbFollowFileId) {
+      // 追问模式：输入内容围绕指定文件作答
+      sendFollowUp(activeDialog.id, wbFollowFileId, text)
+      return
+    }
     if (activeDialog.type === "qa") sendQA(activeDialog.id, text)
     else sendReport(activeDialog.id, text)
   }
@@ -15709,13 +15774,24 @@ function AIWorkbench() {
               files.map((f) => (
                 <div
                   key={f.id}
-                  onClick={() => openWbPreview(f.id)}
-                  title="点击预览文件"
+                  onClick={() => {
+                    // 选中文件记录：右侧预览该文件；有来源会话时中间对话同步切换为该会话
+                    openWbPreview(f.id)
+                    if (f.dialogId) setActiveDialogId(f.dialogId)
+                  }}
+                  title={f.dialogId ? "点击查看：中间=来源会话，右侧=文件预览" : "点击预览文件"}
                   style={{
                     padding: "9px 10px",
                     marginBottom: 5,
                     borderRadius: 8,
-                    border: `1px solid ${T.border}`,
+                    border:
+                      wbPreviewId === f.id
+                        ? "1px solid rgba(50,109,255,0.55)"
+                        : `1px solid ${T.border}`,
+                    boxShadow:
+                      wbPreviewId === f.id
+                        ? "0 0 0 1px rgba(50,109,255,0.25)"
+                        : "none",
                     cursor: "pointer",
                     backgroundColor: "var(--chip-bg)",
                   }}
@@ -15747,6 +15823,7 @@ function AIWorkbench() {
                         e.stopPropagation()
                         setActiveDialogId(f.dialogId!)
                         setActiveTab("dialogs")
+                        openWbPreview(f.id)
                       }}
                       style={{
                         marginTop: 5,
@@ -16221,6 +16298,7 @@ function AIWorkbench() {
                                 files={files}
                                 onPreview={openWbPreview}
                                 onAction={(action) => handleBlockAction(activeDialogId!, conversations[activeDialogId!].indexOf(msg), action)}
+                                onFollowUp={startWbFollowUp}
                               />
                             ))}
                           </div>
@@ -16300,6 +16378,27 @@ function AIWorkbench() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
+                                  startWbFollowUp(f.id)
+                                }}
+                                title={`针对《${f.name}》追问`}
+                                style={{
+                                  marginLeft: 4,
+                                  fontSize: 10,
+                                  color: "#fff",
+                                  backgroundColor: T.primary,
+                                  border: "none",
+                                  padding: "3px 9px",
+                                  borderRadius: 5,
+                                  cursor: "pointer",
+                                  fontWeight: 600,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                追问
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
                                   setActiveTab("files")
                                 }}
                                 style={{
@@ -16370,7 +16469,14 @@ function AIWorkbench() {
               flexShrink: 0,
             }}
           >
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+            <div
+              style={{
+                display: wbFollowFile ? "none" : "flex",
+                gap: 6,
+                flexWrap: "wrap",
+                marginBottom: 8,
+              }}
+            >
               {(activeDialog?.type === "report"
                 ? [
                     "生成上周东城治理周报",
@@ -16415,6 +16521,51 @@ function AIWorkbench() {
                 />
               </span>
             </div>
+            {wbFollowFile && (
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 7,
+                  marginBottom: 8,
+                  padding: "3px 9px",
+                  backgroundColor: "rgba(50,109,255,0.08)",
+                  border: "1px solid rgba(50,109,255,0.35)",
+                  borderRadius: 14,
+                  fontSize: 11,
+                  color: T.primary,
+                  fontWeight: 600,
+                  maxWidth: "100%",
+                }}
+              >
+                <span
+                  style={{
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  正在针对《{wbFollowFile.name}》追问，输入框内容将围绕该文件作答
+                </span>
+                <button
+                  onClick={() => setWbFollowFileId(null)}
+                  title="退出文件追问"
+                  style={{
+                    border: "none",
+                    background: "none",
+                    color: T.primary,
+                    fontSize: 12,
+                    lineHeight: 1,
+                    cursor: "pointer",
+                    padding: 0,
+                    fontWeight: 700,
+                    flexShrink: 0,
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            )}
             <div style={{ display: "flex", gap: 8 }}>
               <textarea
                 value={chatInput}
@@ -16426,7 +16577,9 @@ function AIWorkbench() {
                   }
                 }}
                 placeholder={
-                  activeDialog?.type === "report"
+                  wbFollowFile
+                    ? `针对《${wbFollowFile.name}》追问…（Enter发送）`
+                    : activeDialog?.type === "report"
                     ? "围绕当前报告追问…（Enter发送）"
                     : "按当前口径查询治理数据，直接给结论…（Enter发送）"
                 }
