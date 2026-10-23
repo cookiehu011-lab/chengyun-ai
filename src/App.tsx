@@ -15112,8 +15112,8 @@ function AIWorkbench() {
     setWbFollowFileId(fileId)
     openWbPreview(fileId)
   }
-  // 对话模式：简单=直接作答；复杂=深度思考+多步执行（默认，与对话入口的选择器联动）
-  const [wbMode, setWbMode] = useState<"simple" | "complex">("complex")
+  // 对话模式：默认简单（直接作答）；复杂模式可开启/关闭（深度思考+多步执行）
+  const [wbMode, setWbMode] = useState<"simple" | "complex">("simple")
   const [wbModeMenu, setWbModeMenu] = useState(false)
   // 业务问答 → 整理为报告：确认页（标题 / 纳入轮次 / 意图）
   const [exportConfirm, setExportConfirm] = useState<{
@@ -16761,7 +16761,7 @@ function AIWorkbench() {
                           {
                             id: "simple" as const,
                             title: "简单模式",
-                            desc: "直接给结论与要点，秒级回复",
+                            desc: "默认 · 复杂模式关闭，直接给结论与要点，秒级回复",
                             icon: (
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8890C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
@@ -16772,7 +16772,7 @@ function AIWorkbench() {
                           {
                             id: "complex" as const,
                             title: "复杂模式",
-                            desc: "深度思考 + 多步执行，适合复杂分析与成稿",
+                            desc: "开启 · 深度思考 + 多步执行，适合复杂分析与成稿",
                             icon: (
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7C5CE0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5z" />
