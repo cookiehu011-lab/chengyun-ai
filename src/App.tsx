@@ -14219,7 +14219,7 @@ function WbBlockView({
   onFollowUp?: (id: string) => void
 }) {
   const box: CSSProperties = {
-    border: `1px solid ${T.border}`,
+    border: "none",
     borderRadius: 8,
     padding: "9px 11px",
     backgroundColor: "var(--row-bg)",
@@ -14575,7 +14575,7 @@ function WbBlockView({
           fontSize: 10.5,
           color: T.textSub,
           backgroundColor: "var(--chip-bg)",
-          border: `1px solid ${T.border}`,
+          border: "none",
           borderRadius: 6,
           padding: "4px 9px",
           lineHeight: 1.6,
