@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="270" viewBox="0 0 480 270">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F3FAFF"/>
+      <stop offset="100%" stop-color="#E4F3FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="270" fill="url(#bg)"/>
+  <g transform="translate(150, 80)">
+    <rect x="10" y="30" width="160" height="80" rx="4" fill="#35B985" opacity="0.12" stroke="#35B985" stroke-width="2"/>
+    <rect x="25" y="50" width="50" height="45" fill="#FFFFFF" opacity="0.7"/>
+    <rect x="90" y="50" width="60" height="45" fill="#FFFFFF" opacity="0.5"/>
+    <line x1="10" y1="30" x2="170" y2="30" stroke="#35B985" stroke-width="4" stroke-linecap="round" opacity="0.4"/>
+    <rect x="0" y="115" width="180" height="5" rx="2" fill="#24D6D2" opacity="0.3"/>
+  </g>
+  <text x="240" y="230" text-anchor="middle" font-size="14" fill="#6E8197" font-family="Noto Sans SC, Inter, sans-serif">店外经营场景</text>
+</svg>
