@@ -203,7 +203,7 @@ export const SLA_MATRIX_SEED: GcRow[] = [
 // 责任台账 · 角色预置（PRD：预置不是冻结名单，管理员可改名或另建）
 const LEDGER_SEED: LedgerState = {
   roles: [
-    { id: "r-jt", name: "全局协调", steps: ["改配置"], menus: ["dashboard", "live", "archive", "stats", "workbench", "config"], configModules: ["org", "space", "eventstd", "lifecycle", "sla", "dispatch", "metric", "publish"], liveTabs: ["recognition", "case", "inspect", "void"], appMenus: ["dashboard", "workbench", "archive"], appLiveTabs: [], appConfigModules: [], source: "平台预置", status: "启用" },
+    { id: "r-jt", name: "全局协调", steps: ["改配置"], menus: ["dashboard", "live", "archive", "stats", "workbench", "config"], configModules: ["org", "space", "eventstd", "sla", "dispatch", "publish"], liveTabs: ["recognition", "case", "inspect", "void"], appMenus: ["dashboard", "workbench", "archive"], appLiveTabs: [], appConfigModules: [], source: "平台预置", status: "启用" },
     { id: "r-ld", name: "领导", steps: ["只看"], menus: ["dashboard", "archive", "stats"], configModules: [], appMenus: ["dashboard", "stats"], appLiveTabs: [], appConfigModules: [], source: "平台预置", status: "启用" },
     { id: "r-sh", name: "事件有效审核", steps: ["事件有效审核"], menus: ["live", "archive", "workbench", "stats", "config"], configModules: ["publish"], liveTabs: ["recognition", "case", "inspect", "void"], source: "平台预置", status: "启用" },
     { id: "r-pf", name: "立案派发", steps: ["立案派发"], menus: ["live", "archive", "workbench", "stats", "config"], configModules: ["publish"], liveTabs: ["recognition", "case", "inspect", "void"], source: "平台预置", status: "启用" },
@@ -569,10 +569,10 @@ function reducer(state: GcState, action: Action): GcState {
 
 // ─── Context ────────────────────────────────────────────────────────────────
 
-// V1.1 起存储键带版本号：与 /v1/ 部署的 V1.0（gc-native-v1）互不读写、来回切换不互相覆盖
-const STORAGE_KEY = "gc-native-v1.1"
+// V1.1 起存储键带版本号：与 /v1/（V1.0，gc-native-v1）、/v1.1/（V1.1，gc-native-v1.1）互不读写、来回切换不互相覆盖
+const STORAGE_KEY = "gc-native-v1.2"
 /** 种子数据版本：卡片列结构 / 种子内容变化时 +1；本地缓存 seedRev 不一致则丢弃缓存、整体回种子 */
-const SEED_REV = 2
+const SEED_REV = 3
 interface GcStore {
   state: GcState
   dispatch: React.Dispatch<Action>

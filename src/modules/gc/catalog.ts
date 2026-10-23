@@ -36,6 +36,7 @@ export function catalogNameOf(street: string, code: string): string {
 // 粒度到二级功能（AI实时治理页签 / 治理配置子模块），不下沉到操作标签。
 export const FEATURE_LEAF_IDS = ["dashboard", "archive", "stats", "workbench"]
 export const FEATURE_LIVE_TABS = ["recognition", "case", "inspect", "void"]
-export const FEATURE_CONFIG_MODULES = MODULES.filter((m) => !m.platform).map((m) => m.id)
+// V1.2：客户可订阅的治理配置子模块收敛为 6 项（lifecycle / metric 仅内部入口，勾选不重新开放）
+export const FEATURE_CONFIG_MODULES = MODULES.filter((m) => !m.platform && m.id !== "lifecycle" && m.id !== "metric").map((m) => m.id)
 export const FULL_WEB_FEATURES = [...FEATURE_LEAF_IDS, "live", ...FEATURE_LIVE_TABS, "config", ...FEATURE_CONFIG_MODULES]
 export const FULL_APP_FEATURES = FULL_WEB_FEATURES

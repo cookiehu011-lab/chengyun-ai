@@ -204,7 +204,8 @@ export const MENU_CHILDREN: Record<string, { id: string; name: string }[]> = {
     { id: "inspect", name: "待核查" },
     { id: "void", name: "待作废审核" },
   ],
-  config: MODULES.filter((m) => !m.platform).map((m) => ({ id: m.id, name: m.name })),
+  // V1.2：客户侧治理配置子项收敛为 6 项——生命周期与处置规则、治理评价标准不再经角色菜单开放（仅内部入口可见）
+  config: MODULES.filter((m) => !m.platform && m.id !== "lifecycle" && m.id !== "metric").map((m) => ({ id: m.id, name: m.name })),
 }
 
 /** 角色表「功能菜单」列的展示：带二级数量的菜单摘要 */

@@ -148,7 +148,7 @@ const IS_V2_STATS =
   new URLSearchParams(window.location.search).get("v") === "2"
 
 // 原型版本标识：随评审版本更新，展示在顶栏右侧（见 TopNav）
-const APP_VERSION = "V1.1"
+const APP_VERSION = "V1.2"
 
 function Card({
   children,
@@ -3704,7 +3704,7 @@ const agentPoolStats: PoolStateMeta[] = [
     rgb: T.amberRGB,
     hint: "已派给网格责任人，等待现场处置结果回传",
     firstScreen: "当前责任人、已等待多久、时限风险、下一触发条件",
-    agentAction: "派单衔接、时限监测、按客户配置提醒点提醒并标识超时（不改变事件状态）、归集外部反馈",
+    agentAction: "派单衔接、时限监测：人确认后由工作流执行正式派发与计时；Agent 衔接推进并解释时限风险，不自行派单、不另起计时。按客户配置提醒点提醒并标识超时（不改变事件状态）、归集外部反馈",
     humanDecision: "处置结果是否成立，是否发起外场核查",
     riskNote: "已超时 11 件 · 临近超时 2 件",
   },
@@ -5157,7 +5157,7 @@ function CaseDecisionPage({
                 这是否属于需要立案的城市治理事件？
               </div>
               <div style={{ fontSize: 11, color: T.textMuted, lineHeight: 1.6 }}>
-                若是，请确认字段后立案。若否，选择"不属于事件范围"，事件判为无效后归档至事件档案。
+                若是，请确认字段后立案并派发。
               </div>
             </div>
           )}
@@ -5224,20 +5224,6 @@ function CaseDecisionPage({
                   }}
                 >
                   确认立案并派发
-                </button>
-                <button
-                  style={{
-                    width: "100%",
-                    padding: 10,
-                    backgroundColor: "transparent",
-                    color: T.red,
-                    border: "1px solid rgba(228,94,88,0.25)",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                    fontSize: 13,
-                  }}
-                >
-                  不属于事件范围（无效）
                 </button>
               </>
             )}
@@ -9504,7 +9490,8 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
 
   if (view === "agent-pool") {
     const poolAll = buildPoolEvents()
-    const poolTotal = agentPoolStats.reduce((sum, s) => sum + s.count, 0)
+    // 存续合计 = 各在办分组件数之和；持续监控为终态观察，不计入存续
+    const poolTotal = agentPoolStats.filter((s) => s.id !== "watching").reduce((sum, s) => sum + s.count, 0)
     const activePool = poolEvent
       ? agentPoolStats.find((s) => s.id === poolEvent.state) || null
       : poolStateId
@@ -17871,7 +17858,7 @@ const DEFAULT_NAV_CONFIG: MenuAdminItem[] = [
   { id: "config", label: "治理配置", iconKey: "gear", builtin: true },
 ]
 
-const NAV_STORAGE_KEY = "app-nav-config-v1.1"
+const NAV_STORAGE_KEY = "app-nav-config-v1.2"
 
 function loadNavConfig(): MenuAdminItem[] {
   try {
@@ -18781,7 +18768,7 @@ function AppShell() {
   // 皮肤状态：清爽（浅色）/ 科技（深空蓝），持久化并同步 <html data-theme>
   const [skin, setSkin] = useState<"light" | "tech">(() => {
     try {
-      const v = localStorage.getItem("app-skin-v1.1")
+      const v = localStorage.getItem("app-skin-v1.2")
       return v === "tech" ? "tech" : "light"
     } catch {
       return "light"
@@ -18791,7 +18778,7 @@ function AppShell() {
     // 用 data-skin 承载皮肤（宿主运行时会强制改写 data-theme，故与其解耦）
     document.documentElement.setAttribute("data-skin", skin)
     try {
-      localStorage.setItem("app-skin-v1.1", skin)
+      localStorage.setItem("app-skin-v1.2", skin)
     } catch {
       /* ignore */
     }
