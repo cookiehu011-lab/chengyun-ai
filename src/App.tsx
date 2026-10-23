@@ -15112,9 +15112,8 @@ function AIWorkbench() {
     setWbFollowFileId(fileId)
     openWbPreview(fileId)
   }
-  // 对话模式：默认简单（直接作答）；复杂模式可开启/关闭（深度思考+多步执行）
+  // 复杂模式开关：默认关闭（直接作答）；开启后深度思考 + 多步执行
   const [wbMode, setWbMode] = useState<"simple" | "complex">("simple")
-  const [wbModeMenu, setWbModeMenu] = useState(false)
   // 业务问答 → 整理为报告：确认页（标题 / 纳入轮次 / 意图）
   const [exportConfirm, setExportConfirm] = useState<{
     title: string
@@ -16697,155 +16696,71 @@ function AIWorkbench() {
                     lineHeight: 1.5,
                   }}
                 />
-                {/* 模式筛选：简单 / 复杂（对话入口选择器，参考 web 端模式交互） */}
-                <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                {/* 复杂模式开关：默认关闭（直接作答）；开启后深度思考 + 多步执行 */}
+                <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
                   <button
-                    onClick={() => setWbModeMenu((v) => !v)}
+                    onClick={() => setWbMode((v) => (v === "simple" ? "complex" : "simple"))}
+                    title={
+                      wbMode === "complex"
+                        ? "复杂模式已开启，点击关闭"
+                        : "开启复杂模式：深度思考 + 多步执行，适合复杂分析与成稿"
+                    }
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 4,
                       fontSize: 11,
                       fontWeight: 600,
-                      color: T.primary,
-                      backgroundColor: "transparent",
+                      color: wbMode === "complex" ? T.primary : T.textMuted,
+                      backgroundColor:
+                        wbMode === "complex" ? "rgba(50,109,255,0.08)" : "transparent",
                       border: "none",
                       padding: "2px 6px",
                       borderRadius: 6,
                       cursor: "pointer",
+                      transition: "all .15s ease",
                     }}
                     onMouseEnter={(e) => {
-                      ;(e.currentTarget as HTMLButtonElement).style.backgroundColor = "rgba(50,109,255,0.08)"
+                      ;(e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                        wbMode === "complex" ? "rgba(50,109,255,0.12)" : "rgba(22,45,77,0.05)"
                     }}
                     onMouseLeave={(e) => {
-                      ;(e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"
+                      ;(e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                        wbMode === "complex" ? "rgba(50,109,255,0.08)" : "transparent"
                     }}
                   >
-                    {wbMode === "simple" ? (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                      </svg>
-                    ) : (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5z" />
-                        <path d="M19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7L19 15z" />
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5z" />
+                      <path d="M19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7L19 15z" />
+                    </svg>
+                    复杂模式
+                    {wbMode === "complex" && (
+                      <svg
+                        width="11"
+                        height="11"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
                       </svg>
                     )}
-                    {wbMode === "simple" ? "简单模式" : "复杂模式"}
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7 }}>
-                      <polyline points="18 15 12 9 6 15" />
-                    </svg>
                   </button>
-                  {wbModeMenu && (
-                    <>
-                      <div
-                        style={{ position: "fixed", inset: 0, zIndex: 28 }}
-                        onClick={() => setWbModeMenu(false)}
-                      />
-                      <div
-                        style={{
-                          position: "absolute",
-                          bottom: "calc(100% + 8px)",
-                          left: 0,
-                          width: 280,
-                          zIndex: 29,
-                          backgroundColor: T.panelSolid,
-                          border: `1px solid ${T.border}`,
-                          borderRadius: 10,
-                          boxShadow: "0 12px 32px rgba(22,45,77,0.18)",
-                          padding: "4px 0",
-                          overflow: "hidden",
-                        }}
-                      >
-                        {([
-                          {
-                            id: "simple" as const,
-                            title: "简单模式",
-                            desc: "默认 · 复杂模式关闭，直接给结论与要点，秒级回复",
-                            icon: (
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8890C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                              </svg>
-                            ),
-                            iconBg: "rgba(232,137,12,0.10)",
-                          },
-                          {
-                            id: "complex" as const,
-                            title: "复杂模式",
-                            desc: "开启 · 深度思考 + 多步执行，适合复杂分析与成稿",
-                            icon: (
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7C5CE0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5z" />
-                                <path d="M19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7L19 15z" />
-                              </svg>
-                            ),
-                            iconBg: "rgba(124,92,224,0.10)",
-                          },
-                        ]).map((m) => (
-                          <div
-                            key={m.id}
-                            onClick={() => {
-                              setWbMode(m.id)
-                              setWbModeMenu(false)
-                            }}
-                            style={{
-                              display: "flex",
-                              alignItems: "flex-start",
-                              gap: 10,
-                              padding: "9px 12px",
-                              cursor: "pointer",
-                              backgroundColor: wbMode === m.id ? "var(--row-bg)" : "transparent",
-                            }}
-                            onMouseEnter={(e) => {
-                              ;(e.currentTarget as HTMLDivElement).style.backgroundColor = "var(--row-bg)"
-                            }}
-                            onMouseLeave={(e) => {
-                              ;(e.currentTarget as HTMLDivElement).style.backgroundColor =
-                                wbMode === m.id ? "var(--row-bg)" : "transparent"
-                            }}
-                          >
-                            <span
-                              style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: 8,
-                                backgroundColor: m.iconBg,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                flexShrink: 0,
-                              }}
-                            >
-                              {m.icon}
-                            </span>
-                            <span style={{ flex: 1, minWidth: 0 }}>
-                              <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.text }}>
-                                {m.title}
-                              </span>
-                              <span style={{ display: "block", fontSize: 10, color: T.textMuted, lineHeight: 1.5, marginTop: 1 }}>
-                                {m.desc}
-                              </span>
-                            </span>
-                            {wbMode === m.id && (
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="#18A058"
-                                strokeWidth="2.6"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                style={{ flexShrink: 0, marginTop: 6 }}
-                              >
-                                <polyline points="20 6 9 17 4 12" />
-                              </svg>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
+                  <span style={{ fontSize: 9.5, color: T.textMuted }}>
+                    {wbMode === "complex" ? "已开启" : "未开启"}
+                  </span>
                 </div>
               </div>
               <button
