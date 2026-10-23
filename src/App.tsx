@@ -14526,18 +14526,40 @@ function WbBlockView({
                   }}
                   title={`针对《${f.name}》追问`}
                   style={{
-                    marginLeft: 4,
+                    marginLeft: 2,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 3,
                     fontSize: 10,
-                    color: "#fff",
-                    backgroundColor: T.primary,
+                    color: T.primary,
+                    backgroundColor: "transparent",
                     border: "none",
-                    padding: "3px 9px",
+                    padding: "3px 6px",
                     borderRadius: 5,
                     cursor: "pointer",
-                    fontWeight: 600,
+                    fontWeight: 500,
                     flexShrink: 0,
+                    opacity: 0.85,
+                  }}
+                  onMouseEnter={(e) => {
+                    ;(e.currentTarget as HTMLButtonElement).style.backgroundColor = "rgba(50,109,255,0.10)"
+                  }}
+                  onMouseLeave={(e) => {
+                    ;(e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"
                   }}
                 >
+                  <svg
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                  </svg>
                   追问
                 </button>
               )}
@@ -16382,18 +16404,40 @@ function AIWorkbench() {
                                 }}
                                 title={`针对《${f.name}》追问`}
                                 style={{
-                                  marginLeft: 4,
+                                  marginLeft: 2,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 3,
                                   fontSize: 10,
-                                  color: "#fff",
-                                  backgroundColor: T.primary,
+                                  color: T.primary,
+                                  backgroundColor: "transparent",
                                   border: "none",
-                                  padding: "3px 9px",
+                                  padding: "3px 6px",
                                   borderRadius: 5,
                                   cursor: "pointer",
-                                  fontWeight: 600,
+                                  fontWeight: 500,
                                   flexShrink: 0,
+                                  opacity: 0.85,
+                                }}
+                                onMouseEnter={(e) => {
+                                  ;(e.currentTarget as HTMLButtonElement).style.backgroundColor = "rgba(50,109,255,0.10)"
+                                }}
+                                onMouseLeave={(e) => {
+                                  ;(e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"
                                 }}
                               >
+                                <svg
+                                  width="11"
+                                  height="11"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                                </svg>
                                 追问
                               </button>
                               <button
@@ -16521,86 +16565,132 @@ function AIWorkbench() {
                 />
               </span>
             </div>
-            {wbFollowFile && (
+            {/* 输入容器：追问上下文以内嵌引用 chip 形式置于输入框内部（对话内统一风格） */}
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                alignItems: "flex-end",
+                padding: "7px 9px",
+                backgroundColor: T.card2,
+                border: wbFollowFile
+                  ? "1px solid rgba(50,109,255,0.45)"
+                  : `1px solid ${T.border}`,
+                borderRadius: 8,
+                transition: "border-color .15s ease",
+              }}
+            >
               <div
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 7,
-                  marginBottom: 8,
-                  padding: "3px 9px",
-                  backgroundColor: "rgba(50,109,255,0.08)",
-                  border: "1px solid rgba(50,109,255,0.35)",
-                  borderRadius: 14,
-                  fontSize: 11,
-                  color: T.primary,
-                  fontWeight: 600,
-                  maxWidth: "100%",
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                  minWidth: 0,
                 }}
               >
-                <span
-                  style={{
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
+                {wbFollowFile && (
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      alignSelf: "flex-start",
+                      padding: "2px 6px 2px 3px",
+                      backgroundColor: "var(--glass-bg-strong)",
+                      border: `1px solid ${T.border}`,
+                      borderRadius: 6,
+                      maxWidth: "100%",
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: 4,
+                        background:
+                          wbFollowFile.type === "PDF"
+                            ? "linear-gradient(135deg,#E45E58,#FF9A7B)"
+                            : "linear-gradient(135deg,#326DFF,#24D6D2)",
+                        color: "#fff",
+                        fontSize: 6,
+                        fontWeight: 800,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {wbFollowFile.type}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        color: T.text,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {wbFollowFile.name}
+                    </span>
+                    <button
+                      onClick={() => setWbFollowFileId(null)}
+                      title="退出文件追问"
+                      style={{
+                        border: "none",
+                        background: "none",
+                        color: T.textMuted,
+                        fontSize: 12,
+                        lineHeight: 1,
+                        cursor: "pointer",
+                        padding: 0,
+                        flexShrink: 0,
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+                <textarea
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault()
+                      sendMessage()
+                    }
                   }}
-                >
-                  正在针对《{wbFollowFile.name}》追问，输入框内容将围绕该文件作答
-                </span>
-                <button
-                  onClick={() => setWbFollowFileId(null)}
-                  title="退出文件追问"
-                  style={{
-                    border: "none",
-                    background: "none",
-                    color: T.primary,
-                    fontSize: 12,
-                    lineHeight: 1,
-                    cursor: "pointer",
-                    padding: 0,
-                    fontWeight: 700,
-                    flexShrink: 0,
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            )}
-            <div style={{ display: "flex", gap: 8 }}>
-              <textarea
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault()
-                    sendMessage()
+                  placeholder={
+                    wbFollowFile
+                      ? `针对《${wbFollowFile.name}》追问…（Enter发送）`
+                      : activeDialog?.type === "report"
+                      ? "围绕当前报告追问…（Enter发送）"
+                      : "按当前口径查询治理数据，直接给结论…（Enter发送）"
                   }
-                }}
-                placeholder={
-                  wbFollowFile
-                    ? `针对《${wbFollowFile.name}》追问…（Enter发送）`
-                    : activeDialog?.type === "report"
-                    ? "围绕当前报告追问…（Enter发送）"
-                    : "按当前口径查询治理数据，直接给结论…（Enter发送）"
-                }
-                style={{
-                  flex: 1,
-                  padding: "9px 12px",
-                  backgroundColor: T.card2,
-                  border: `1px solid ${T.border}`,
-                  borderRadius: 7,
-                  color: T.text,
-                  fontSize: 12,
-                  resize: "none",
-                  height: 56,
-                  fontFamily: "inherit",
-                  lineHeight: 1.5,
-                }}
-              />
+                  style={{
+                    flex: 1,
+                    padding: "2px 2px 0",
+                    backgroundColor: "transparent",
+                    border: "none",
+                    outline: "none",
+                    color: T.text,
+                    fontSize: 12,
+                    resize: "none",
+                    height: 42,
+                    fontFamily: "inherit",
+                    lineHeight: 1.5,
+                  }}
+                />
+              </div>
               <button
                 onClick={sendMessage}
                 style={{
-                  padding: "0 16px",
+                  width: 30,
+                  height: 30,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   backgroundColor: T.primary,
                   color: T.cardSolid,
                   border: "none",
@@ -16610,8 +16700,8 @@ function AIWorkbench() {
                 }}
               >
                 <svg
-                  width="16"
-                  height="16"
+                  width="14"
+                  height="14"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="white"
