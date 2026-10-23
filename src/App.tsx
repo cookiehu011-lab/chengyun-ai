@@ -16597,7 +16597,7 @@ function AIWorkbench() {
                   ) : (
                     <div
                       style={{
-                        maxWidth: "75%",
+                        maxWidth: msg.role === "user" ? "75%" : "92%",
                         display: "flex",
                         flexDirection: "column",
                         gap: 8,
@@ -16607,12 +16607,12 @@ function AIWorkbench() {
                     >
                       <div
                         style={{
-                          padding: "10px 13px",
-                          borderRadius: 10,
+                          padding:
+                            msg.role === "user" ? "10px 13px" : "2px 2px 2px 0",
+                          borderRadius: msg.role === "user" ? 10 : 0,
                           backgroundColor:
-                            msg.role === "user" ? T.primary : T.card2,
-                          border:
-                            msg.role === "ai" ? `1px solid ${T.border}` : "none",
+                            msg.role === "user" ? T.primary : "transparent",
+                          border: "none",
                           fontSize: 12,
                           color: msg.role === "user" ? T.cardSolid : T.text,
                           lineHeight: 1.6,
@@ -16620,7 +16620,7 @@ function AIWorkbench() {
                           boxShadow:
                             msg.role === "user"
                               ? "0 3px 10px rgba(50,109,255,0.2)"
-                              : "0 2px 8px rgba(22,45,77,0.05)",
+                              : "none",
                         }}
                       >
                         {/* 回复流程：思考 → 执行 → 输出（正文在步骤之后出现） */}
