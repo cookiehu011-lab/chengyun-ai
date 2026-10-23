@@ -16430,6 +16430,80 @@ function AIWorkbench() {
               ) : null}
             </div>
           )}
+          {/* 本页规则：固定在对话区顶部，不随消息滚动 */}
+          <div
+            style={{
+              margin: "10px 16px 0",
+              flexShrink: 0,
+              border: `1px solid ${T.border}`,
+              borderRadius: 9,
+              backgroundColor: "var(--row-bg)",
+              overflow: "hidden",
+            }}
+          >
+            <button
+              onClick={() => setWbRulesOpen(!wbRulesOpen)}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "7px 12px",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontSize: 11,
+                fontWeight: 600,
+                color: T.text,
+              }}
+            >
+              <span style={{ color: T.primary }}>{wbRulesOpen ? "▾" : "▸"}</span>
+              本页规则
+              <span style={{ fontSize: 10, color: T.textMuted, fontWeight: 400 }}>
+                只查询与成稿，不办理 · 数字均为示例（点开看本期要有 / 不要做）
+              </span>
+            </button>
+            {wbRulesOpen && (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 12,
+                  padding: "4px 12px 10px",
+                  borderTop: `1px solid ${T.border}`,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, color: T.green, margin: "6px 0 4px" }}>本期要有</div>
+                  {[
+                    "历史会话可找回；新建不带上一条条件",
+                    "五类问答：摘要 + 结构化结果（列表缩略图 / 详情多图 / 饼环图 / 曲线 / 空间排行）",
+                    "推荐问题点击即提交；有答案后才出现「整理成周报」",
+                    "报告：生成前确认 → 只读预览 → PDF 与 DOCX 同版本",
+                  ].map((s) => (
+                    <div key={s} style={{ fontSize: 10.5, color: T.textSub, lineHeight: 1.7, display: "flex", gap: 5 }}>
+                      <span style={{ color: T.green }}>·</span>
+                      <span>{s}</span>
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, color: T.amber, margin: "6px 0 4px" }}>本期不要</div>
+                  {[
+                    "对话改状态、转交、派发、重新激活",
+                    "任务中心真实调度 / 定时与条件任务",
+                    "上传模板、生成后改正文、PPT",
+                    "AI 查档 / 大屏 AI 解读 / 实时治理跟办入口",
+                  ].map((s) => (
+                    <div key={s} style={{ fontSize: 10.5, color: T.textSub, lineHeight: 1.7, display: "flex", gap: 5 }}>
+                      <span style={{ color: T.amber }}>·</span>
+                      <span>{s}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
           <div ref={msgsBoxRef} style={{ flex: 1, overflowY: "auto", padding: 16 }}>
             {!activeConv.some((m) => m.role === "user") && (
               <div
@@ -16447,79 +16521,6 @@ function AIWorkbench() {
                 {activeDialog?.type === "report"
                   ? "这是一条分析成稿对话。描述要生成的报告，或围绕当前报告追问。"
                   : "这是一条业务问答对话。点击下方推荐问题直接提问，或输入你的问题。"}
-                <div
-                  style={{
-                    marginTop: 18,
-                    textAlign: "left",
-                    border: `1px solid ${T.border}`,
-                    borderRadius: 9,
-                    backgroundColor: "var(--row-bg)",
-                    overflow: "hidden",
-                  }}
-                >
-                  <button
-                    onClick={() => setWbRulesOpen(!wbRulesOpen)}
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "9px 12px",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      fontSize: 11.5,
-                      fontWeight: 600,
-                      color: T.text,
-                    }}
-                  >
-                    <span style={{ color: T.primary }}>{wbRulesOpen ? "▾" : "▸"}</span>
-                    本页规则
-                    <span style={{ fontSize: 10.5, color: T.textMuted, fontWeight: 400 }}>
-                      只查询与成稿，不办理 · 数字均为示例（点开看本期要有 / 不要做）
-                    </span>
-                  </button>
-                  {wbRulesOpen && (
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: 12,
-                        padding: "4px 12px 12px",
-                        borderTop: `1px solid ${T.border}`,
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontSize: 10.5, fontWeight: 700, color: T.green, margin: "8px 0 4px" }}>本期要有</div>
-                        {[
-                          "历史会话可找回；新建不带上一条条件",
-                          "五类问答：摘要 + 结构化结果（列表缩略图 / 详情多图 / 饼环图 / 曲线 / 空间排行）",
-                          "推荐问题点击即提交；有答案后才出现「整理成周报」",
-                          "报告：生成前确认 → 只读预览 → PDF 与 DOCX 同版本",
-                        ].map((s) => (
-                          <div key={s} style={{ fontSize: 10.5, color: T.textSub, lineHeight: 1.7, display: "flex", gap: 5 }}>
-                            <span style={{ color: T.green }}>·</span>
-                            <span>{s}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 10.5, fontWeight: 700, color: T.amber, margin: "8px 0 4px" }}>本期不要</div>
-                        {[
-                          "对话改状态、转交、派发、重新激活",
-                          "任务中心真实调度 / 定时与条件任务",
-                          "上传模板、生成后改正文、PPT",
-                          "AI 查档 / 大屏 AI 解读 / 实时治理跟办入口",
-                        ].map((s) => (
-                          <div key={s} style={{ fontSize: 10.5, color: T.textSub, lineHeight: 1.7, display: "flex", gap: 5 }}>
-                            <span style={{ color: T.amber }}>·</span>
-                            <span>{s}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
               </div>
             )}
             {activeConv.map((msg, i) => {
