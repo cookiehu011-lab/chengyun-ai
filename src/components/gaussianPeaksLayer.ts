@@ -22,9 +22,9 @@ const M_PER_DEG = 111320 // 纬度方向米/度
 const profile = (f: number, k = K) => Math.exp(-k * f * f)
 const frac = (v: number) => v - Math.floor(v)
 
-// 网格聚合格尺寸（度，~65m）：热点邻域多点聚为一座峰——
+// 网格聚合格尺寸（度，~100m）：热点邻域多点聚为一座峰——
 // 减密不丢件数：簇内件数并入权重（峰更高更热），坐标取质心
-const AGG_GRID = 0.0006
+const AGG_GRID = 0.0009
 
 function aggregate(points: PeakPoint[]): PeakPoint[] {
   if (!points.length) return points
@@ -187,14 +187,13 @@ export function createGaussianPeaksLayer(id = "gauss-peaks-mesh") {
       const j3 = frac(seed * 2.71 + 0.67)
       const j4 = frac(seed * 4.13 + 0.19)
 
-      // 高度：重尾分布——w^2.4 幂次拉开差距，再乘 0.32~1.85 宽幅抖动
-      // → 即使同街道同权重的相邻峰也能差出数倍，彻底告别"齐刷刷"
-      const H = (60 + Math.pow(p.w, 2.4) * 800) * (0.32 + j1 * 1.53)
-      // 剖面指数逐峰随机：0.95 锥体 ~ 2.05 平缓圆顶，形状各异（聚合峰不取尖锐端）
-      const k = 0.95 + j2 * 1.1
+      // 高度：重尾分布拉开差距；整体压低 + 抖动收窄——峰群错落但不过分陡峭
+      const H = (50 + Math.pow(p.w, 2.4) * 520) * (0.35 + j1 * 1.1)
+      // 剖面指数逐峰随机：1.05~1.9 圆润圆顶（聚合峰避免尖锐锥体）
+      const k = 1.05 + j2 * 0.85
       // 特征半径随权重幂次缩放（0.6~1.55 抖动）：低密峰收敛成小团、高密峰舒展
       // → 蓝色低密云不再与主峰同尺寸铺满地图，形态随密度分层
-      const r0Deg = (0.0016 + Math.pow(p.w, 0.75) * 0.0032) * (0.6 + j3 * 0.95)
+      const r0Deg = (0.0014 + Math.pow(p.w, 0.75) * 0.0026) * (0.6 + j3 * 0.95)
       const r0m = r0Deg * M_PER_DEG
       // 椭圆 footprint + 随机朝向：每座峰的剪影都不一样
       const aspect = 0.68 + j4 * 0.85

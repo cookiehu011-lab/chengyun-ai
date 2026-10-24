@@ -136,9 +136,9 @@ export default function DongchengHeatmapMap({
       : "light",
   )
   // 热力样式：经典热力云 / 高斯峰状热力（共用同一份点位数据，仅渲染方式不同）
-  const [heatMode, setHeatMode] = useState<HeatMode>("classic")
-  // 3D 视角（俯仰 + 可拖拽旋转）；高斯模式默认开启以呈现峰体
-  const [pitched, setPitched] = useState(false)
+  const [heatMode, setHeatMode] = useState<HeatMode>("gaussian")
+  // 3D 视角（俯仰 + 可拖拽旋转）：默认开启 3D 倾斜视角呈现峰体
+  const [pitched, setPitched] = useState(true)
   const [layersReady, setLayersReady] = useState(false)
   // 高斯 3D 网格图层句柄（真实三角网格曲面，见 gaussianPeaksLayer.ts）
   const meshRef = useRef<ReturnType<typeof createGaussianPeaksLayer> | null>(
