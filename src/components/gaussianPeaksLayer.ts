@@ -25,24 +25,23 @@ const frac = (v: number) => v - Math.floor(v)
 // 高度(米)→颜色 渐变（双皮肤）：蓝紫→青→绿→黄→橙红→深红，
 // 峰高重尾分布下矮丘到蓝绿、中峰黄、主峰红、极峰深红，层次分明。
 // 整体低透明度（玻璃质感），山脚再按高度渐隐，可透视底图与后侧峰体
-// 高度(米)→颜色 渐变（双皮肤）：蓝紫→青→绿→黄→橙→红橙，
-// 红色阈值上移：多数峰顶落在黄/橙区、只有最高的少数峰尖见红橙，峰群橙红错落
+// 通透版：alpha 全线下调（峰值仅 0.56/0.55），重叠区呈云雾叠加而非实体堆积
 const RAMP: Record<SkinKind, Array<[number, number, number, number, number]>> = {
   tech: [
-    [0, 0.31, 0.47, 1.0, 0.36],
-    [60, 0.24, 0.84, 0.9, 0.48],
-    [160, 0.35, 0.89, 0.65, 0.58],
-    [320, 1.0, 0.85, 0.39, 0.66],
-    [520, 0.98, 0.6, 0.3, 0.72],
-    [780, 0.92, 0.38, 0.3, 0.78],
+    [0, 0.36, 0.52, 1.0, 0.24],
+    [60, 0.28, 0.86, 0.92, 0.3],
+    [160, 0.38, 0.9, 0.66, 0.36],
+    [320, 1.0, 0.86, 0.42, 0.42],
+    [520, 0.98, 0.62, 0.32, 0.48],
+    [780, 0.93, 0.42, 0.32, 0.56],
   ],
   light: [
-    [0, 0.25, 0.46, 0.98, 0.32],
-    [60, 0.22, 0.75, 0.9, 0.44],
-    [160, 0.35, 0.8, 0.57, 0.54],
-    [320, 0.97, 0.82, 0.31, 0.62],
-    [520, 0.96, 0.64, 0.28, 0.68],
-    [780, 0.88, 0.4, 0.3, 0.74],
+    [0, 0.3, 0.5, 0.98, 0.22],
+    [60, 0.26, 0.78, 0.92, 0.28],
+    [160, 0.38, 0.82, 0.6, 0.34],
+    [320, 0.97, 0.84, 0.34, 0.4],
+    [520, 0.96, 0.66, 0.3, 0.46],
+    [780, 0.9, 0.44, 0.32, 0.55],
   ],
 }
 
@@ -92,7 +91,8 @@ void main() {
   // 天光方向（mercator 空间：x 东、y 南、z 上）
   vec3 L = normalize(vec3(-0.32, -0.42, 0.85));
   float diff = max(dot(n, L), 0.0);
-  float shade = 0.60 + 0.40 * diff;
+  // 通透版：光照对比收窄（0.78~1.0），弱化岩石感、贴近云雾体积感
+  float shade = 0.78 + 0.22 * diff;
   gl_FragColor = vec4(v_color.rgb * shade, v_color.a);
 }
 `
@@ -162,13 +162,14 @@ export function createGaussianPeaksLayer(id = "gauss-peaks-mesh") {
       const j3 = frac(seed * 2.71 + 0.67)
       const j4 = frac(seed * 4.13 + 0.19)
 
-      // 高度：重尾分布——w^2.4 幂次拉开差距，再乘 0.32~2.3 宽幅抖动
-      // → 即使同街道同权重的相邻峰也能差出数倍，彻底告别"齐刷刷"
-      const H = (60 + Math.pow(p.w, 2.4) * 800) * (0.32 + j1 * 1.98)
+      // 高度：重尾分布——w^2.4 幂次拉开差距，再乘 0.3~1.8 宽幅抖动
+      // → 通透版整体压矮（峰值 ~1000m → ~700m），避免 3D 视角下互相遮挡成"山群"
+      const H = (45 + Math.pow(p.w, 2.4) * 620) * (0.3 + j1 * 1.5)
       // 剖面指数逐峰随机：0.85 尖锐锥体 ~ 2.15 平缓圆顶，形状各异
       const k = 0.85 + j2 * 1.3
       // 特征半径独立抖动（0.6~1.55），均值收窄减少裙边交叠
-      const r0Deg = (0.0026 + p.w * 0.0018) * (0.6 + j3 * 0.95)
+      // 通透版半径整体摊大 ~30%：山体更舒展、密度感下降
+      const r0Deg = (0.0034 + p.w * 0.0024) * (0.6 + j3 * 0.95)
       const r0m = r0Deg * M_PER_DEG
       // 椭圆 footprint + 随机朝向：每座峰的剪影都不一样
       const aspect = 0.68 + j4 * 0.85
@@ -182,8 +183,8 @@ export function createGaussianPeaksLayer(id = "gauss-peaks-mesh") {
         const rM = f * r0m
         const z = Math.max((profile(f, k) - zEdge) * H, 0)
         const [cr, cg, cb, ca0] = rampColor(skin, z)
-        // 透明感：山脚大幅渐隐（掠射方向壳双重叠加也几乎不可见，消除交叉网纹）
-        const ca = ca0 * (0.12 + 0.88 * Math.min(z / 220, 1))
+        // 透明感：山脚更早渐隐（掠射壳完全消隐，重叠区只留柔和色晕）
+        const ca = ca0 * (0.1 + 0.9 * Math.min(z / 320, 1))
 
         for (let s = 0; s <= SEG; s++) {
           const a = (s / SEG) * Math.PI * 2
@@ -291,7 +292,8 @@ export function createGaussianPeaksLayer(id = "gauss-peaks-mesh") {
       gl.disable(gl.CULL_FACE)
       gl.enable(gl.DEPTH_TEST)
       gl.depthFunc(gl.LEQUAL)
-      gl.depthMask(true)
+      // 通透版：不写深度——半透明山体纯叠加，重叠区柔和透色，消除硬切边
+      gl.depthMask(false)
       gl.enable(gl.BLEND)
       // 非 premultiplied 输出（文档允许显式切换 blendFunc）
       gl.blendFuncSeparate(
