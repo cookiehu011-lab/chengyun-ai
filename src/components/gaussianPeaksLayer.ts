@@ -22,6 +22,32 @@ const M_PER_DEG = 111320 // 纬度方向米/度
 const profile = (f: number, k = K) => Math.exp(-k * f * f)
 const frac = (v: number) => v - Math.floor(v)
 
+// 网格聚合格尺寸（度，~65m）：热点邻域多点聚为一座峰——
+// 减密不丢件数：簇内件数并入权重（峰更高更热），坐标取质心
+const AGG_GRID = 0.0006
+
+function aggregate(points: PeakPoint[]): PeakPoint[] {
+  if (!points.length) return points
+  const buckets = new Map<string, { lng: number; lat: number; w: number; n: number }>()
+  for (const p of points) {
+    const key = `${Math.round(p.lng / AGG_GRID)}|${Math.round(p.lat / AGG_GRID)}`
+    const b = buckets.get(key)
+    if (b) {
+      b.lng += p.lng
+      b.lat += p.lat
+      b.w += p.w
+      b.n += 1
+    } else {
+      buckets.set(key, { lng: p.lng, lat: p.lat, w: p.w, n: 1 })
+    }
+  }
+  return [...buckets.values()].map((b) => ({
+    lng: b.lng / b.n,
+    lat: b.lat / b.n,
+    w: Math.min(b.w, 1.2), // 簇权重封顶（pow 2.4 已放大差距），避免超热格生成穿天峰
+  }))
+}
+
 // 高度(米)→颜色 渐变：与经典热力 CLASSIC_RAMP（DongchengHeatmapMap.tsx）完全一致——
 // 主蓝(50,109,255)→青(30,190,235)→绿(72,205,140)→黄(255,190,60)→红(240,80,70)，
 // alpha 同经典 density 档位；山脚高度趋零处对应经典 density 0 的全透明起点
@@ -161,11 +187,11 @@ export function createGaussianPeaksLayer(id = "gauss-peaks-mesh") {
       const j3 = frac(seed * 2.71 + 0.67)
       const j4 = frac(seed * 4.13 + 0.19)
 
-      // 高度：重尾分布——w^2.4 幂次拉开差距，再乘 0.32~2.3 宽幅抖动
+      // 高度：重尾分布——w^2.4 幂次拉开差距，再乘 0.32~1.85 宽幅抖动
       // → 即使同街道同权重的相邻峰也能差出数倍，彻底告别"齐刷刷"
-      const H = (60 + Math.pow(p.w, 2.4) * 800) * (0.32 + j1 * 1.98)
-      // 剖面指数逐峰随机：0.85 尖锐锥体 ~ 2.15 平缓圆顶，形状各异
-      const k = 0.85 + j2 * 1.3
+      const H = (60 + Math.pow(p.w, 2.4) * 800) * (0.32 + j1 * 1.53)
+      // 剖面指数逐峰随机：0.95 锥体 ~ 2.05 平缓圆顶，形状各异（聚合峰不取尖锐端）
+      const k = 0.95 + j2 * 1.1
       // 特征半径独立抖动（0.6~1.55），均值收窄减少裙边交叠
       const r0Deg = (0.0026 + p.w * 0.0018) * (0.6 + j3 * 0.95)
       const r0m = r0Deg * M_PER_DEG
@@ -330,7 +356,7 @@ export function createGaussianPeaksLayer(id = "gauss-peaks-mesh") {
   return {
     layer,
     setData(next: PeakPoint[]) {
-      points = next
+      points = aggregate(next)
       if (glCtx) dirty = true
     },
     setSkin(next: SkinKind) {
