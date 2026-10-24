@@ -581,11 +581,18 @@ export default function DongchengHeatmapMap({
     applyVisibility()
   }, [heatMode, layersReady])
 
-  // 3D 视角：俯仰角过渡
+  // 3D 视角：俯仰角过渡；倾斜时辖区面/描边淡化融入底图（大面积纯色面在斜视角下突兀），
+  // 恢复俯视还原
   useEffect(() => {
     const map = mapRef.current
     if (!map || !layersReady) return
     map.easeTo({ pitch: pitched ? 55 : 0, duration: 700 })
+    try {
+      map.setPaintProperty("street-fills", "fill-opacity", pitched ? 0.2 : 0.82)
+      map.setPaintProperty("street-lines", "line-opacity", pitched ? 0.25 : 1)
+    } catch {
+      // 图层尚未就绪时忽略，下一次切换会重新应用
+    }
   }, [pitched, layersReady])
 
   // Sync grid visibility + highlight
