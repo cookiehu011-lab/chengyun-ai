@@ -3326,7 +3326,7 @@ function ImageGallery({ urls, compact }: { urls: string[] compact?: boolean }) {
       <div
         style={{
           aspectRatio: "16/9",
-          maxHeight: compact ? 260 : undefined,
+          maxHeight: compact ? 420 : undefined,
           backgroundColor: T.card2,
           borderRadius: 8,
           display: "flex",
@@ -3340,14 +3340,14 @@ function ImageGallery({ urls, compact }: { urls: string[] compact?: boolean }) {
       </div>
     )
   return (
-    <div style={{ maxHeight: compact ? 280 : undefined }}>
+    <div style={{ maxHeight: compact ? 420 : undefined }}>
       <div
         style={{
           borderRadius: 8,
           overflow: "hidden",
           backgroundColor: "#000",
           position: "relative",
-          maxHeight: compact ? 280 : undefined,
+          maxHeight: compact ? 420 : undefined,
         }}
       >
         <img
@@ -3356,7 +3356,7 @@ function ImageGallery({ urls, compact }: { urls: string[] compact?: boolean }) {
           style={{
             width: "100%",
             aspectRatio: "16/9",
-            maxHeight: compact ? 280 : undefined,
+            maxHeight: compact ? 420 : undefined,
             objectFit: "cover",
             display: "block",
           }}
@@ -6055,7 +6055,7 @@ function InspectDecisionPage({
                   alt="发生中"
                   style={{
                     width: "100%",
-                    height: 160,
+                    height: 220,
                     objectFit: "cover",
                     display: "block",
                   }}
@@ -6112,7 +6112,7 @@ function InspectDecisionPage({
                   alt="相机最新"
                   style={{
                     width: "100%",
-                    height: 160,
+                    height: 220,
                     objectFit: "cover",
                     display: "block",
                   }}
@@ -6185,7 +6185,7 @@ function InspectDecisionPage({
                 alt="处置后"
                 style={{
                   width: "100%",
-                  height: 160,
+                  height: 300,
                   objectFit: "cover",
                   display: "block",
                 }}
@@ -8090,7 +8090,7 @@ function RecDetailDrawer({
               style={{
                 position: "relative",
                 width: "100%",
-                maxHeight: 220,
+                maxHeight: 340,
                 aspectRatio: "16 / 10",
                 borderRadius: 10,
                 overflow: "hidden",
