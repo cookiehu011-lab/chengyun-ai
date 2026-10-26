@@ -3326,7 +3326,7 @@ function ImageGallery({ urls, compact }: { urls: string[] compact?: boolean }) {
       <div
         style={{
           aspectRatio: "16/9",
-          maxHeight: compact ? 420 : undefined,
+          maxWidth: 880,
           backgroundColor: T.card2,
           borderRadius: 8,
           display: "flex",
@@ -3340,14 +3340,13 @@ function ImageGallery({ urls, compact }: { urls: string[] compact?: boolean }) {
       </div>
     )
   return (
-    <div style={{ maxHeight: compact ? 420 : undefined }}>
+    <div style={{ maxWidth: 880 }}>
       <div
         style={{
           borderRadius: 8,
           overflow: "hidden",
           backgroundColor: "#000",
           position: "relative",
-          maxHeight: compact ? 420 : undefined,
         }}
       >
         <img
@@ -3356,7 +3355,6 @@ function ImageGallery({ urls, compact }: { urls: string[] compact?: boolean }) {
           style={{
             width: "100%",
             aspectRatio: "16/9",
-            maxHeight: compact ? 420 : undefined,
             objectFit: "cover",
             display: "block",
           }}
@@ -6019,6 +6017,7 @@ function InspectDecisionPage({
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
                 gap: 10,
+                maxWidth: 720,
               }}
             >
               {/* 发生中 */}
@@ -6185,7 +6184,8 @@ function InspectDecisionPage({
                 alt="处置后"
                 style={{
                   width: "100%",
-                  height: 300,
+                  maxWidth: 720,
+                  aspectRatio: "16/9",
                   objectFit: "cover",
                   display: "block",
                 }}
