@@ -23,7 +23,7 @@ const C = {
   border: "var(--border)",
   borderLight: "var(--glass-border)",
   card: "var(--card)",
-  cardSolid: "#FFFFFF",
+  cardSolid: "var(--ai-card-solid, #FFFFFF)",
   bg: "var(--background)",
   bgSoft: "var(--background-soft)",
   glass: "var(--glass-bg)",
@@ -420,7 +420,7 @@ function KpiCard({
           flexShrink: 0,
           background: `linear-gradient(135deg, ${color}18 0%, ${color}08 100%)`,
           border: `1px solid ${color}30`,
-          boxShadow: `0 0 0 4px ${color}0D, inset 0 1px 0 rgba(255,255,255,0.75)`,
+          boxShadow: `0 0 0 4px ${color}0D, inset 0 1px 0 var(--kpi-hi, rgba(255,255,255,0.75))`,
         }}
       >
         <KpiIcon label={label} color={color} />
@@ -692,10 +692,10 @@ function StatGroupSelect({
       style={{
         display: "flex",
         gap: 2,
-        background: "rgba(22,45,77,0.04)",
+        background: "var(--ai-seg-bg, rgba(22,45,77,0.04))",
         borderRadius: 9999,
         padding: 3,
-        border: `1px solid rgba(184,216,245,0.35)`,
+        border: `1px solid var(--ai-seg-border, rgba(184,216,245,0.35))`,
       }}
     >
       {available.map((level) => {
@@ -1173,10 +1173,10 @@ export default function AIStatistics({ skin }: { skin: "light" | "tech" }) {
                   color: active ? "#fff" : C.muted,
                   background: active
                     ? `linear-gradient(135deg, ${C.primary} 0%, ${C.cyan} 100%)`
-                    : "rgba(255,255,255,0.45)",
+                    : "var(--ai-tab-bg, rgba(255,255,255,0.45))",
                   boxShadow: active
                     ? "0 4px 16px rgba(50,109,255,0.38)"
-                    : "inset 0 1px 0 rgba(255,255,255,0.75), 0 2px 6px rgba(22,45,77,0.04)",
+                    : "inset 0 1px 0 var(--ai-tab-hi, rgba(255,255,255,0.75)), 0 2px 6px rgba(22,45,77,0.04)",
                   backdropFilter: active ? undefined : "blur(8px)",
                   WebkitBackdropFilter: active ? undefined : "blur(8px)",
                   transition: "all 0.2s ease",
@@ -1190,9 +1190,9 @@ export default function AIStatistics({ skin }: { skin: "light" | "tech" }) {
                 }}
                 onMouseLeave={(e) => {
                   if (!active) {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.45)"
+                    e.currentTarget.style.background = "var(--ai-tab-bg, rgba(255,255,255,0.45))"
                     e.currentTarget.style.color = C.muted
-                    e.currentTarget.style.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.75), 0 2px 6px rgba(22,45,77,0.04)"
+                    e.currentTarget.style.boxShadow = "inset 0 1px 0 var(--ai-tab-hi, rgba(255,255,255,0.75)), 0 2px 6px rgba(22,45,77,0.04)"
                   }
                 }}
               >
@@ -1222,11 +1222,11 @@ export default function AIStatistics({ skin }: { skin: "light" | "tech" }) {
             style={{
               display: "flex",
               gap: 2,
-              background: "rgba(22,45,77,0.04)",
+              background: "var(--ai-seg-bg, rgba(22,45,77,0.04))",
               borderRadius: 9999,
               padding: 3,
-              border: `1px solid rgba(184,216,245,0.35)`,
-              boxShadow: "inset 0 1px 2px rgba(22,45,77,0.04)",
+              border: `1px solid var(--ai-seg-border, rgba(184,216,245,0.35))`,
+              boxShadow: "var(--ai-seg-inset, inset 0 1px 2px rgba(22,45,77,0.04))",
             }}
           >
             {([

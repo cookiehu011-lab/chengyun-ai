@@ -642,6 +642,15 @@ html[data-skin="tech"] {
   --topbar-border: rgba(96, 150, 230, 0.18);
   --topbar-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   --nav-active-bg: rgba(91, 141, 255, 0.18);
+  /* AI统计模块（AIStatistics）科技肤色：内联色通过 var(--ai-*, 清爽原值) 回退桥接，
+     清爽皮肤未定义这些变量 → 观感与改前一致；科技皮肤在此覆盖 */
+  --ai-tab-bg: rgba(120, 165, 235, 0.12);
+  --ai-tab-hi: rgba(120, 165, 235, 0.10);
+  --ai-seg-bg: var(--control-bg);
+  --ai-seg-border: var(--glass-border);
+  --ai-seg-inset: none;
+  --ai-card-solid: var(--card);
+  --kpi-hi: rgba(91, 141, 255, 0.15);
   --body-bg:
     radial-gradient(ellipse at 0% 0%, rgba(50, 109, 255, 0.20) 0%, transparent 50%),
     radial-gradient(ellipse at 100% 0%, rgba(46, 230, 224, 0.10) 0%, transparent 45%),
