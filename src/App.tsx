@@ -9223,7 +9223,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
   )
   const [extraVoidEvents, setExtraVoidEvents] = useState<BatchEvent[]>([])
   const [isDealing, setIsDealing] = useState(false)
-  // 领取待办：数量选择对话框（当前可领取 N 件 × 单次最多领取件数）
+  // 领取待办：数量选择对话框（批次待领取 N 件 × 单次上限）
   const [claimOpen, setClaimOpen] = useState(false)
   const [claimCount, setClaimCount] = useState(1) // 保留变量名，实际领取数由治理配置决定
   const [lastClaimCount, setLastClaimCount] = useState(0)
@@ -11020,7 +11020,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
   }
   const activeMeta = tabMeta[activeTab]
 
-  // 领取待办对话框：显示「当前可领取 N 件」与单次上限（治理配置 · 待办领取）
+  // 领取待办对话框：显示「批次待领取 N 件」与单次上限（治理配置 · 待办领取）
   const claimDialogOverlay = claimOpen
     ? (() => {
         const batch = claimBatchInfo(activeTab)
@@ -11067,7 +11067,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
               </div>
               <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
                 <div style={{ fontSize: 12.5, color: T.text }}>
-                  当前可领取{" "}
+                  批次待领取{" "}
                   <span style={{ fontFamily: T.mono, fontWeight: 800, color: T.primary }}>
                     {available}
                   </span>{" "}
@@ -11075,11 +11075,9 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
                 </div>
                 {batch.maxPerClaim ? (
                   <div style={{ fontSize: 12, color: T.textSub, lineHeight: 1.8 }}>
-                    按治理配置领取{" "}
+                    单次上限{" "}
                     <span style={{ fontFamily: T.mono, fontWeight: 800, color: T.primary }}>{batch.maxPerClaim}</span>{" "}
-                    件；当前可领{" "}
-                    <span style={{ fontFamily: T.mono, fontWeight: 700 }}>{available}</span>{" "}
-                    件；本次实际领取{" "}
+                    件 · 本次实际领取{" "}
                     <span style={{ fontFamily: T.mono, fontWeight: 800, color: T.primary }}>{Math.min(batch.maxPerClaim, available)}</span>{" "}
                     件。
                   </div>
