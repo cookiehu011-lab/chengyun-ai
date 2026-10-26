@@ -15,34 +15,58 @@ export interface PeakPoint {
 // 剖面参数
 const RINGS = 22 // 径向细分（含边缘与顶点，越大坡面越细腻）
 const SEG = 32 // 周向细分
-const RF_MAX = 1.6 // 裙边外延（×特征半径），该处高度恰为 0；过大易产生交叠网纹
+const RF_MAX = 1.35 // 裙边外延（×特征半径），该处高度恰为 0；收窄减少蓝云铺满
 const K = 1.15 // 高斯衰减系数（默认剖面）
 const M_PER_DEG = 111320 // 纬度方向米/度
 
 const profile = (f: number, k = K) => Math.exp(-k * f * f)
 const frac = (v: number) => v - Math.floor(v)
 
-// 高度(米)→颜色 渐变（双皮肤）：蓝紫→青→绿→黄→橙红→深红，
-// 峰高重尾分布下矮丘到蓝绿、中峰黄、主峰红、极峰深红，层次分明。
-// 整体低透明度（玻璃质感），山脚再按高度渐隐，可透视底图与后侧峰体
-// 高度(米)→颜色 渐变（双皮肤）：蓝紫→青→绿→黄→橙→红橙，
-// 红色阈值上移：多数峰顶落在黄/橙区、只有最高的少数峰尖见红橙，峰群橙红错落
+// 网格聚合格尺寸（度，~100m）：热点邻域多点聚为一座峰——
+// 减密不丢件数：簇内件数并入权重（峰更高更热），坐标取质心
+const AGG_GRID = 0.0009
+
+function aggregate(points: PeakPoint[]): PeakPoint[] {
+  if (!points.length) return points
+  const buckets = new Map<string, { lng: number; lat: number; w: number; n: number }>()
+  for (const p of points) {
+    const key = `${Math.round(p.lng / AGG_GRID)}|${Math.round(p.lat / AGG_GRID)}`
+    const b = buckets.get(key)
+    if (b) {
+      b.lng += p.lng
+      b.lat += p.lat
+      b.w += p.w
+      b.n += 1
+    } else {
+      buckets.set(key, { lng: p.lng, lat: p.lat, w: p.w, n: 1 })
+    }
+  }
+  return [...buckets.values()].map((b) => ({
+    lng: b.lng / b.n,
+    lat: b.lat / b.n,
+    w: Math.min(b.w, 1.2), // 簇权重封顶（pow 2.4 已放大差距），避免超热格生成穿天峰
+  }))
+}
+
+// 高度(米)→颜色 渐变：色系与经典热力 CLASSIC_RAMP 一致（主蓝→青→绿→黄→红），
+// 档位为 3D 形态重标定：蓝/青档收窄（低密云海变薄收敛）、绿/黄过渡段展宽（红峰不孤立）、
+// 蓝青透明度调淡（裙边不再盖满地图），红档保持高 alpha（高密主峰聚焦）
 const RAMP: Record<SkinKind, Array<[number, number, number, number, number]>> = {
   tech: [
-    [0, 0.31, 0.47, 1.0, 0.36],
-    [60, 0.24, 0.84, 0.9, 0.48],
-    [160, 0.35, 0.89, 0.65, 0.58],
-    [320, 1.0, 0.85, 0.39, 0.66],
-    [520, 0.98, 0.6, 0.3, 0.72],
-    [780, 0.92, 0.38, 0.3, 0.78],
+    [0, 0.196, 0.427, 1.0, 0.18],
+    [100, 0.196, 0.427, 1.0, 0.32],
+    [200, 0.118, 0.745, 0.922, 0.42],
+    [300, 0.282, 0.804, 0.549, 0.52],
+    [480, 1.0, 0.745, 0.235, 0.62],
+    [780, 0.941, 0.314, 0.275, 0.82],
   ],
   light: [
-    [0, 0.25, 0.46, 0.98, 0.32],
-    [60, 0.22, 0.75, 0.9, 0.44],
-    [160, 0.35, 0.8, 0.57, 0.54],
-    [320, 0.97, 0.82, 0.31, 0.62],
-    [520, 0.96, 0.64, 0.28, 0.68],
-    [780, 0.88, 0.4, 0.3, 0.74],
+    [0, 0.196, 0.427, 1.0, 0.18],
+    [100, 0.196, 0.427, 1.0, 0.32],
+    [200, 0.118, 0.745, 0.922, 0.42],
+    [300, 0.282, 0.804, 0.549, 0.52],
+    [480, 1.0, 0.745, 0.235, 0.62],
+    [780, 0.941, 0.314, 0.275, 0.82],
   ],
 }
 
@@ -92,7 +116,8 @@ void main() {
   // 天光方向（mercator 空间：x 东、y 南、z 上）
   vec3 L = normalize(vec3(-0.32, -0.42, 0.85));
   float diff = max(dot(n, L), 0.0);
-  float shade = 0.60 + 0.40 * diff;
+  // 通透版：光照对比收窄（0.78~1.0），弱化岩石感、贴近云雾体积感
+  float shade = 0.78 + 0.22 * diff;
   gl_FragColor = vec4(v_color.rgb * shade, v_color.a);
 }
 `
@@ -162,13 +187,13 @@ export function createGaussianPeaksLayer(id = "gauss-peaks-mesh") {
       const j3 = frac(seed * 2.71 + 0.67)
       const j4 = frac(seed * 4.13 + 0.19)
 
-      // 高度：重尾分布——w^2.4 幂次拉开差距，再乘 0.32~2.3 宽幅抖动
-      // → 即使同街道同权重的相邻峰也能差出数倍，彻底告别"齐刷刷"
-      const H = (60 + Math.pow(p.w, 2.4) * 800) * (0.32 + j1 * 1.98)
-      // 剖面指数逐峰随机：0.85 尖锐锥体 ~ 2.15 平缓圆顶，形状各异
-      const k = 0.85 + j2 * 1.3
-      // 特征半径独立抖动（0.6~1.55），均值收窄减少裙边交叠
-      const r0Deg = (0.0026 + p.w * 0.0018) * (0.6 + j3 * 0.95)
+      // 高度：重尾分布拉开差距；整体压低 + 抖动收窄——峰群错落但不过分陡峭
+      const H = (50 + Math.pow(p.w, 2.4) * 520) * (0.35 + j1 * 1.1)
+      // 剖面指数逐峰随机：1.05~1.9 圆润圆顶（聚合峰避免尖锐锥体）
+      const k = 1.05 + j2 * 0.85
+      // 特征半径随权重幂次缩放（0.6~1.55 抖动）：低密峰收敛成小团、高密峰舒展
+      // → 蓝色低密云不再与主峰同尺寸铺满地图，形态随密度分层
+      const r0Deg = (0.0014 + Math.pow(p.w, 0.75) * 0.0026) * (0.6 + j3 * 0.95)
       const r0m = r0Deg * M_PER_DEG
       // 椭圆 footprint + 随机朝向：每座峰的剪影都不一样
       const aspect = 0.68 + j4 * 0.85
@@ -291,7 +316,8 @@ export function createGaussianPeaksLayer(id = "gauss-peaks-mesh") {
       gl.disable(gl.CULL_FACE)
       gl.enable(gl.DEPTH_TEST)
       gl.depthFunc(gl.LEQUAL)
-      gl.depthMask(true)
+      // 通透版：不写深度——半透明山体纯叠加，重叠区柔和透色，消除硬切边
+      gl.depthMask(false)
       gl.enable(gl.BLEND)
       // 非 premultiplied 输出（文档允许显式切换 blendFunc）
       gl.blendFuncSeparate(
@@ -330,7 +356,7 @@ export function createGaussianPeaksLayer(id = "gauss-peaks-mesh") {
   return {
     layer,
     setData(next: PeakPoint[]) {
-      points = next
+      points = aggregate(next)
       if (glCtx) dirty = true
     },
     setSkin(next: SkinKind) {

@@ -14586,14 +14586,16 @@ function WbBlockView({
   files,
   onPreview,
   onAction,
+  onFollowUp,
 }: {
   b: WbBlock
   files: WbFile[]
   onPreview: (id: string) => void
   onAction: (label: string) => void
+  onFollowUp?: (id: string) => void
 }) {
   const box: CSSProperties = {
-    border: `1px solid ${T.border}`,
+    border: "none",
     borderRadius: 8,
     padding: "9px 11px",
     backgroundColor: "var(--row-bg)",
@@ -14892,6 +14894,51 @@ function WbBlockView({
                   {f.version} · {f.size}
                 </span>
               </span>
+              {onFollowUp && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onFollowUp(f.id)
+                  }}
+                  title={`针对《${f.name}》追问`}
+                  style={{
+                    marginLeft: 2,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 3,
+                    fontSize: 10,
+                    color: T.primary,
+                    backgroundColor: "transparent",
+                    border: "none",
+                    padding: "3px 6px",
+                    borderRadius: 5,
+                    cursor: "pointer",
+                    fontWeight: 500,
+                    flexShrink: 0,
+                    opacity: 0.85,
+                  }}
+                  onMouseEnter={(e) => {
+                    ;(e.currentTarget as HTMLButtonElement).style.backgroundColor = "rgba(50,109,255,0.10)"
+                  }}
+                  onMouseLeave={(e) => {
+                    ;(e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"
+                  }}
+                >
+                  <svg
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                  </svg>
+                  追问
+                </button>
+              )}
             </div>
           )
         })}
@@ -14904,7 +14951,7 @@ function WbBlockView({
           fontSize: 10.5,
           color: T.textSub,
           backgroundColor: "var(--chip-bg)",
-          border: `1px solid ${T.border}`,
+          border: "none",
           borderRadius: 6,
           padding: "4px 9px",
           lineHeight: 1.6,
@@ -15434,8 +15481,15 @@ function AIWorkbench() {
     setWbZoom(1)
     setWbWide(false)
   }
-  // 新建对话：两档业务入口（业务问答 / 分析成稿）
-  const [newEntry, setNewEntry] = useState<WbDialogType | null>(null)
+  // 针对文件的追问：设置后输入框围绕该文件追问，右侧同步预览该文件；切换会话后自动清除
+  const [wbFollowFileId, setWbFollowFileId] = useState<string | null>(null)
+  const wbFollowFile = (wbFollowFileId && files.find((f) => f.id === wbFollowFileId)) || null
+  function startWbFollowUp(fileId: string) {
+    setWbFollowFileId(fileId)
+    openWbPreview(fileId)
+  }
+  // 复杂模式开关：默认关闭（直接作答）；开启后深度思考 + 多步执行
+  const [wbMode, setWbMode] = useState<"simple" | "complex">("simple")
   // 业务问答 → 整理为报告：确认页（标题 / 纳入轮次 / 意图）
   const [exportConfirm, setExportConfirm] = useState<{
     title: string
@@ -15457,6 +15511,11 @@ function AIWorkbench() {
     (activeDialog?.fileId && files.find((f) => f.id === activeDialog.fileId)) ||
     null
   const qaQuestionCount = activeConv.filter((m) => m.role === "user").length
+
+  // 切换会话后清除文件追问上下文（追问只属于发起它的那个会话）
+  useEffect(() => {
+    setWbFollowFileId(null)
+  }, [activeDialogId])
 
   function setMsgs(dialogId: string, fn: (prev: WbMsg[]) => WbMsg[]) {
     setConversations((prev) => ({ ...prev, [dialogId]: fn(prev[dialogId] || []) }))
@@ -15514,8 +15573,12 @@ function AIWorkbench() {
       setTimeout(fn, delay)
     }
     schedule(() => {
-      // 思考完成 → 第一个执行步骤开始
-      markStep(0, { done: true, label: `已深度思考`, detail: spec.thinkDetail })
+      // 思考完成 → 第一个执行步骤开始（完成标记按模式区分：深度思考 / 思考）
+      markStep(0, {
+        done: true,
+        label: thinkLabel.includes("深度") ? "已深度思考" : "已思考",
+        detail: spec.thinkDetail,
+      })
       if (spec.acts.length) {
         setMsgs(dialogId, (prev) => {
           const next = [...prev]
@@ -15633,6 +15696,13 @@ function AIWorkbench() {
             thinkDetail: "识别到改状态 / 派发类意图；本期对话不执行业务操作，仅返回能力边界说明。",
             acts: ["识别业务操作意图", "按本期边界返回说明"],
           }
+        : wbMode === "simple"
+        ? {
+            // 简单模式：跳过深度思考与多步执行，直接作答
+            think: "思考中…",
+            thinkDetail: "快速定位问题口径，直接检索并作答。",
+            acts: ["生成回答"],
+          }
         : {
             think: "深度思考中…",
             thinkDetail: "解析问题口径，定位需要的时间窗、空间范围与事件类型，规划查询与计算步骤。",
@@ -15694,15 +15764,22 @@ function AIWorkbench() {
       setGen({ dialogId, title, fileId, pct: 0, template: false })
       runAgentFlow(
         dialogId,
-        {
-          think: "深度思考中…",
-          thinkDetail: `确定《${title}》的章节结构（综合态势 / 事件发生 / 流程运行），规划各章所需数据与口径。`,
-          acts: [
-            "汇总综合态势：发现、存续、严重件",
-            "汇总事件发生与流程运行数据",
-            "套用报告模板渲染版式并生成文件",
-          ],
-        },
+        wbMode === "simple"
+          ? {
+              // 简单模式：压缩为单步生成
+              think: "思考中…",
+              thinkDetail: `按《${title}》常用结构直接组织正文并生成文件。`,
+              acts: ["套用模板生成报告文件"],
+            }
+          : {
+              think: "深度思考中…",
+              thinkDetail: `确定《${title}》的章节结构（综合态势 / 事件发生 / 流程运行），规划各章所需数据与口径。`,
+              acts: [
+                "汇总综合态势：发现、存续、严重件",
+                "汇总事件发生与流程运行数据",
+                "套用报告模板渲染版式并生成文件",
+              ],
+            },
         {
           role: "ai",
           content: `《${title}》已生成。\n\n主要发现：\n• 本周发现事件 312 件，较上周增加 12%\n• 闭环 265 件，闭环率 85%，处置时长 2.4h\n• 朝阳门、东直门街道为高发区域\n\n文件已保存，可点击下方卡片预览。`,
@@ -15724,11 +15801,18 @@ function AIWorkbench() {
       : "围绕当前报告：闭环率 85%，处置时长 2.4h，朝阳门、东直门为高发区域。"
     runAgentFlow(
       dialogId,
-      {
-        think: "深度思考中…",
-        thinkDetail: "在当前报告的口径与数据边界内定位该问题，不引入报告外的新数据。",
-        acts: ["定位报告对应章节", "按报告口径复核数据"],
-      },
+      wbMode === "simple"
+        ? {
+            // 简单模式：直接按报告口径作答
+            think: "思考中…",
+            thinkDetail: "按当前报告口径直接检索并作答。",
+            acts: ["生成回答"],
+          }
+        : {
+            think: "深度思考中…",
+            thinkDetail: "在当前报告的口径与数据边界内定位该问题，不引入报告外的新数据。",
+            acts: ["定位报告对应章节", "按报告口径复核数据"],
+          },
       {
         role: "ai",
         content: ans,
@@ -15737,10 +15821,45 @@ function AIWorkbench() {
     )
   }
 
+  // 针对文件追问：围绕该文件内容作答（示例口径），不改动文件本身
+  function sendFollowUp(dialogId: string, fileId: string, text: string) {
+    const f = files.find((x) => x.id === fileId)
+    const name = f?.name ?? "该文件"
+    setMsgs(dialogId, (prev) => [
+      ...prev,
+      { role: "user", content: text },
+      { role: "status", content: "" },
+    ])
+    runAgentFlow(
+      dialogId,
+      wbMode === "simple"
+        ? {
+            // 简单模式：直接按文件内容作答
+            think: "思考中…",
+            thinkDetail: `快速读取《${name}》要点，直接作答。`,
+            acts: ["生成回答"],
+          }
+        : {
+            think: "深度思考中…",
+            thinkDetail: `定位《${name}》的内容结构与数据口径，围绕文件本身作答，不引入文件外新数据。`,
+            acts: [`读取《${name}》内容`, "围绕文件内容生成回答"],
+          },
+      {
+        role: "ai",
+        content: `围绕《${name}》回答：\n\n• 核心结论：本周发现事件 312 件，闭环 265 件，闭环率 85%，处置时长 2.4h\n• 数据口径：${f?.scope || "近7日 · 全区"} · 网格巡查 + AI 识别 + 市民上报（去重）\n• 高发区域：朝阳门、东直门街道\n\n以上为围绕该文件的示例回答（演示数据）。可继续追问，或点击右侧文件对照查看。`,
+      }
+    )
+  }
+
   function sendMessage() {
     if (!chatInput.trim() || !activeDialog || gen) return
     const text = chatInput.trim()
     setChatInput("")
+    if (wbFollowFileId) {
+      // 追问模式：输入内容围绕指定文件作答
+      sendFollowUp(activeDialog.id, wbFollowFileId, text)
+      return
+    }
     if (activeDialog.type === "qa") sendQA(activeDialog.id, text)
     else sendReport(activeDialog.id, text)
   }
@@ -15798,34 +15917,29 @@ function AIWorkbench() {
     setActiveDialogId(id)
   }
 
-  // 新建对话：确认两档入口
-  function confirmNewEntry() {
-    if (!newEntry) return
+  // 新建对话：直接创建（默认统一问答入口，不再弹类型选择）
+  function createDialog(type: WbDialogType = "qa") {
     const id = `d-${Date.now()}`
-    const isQA = newEntry === "qa"
     setDialogs((prev) => [
       {
         id,
-        title: isQA ? "业务问答 · 08-31" : "分析成稿 · 08-31",
+        title: type === "qa" ? "业务问答 · 08-31" : "分析成稿 · 08-31",
         time: "08-31 16:20",
-        type: newEntry,
+        type,
       },
       ...prev,
     ])
     setConversations((prev) => ({
       ...prev,
-      [id]: isQA
-        ? [
-            {
-              role: "ai",
-              content: "您好，这里是业务问答。我会按当前口径直接给结论，通常几秒内回复。",
-            },
-          ]
-        : [],
+      [id]: [
+        {
+          role: "ai",
+          content: "您好，这里是业务问答。我会按当前口径直接给结论，通常几秒内回复。",
+        },
+      ],
     }))
     setActiveDialogId(id)
     setActiveTab("dialogs")
-    setNewEntry(null)
   }
 
   // 业务问答 → 整理为报告：打开确认页
@@ -15987,7 +16101,7 @@ function AIWorkbench() {
             {activeTab === "dialogs" && (
               <>
                 <button
-                  onClick={() => setNewEntry("qa")}
+                  onClick={() => createDialog("qa")}
                   style={{
                     width: "100%",
                     marginBottom: 8,
@@ -16046,19 +16160,6 @@ function AIWorkbench() {
                       >
                         {d.title}
                       </span>
-                      <span
-                        style={{
-                          fontSize: 9,
-                          backgroundColor: WB_TYPE_META[d.type].bg,
-                          color: WB_TYPE_META[d.type].color,
-                          padding: "1px 5px",
-                          borderRadius: 4,
-                          fontWeight: 600,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {WB_TYPE_META[d.type].label}
-                      </span>
                       {d.fileId && (
                         <span
                           style={{
@@ -16085,13 +16186,24 @@ function AIWorkbench() {
               files.map((f) => (
                 <div
                   key={f.id}
-                  onClick={() => openWbPreview(f.id)}
-                  title="点击预览文件"
+                  onClick={() => {
+                    // 选中文件记录：右侧预览该文件；有来源会话时中间对话同步切换为该会话
+                    openWbPreview(f.id)
+                    if (f.dialogId) setActiveDialogId(f.dialogId)
+                  }}
+                  title={f.dialogId ? "点击查看：中间=来源会话，右侧=文件预览" : "点击预览文件"}
                   style={{
                     padding: "9px 10px",
                     marginBottom: 5,
                     borderRadius: 8,
-                    border: `1px solid ${T.border}`,
+                    border:
+                      wbPreviewId === f.id
+                        ? "1px solid rgba(50,109,255,0.55)"
+                        : `1px solid ${T.border}`,
+                    boxShadow:
+                      wbPreviewId === f.id
+                        ? "0 0 0 1px rgba(50,109,255,0.25)"
+                        : "none",
                     cursor: "pointer",
                     backgroundColor: "var(--chip-bg)",
                   }}
@@ -16123,6 +16235,7 @@ function AIWorkbench() {
                         e.stopPropagation()
                         setActiveDialogId(f.dialogId!)
                         setActiveTab("dialogs")
+                        openWbPreview(f.id)
                       }}
                       style={{
                         marginTop: 5,
@@ -16304,6 +16417,80 @@ function AIWorkbench() {
               ) : null}
             </div>
           )}
+          {/* 本页规则：固定在对话区顶部，不随消息滚动 */}
+          <div
+            style={{
+              margin: "10px 16px 0",
+              flexShrink: 0,
+              border: `1px solid ${T.border}`,
+              borderRadius: 9,
+              backgroundColor: "var(--row-bg)",
+              overflow: "hidden",
+            }}
+          >
+            <button
+              onClick={() => setWbRulesOpen(!wbRulesOpen)}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "7px 12px",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontSize: 11,
+                fontWeight: 600,
+                color: T.text,
+              }}
+            >
+              <span style={{ color: T.primary }}>{wbRulesOpen ? "▾" : "▸"}</span>
+              本页规则
+              <span style={{ fontSize: 10, color: T.textMuted, fontWeight: 400 }}>
+                只查询与成稿，不办理 · 数字均为示例（点开看本期要有 / 不要做）
+              </span>
+            </button>
+            {wbRulesOpen && (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 12,
+                  padding: "4px 12px 10px",
+                  borderTop: `1px solid ${T.border}`,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, color: T.green, margin: "6px 0 4px" }}>本期要有</div>
+                  {[
+                    "历史会话可找回；新建不带上一条条件",
+                    "五类问答：摘要 + 结构化结果（列表缩略图 / 详情多图 / 饼环图 / 曲线 / 空间排行）",
+                    "推荐问题点击即提交；有答案后才出现「整理成周报」",
+                    "报告：生成前确认 → 只读预览 → PDF 与 DOCX 同版本",
+                  ].map((s) => (
+                    <div key={s} style={{ fontSize: 10.5, color: T.textSub, lineHeight: 1.7, display: "flex", gap: 5 }}>
+                      <span style={{ color: T.green }}>·</span>
+                      <span>{s}</span>
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, color: T.amber, margin: "6px 0 4px" }}>本期不要</div>
+                  {[
+                    "对话改状态、转交、派发、重新激活",
+                    "任务中心真实调度 / 定时与条件任务",
+                    "上传模板、生成后改正文、PPT",
+                    "AI 查档 / 大屏 AI 解读 / 实时治理跟办入口",
+                  ].map((s) => (
+                    <div key={s} style={{ fontSize: 10.5, color: T.textSub, lineHeight: 1.7, display: "flex", gap: 5 }}>
+                      <span style={{ color: T.amber }}>·</span>
+                      <span>{s}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
           <div ref={msgsBoxRef} style={{ flex: 1, overflowY: "auto", padding: 16 }}>
             {!activeConv.some((m) => m.role === "user") && (
               <div
@@ -16321,79 +16508,6 @@ function AIWorkbench() {
                 {activeDialog?.type === "report"
                   ? "这是一条分析成稿对话。描述要生成的报告，或围绕当前报告追问。"
                   : "这是一条业务问答对话。点击下方推荐问题直接提问，或输入你的问题。"}
-                <div
-                  style={{
-                    marginTop: 18,
-                    textAlign: "left",
-                    border: `1px solid ${T.border}`,
-                    borderRadius: 9,
-                    backgroundColor: "var(--row-bg)",
-                    overflow: "hidden",
-                  }}
-                >
-                  <button
-                    onClick={() => setWbRulesOpen(!wbRulesOpen)}
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "9px 12px",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      fontSize: 11.5,
-                      fontWeight: 600,
-                      color: T.text,
-                    }}
-                  >
-                    <span style={{ color: T.primary }}>{wbRulesOpen ? "▾" : "▸"}</span>
-                    本页规则
-                    <span style={{ fontSize: 10.5, color: T.textMuted, fontWeight: 400 }}>
-                      只查询与成稿，不办理 · 数字均为示例（点开看本期要有 / 不要做）
-                    </span>
-                  </button>
-                  {wbRulesOpen && (
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: 12,
-                        padding: "4px 12px 12px",
-                        borderTop: `1px solid ${T.border}`,
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontSize: 10.5, fontWeight: 700, color: T.green, margin: "8px 0 4px" }}>本期要有</div>
-                        {[
-                          "历史会话可找回；新建不带上一条条件",
-                          "五类问答：摘要 + 结构化结果（列表缩略图 / 详情多图 / 饼环图 / 曲线 / 空间排行）",
-                          "推荐问题点击即提交；有答案后才出现「整理成周报」",
-                          "报告：生成前确认 → 只读预览 → PDF 与 DOCX 同版本",
-                        ].map((s) => (
-                          <div key={s} style={{ fontSize: 10.5, color: T.textSub, lineHeight: 1.7, display: "flex", gap: 5 }}>
-                            <span style={{ color: T.green }}>·</span>
-                            <span>{s}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 10.5, fontWeight: 700, color: T.amber, margin: "8px 0 4px" }}>本期不要</div>
-                        {[
-                          "对话改状态、转交、派发、重新激活",
-                          "任务中心真实调度 / 定时与条件任务",
-                          "上传模板、生成后改正文、PPT",
-                          "AI 查档 / 大屏 AI 解读 / 实时治理跟办入口",
-                        ].map((s) => (
-                          <div key={s} style={{ fontSize: 10.5, color: T.textSub, lineHeight: 1.7, display: "flex", gap: 5 }}>
-                            <span style={{ color: T.amber }}>·</span>
-                            <span>{s}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
               </div>
             )}
             {activeConv.map((msg, i) => {
@@ -16485,7 +16599,7 @@ function AIWorkbench() {
                   ) : (
                     <div
                       style={{
-                        maxWidth: "75%",
+                        maxWidth: msg.role === "user" ? "75%" : "92%",
                         display: "flex",
                         flexDirection: "column",
                         gap: 8,
@@ -16495,12 +16609,12 @@ function AIWorkbench() {
                     >
                       <div
                         style={{
-                          padding: "10px 13px",
-                          borderRadius: 10,
+                          padding:
+                            msg.role === "user" ? "10px 13px" : "2px 2px 2px 0",
+                          borderRadius: msg.role === "user" ? 10 : 0,
                           backgroundColor:
-                            msg.role === "user" ? T.primary : T.card2,
-                          border:
-                            msg.role === "ai" ? `1px solid ${T.border}` : "none",
+                            msg.role === "user" ? T.primary : "transparent",
+                          border: "none",
                           fontSize: 12,
                           color: msg.role === "user" ? T.cardSolid : T.text,
                           lineHeight: 1.6,
@@ -16508,7 +16622,7 @@ function AIWorkbench() {
                           boxShadow:
                             msg.role === "user"
                               ? "0 3px 10px rgba(50,109,255,0.2)"
-                              : "0 2px 8px rgba(22,45,77,0.05)",
+                              : "none",
                         }}
                       >
                         {/* 回复流程：思考 → 执行 → 输出（正文在步骤之后出现） */}
@@ -16597,6 +16711,7 @@ function AIWorkbench() {
                                 files={files}
                                 onPreview={openWbPreview}
                                 onAction={(action) => handleBlockAction(activeDialogId!, conversations[activeDialogId!].indexOf(msg), action)}
+                                onFollowUp={startWbFollowUp}
                               />
                             ))}
                           </div>
@@ -16676,6 +16791,49 @@ function AIWorkbench() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
+                                  startWbFollowUp(f.id)
+                                }}
+                                title={`针对《${f.name}》追问`}
+                                style={{
+                                  marginLeft: 2,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 3,
+                                  fontSize: 10,
+                                  color: T.primary,
+                                  backgroundColor: "transparent",
+                                  border: "none",
+                                  padding: "3px 6px",
+                                  borderRadius: 5,
+                                  cursor: "pointer",
+                                  fontWeight: 500,
+                                  flexShrink: 0,
+                                  opacity: 0.85,
+                                }}
+                                onMouseEnter={(e) => {
+                                  ;(e.currentTarget as HTMLButtonElement).style.backgroundColor = "rgba(50,109,255,0.10)"
+                                }}
+                                onMouseLeave={(e) => {
+                                  ;(e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"
+                                }}
+                              >
+                                <svg
+                                  width="11"
+                                  height="11"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                                </svg>
+                                追问
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
                                   setActiveTab("files")
                                 }}
                                 style={{
@@ -16712,7 +16870,7 @@ function AIWorkbench() {
                                       applyWriteIn(activeDialog.id, key)
                                     else if (s.kind === "goQA") goQAFromReport()
                                     else if (s.kind === "newReport")
-                                      setNewEntry("report")
+                                      createDialog("report")
                                   }}
                                   style={{
                                     fontSize: 11,
@@ -16746,7 +16904,14 @@ function AIWorkbench() {
               flexShrink: 0,
             }}
           >
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+            <div
+              style={{
+                display: wbFollowFile ? "none" : "flex",
+                gap: 6,
+                flexWrap: "wrap",
+                marginBottom: 8,
+              }}
+            >
               {(activeDialog?.type === "report"
                 ? [
                     "生成上周东城治理周报",
@@ -16791,39 +16956,198 @@ function AIWorkbench() {
                 />
               </span>
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <textarea
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault()
-                    sendMessage()
-                  }
-                }}
-                placeholder={
-                  activeDialog?.type === "report"
-                    ? "围绕当前报告追问…（Enter发送）"
-                    : "按当前口径查询治理数据，直接给结论…（Enter发送）"
-                }
+            {/* 输入容器：追问上下文以内嵌引用 chip 形式置于输入框内部（对话内统一风格） */}
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                alignItems: "flex-end",
+                padding: "7px 9px",
+                backgroundColor: T.card2,
+                border: wbFollowFile
+                  ? "1px solid rgba(50,109,255,0.45)"
+                  : `1px solid ${T.border}`,
+                borderRadius: 8,
+                transition: "border-color .15s ease",
+              }}
+            >
+              <div
                 style={{
                   flex: 1,
-                  padding: "9px 12px",
-                  backgroundColor: T.card2,
-                  border: `1px solid ${T.border}`,
-                  borderRadius: 7,
-                  color: T.text,
-                  fontSize: 12,
-                  resize: "none",
-                  height: 56,
-                  fontFamily: "inherit",
-                  lineHeight: 1.5,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                  minWidth: 0,
                 }}
-              />
+              >
+                {wbFollowFile && (
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      alignSelf: "flex-start",
+                      padding: "2px 6px 2px 3px",
+                      backgroundColor: "var(--glass-bg-strong)",
+                      border: `1px solid ${T.border}`,
+                      borderRadius: 6,
+                      maxWidth: "100%",
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: 4,
+                        background:
+                          wbFollowFile.type === "PDF"
+                            ? "linear-gradient(135deg,#E45E58,#FF9A7B)"
+                            : "linear-gradient(135deg,#326DFF,#24D6D2)",
+                        color: "#fff",
+                        fontSize: 6,
+                        fontWeight: 800,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {wbFollowFile.type}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        color: T.text,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {wbFollowFile.name}
+                    </span>
+                    <button
+                      onClick={() => setWbFollowFileId(null)}
+                      title="退出文件追问"
+                      style={{
+                        border: "none",
+                        background: "none",
+                        color: T.textMuted,
+                        fontSize: 12,
+                        lineHeight: 1,
+                        cursor: "pointer",
+                        padding: 0,
+                        flexShrink: 0,
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+                <textarea
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault()
+                      sendMessage()
+                    }
+                  }}
+                  placeholder={
+                    wbFollowFile
+                      ? `针对《${wbFollowFile.name}》追问…（Enter发送）`
+                      : activeDialog?.type === "report"
+                      ? "围绕当前报告追问…（Enter发送）"
+                      : "按当前口径查询治理数据，直接给结论…（Enter发送）"
+                  }
+                  style={{
+                    flex: 1,
+                    padding: "2px 2px 0",
+                    backgroundColor: "transparent",
+                    border: "none",
+                    outline: "none",
+                    color: T.text,
+                    fontSize: 12,
+                    resize: "none",
+                    height: 42,
+                    fontFamily: "inherit",
+                    lineHeight: 1.5,
+                  }}
+                />
+                {/* 复杂模式开关：默认关闭（直接作答）；开启后深度思考 + 多步执行 */}
+                <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <button
+                    onClick={() => setWbMode((v) => (v === "simple" ? "complex" : "simple"))}
+                    title={
+                      wbMode === "complex"
+                        ? "复杂模式已开启，点击关闭"
+                        : "开启复杂模式：深度思考 + 多步执行，适合复杂分析与成稿"
+                    }
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: wbMode === "complex" ? T.primary : T.textMuted,
+                      backgroundColor:
+                        wbMode === "complex" ? "rgba(50,109,255,0.08)" : "transparent",
+                      border: "none",
+                      padding: "2px 6px",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      transition: "all .15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      ;(e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                        wbMode === "complex" ? "rgba(50,109,255,0.12)" : "rgba(22,45,77,0.05)"
+                    }}
+                    onMouseLeave={(e) => {
+                      ;(e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                        wbMode === "complex" ? "rgba(50,109,255,0.08)" : "transparent"
+                    }}
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5z" />
+                      <path d="M19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7L19 15z" />
+                    </svg>
+                    复杂模式
+                    {wbMode === "complex" && (
+                      <svg
+                        width="11"
+                        height="11"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+                  <span style={{ fontSize: 9.5, color: T.textMuted }}>
+                    {wbMode === "complex" ? "已开启" : "未开启"}
+                  </span>
+                </div>
+              </div>
               <button
                 onClick={sendMessage}
                 style={{
-                  padding: "0 16px",
+                  width: 30,
+                  height: 30,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   backgroundColor: T.primary,
                   color: T.cardSolid,
                   border: "none",
@@ -16833,8 +17157,8 @@ function AIWorkbench() {
                 }}
               >
                 <svg
-                  width="16"
-                  height="16"
+                  width="14"
+                  height="14"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="white"
@@ -17288,174 +17612,7 @@ function AIWorkbench() {
           {wbToast}
         </div>
       )}
-      {newEntry && (
-        <div
-          onClick={() => setNewEntry(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(22,45,77,0.35)",
-            backdropFilter: "blur(4px)",
-            zIndex: 60,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: 540,
-              backgroundColor: T.panelSolid,
-              borderRadius: 14,
-              boxShadow: "0 24px 64px rgba(22,45,77,0.25)",
-              padding: 20,
-            }}
-          >
-            <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>
-              新建对话
-            </div>
-            <div style={{ fontSize: 11, color: T.textMuted, marginTop: 3 }}>
-              先选择业务入口，用来锁定成果物
-            </div>
-            <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-              {(["qa", "report"] as WbDialogType[]).map((m) => {
-                const meta = WB_TYPE_META[m]
-                const selected = newEntry === m
-                return (
-                  <div
-                    key={m}
-                    onClick={() => setNewEntry(m)}
-                    style={{
-                      flex: 1,
-                      padding: "12px 14px",
-                      borderRadius: 10,
-                      cursor: "pointer",
-                      border: selected
-                        ? `2px solid ${T.primary}`
-                        : `1px solid ${T.border}`,
-                      backgroundColor: selected
-                        ? "rgba(50,109,255,0.04)"
-                        : "var(--row-bg)",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        marginBottom: 6,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 700,
-                          color: meta.color,
-                        }}
-                      >
-                        {meta.label}
-                      </span>
-                      {m === "qa" && (
-                        <span
-                          style={{
-                            fontSize: 9,
-                            color: T.textMuted,
-                            border: `1px solid ${T.border}`,
-                            padding: "1px 5px",
-                            borderRadius: 4,
-                          }}
-                        >
-                          默认
-                        </span>
-                      )}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: T.textSub,
-                        lineHeight: 1.7,
-                      }}
-                    >
-                      {m === "qa"
-                        ? "查数、看趋势、解释口径、追问某张图或某个范围。"
-                        : "日报、周报、月报、年报、专题报告、汇报材料。"}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 10,
-                        color: T.textMuted,
-                        lineHeight: 1.7,
-                        marginTop: 6,
-                      }}
-                    >
-                      成果物：
-                      {m === "qa"
-                        ? "摘要，加上详情、列表、表格、图表或地图；可继续问"
-                        : "生成前先确认范围；完成后只读预览，可下载 PDF 和 DOCX；正文不可在系统内改"}
-                      <br />
-                      等待：
-                      {m === "qa" ? "通常几秒，可多轮" : "生成中仅显示进度，完成后可预览与下载"}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-            <div
-              style={{
-                fontSize: 10,
-                color: T.textMuted,
-                marginTop: 12,
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              <span>页面上的全部数字均为示例；生成前会先与您确认范围。</span>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: 8,
-                marginTop: 16,
-              }}
-            >
-              <button
-                onClick={() => setNewEntry(null)}
-                style={{
-                  padding: "8px 16px",
-                  backgroundColor: "transparent",
-                  color: T.textMuted,
-                  border: `1px solid ${T.border}`,
-                  borderRadius: 8,
-                  cursor: "pointer",
-                  fontSize: 12,
-                }}
-              >
-                取消
-              </button>
-              <button
-                onClick={confirmNewEntry}
-                style={{
-                  padding: "8px 18px",
-                  background: `linear-gradient(135deg, ${T.primary} 0%, #5A8BFF 100%)`,
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  cursor: "pointer",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  boxShadow: "0 4px 12px rgba(50,109,255,0.25)",
-                }}
-              >
-                开始对话
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 新建对话：类型选择弹窗已移除，统一问答入口（见 createDialog） */}
       {/* 业务问答 → 整理为报告：确认页 */}
       {exportConfirm && (
         <div

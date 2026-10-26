@@ -136,9 +136,9 @@ export default function DongchengHeatmapMap({
       : "light",
   )
   // 热力样式：经典热力云 / 高斯峰状热力（共用同一份点位数据，仅渲染方式不同）
-  const [heatMode, setHeatMode] = useState<HeatMode>("classic")
-  // 3D 视角（俯仰 + 可拖拽旋转）；高斯模式默认开启以呈现峰体
-  const [pitched, setPitched] = useState(false)
+  const [heatMode, setHeatMode] = useState<HeatMode>("gaussian")
+  // 3D 视角（俯仰 + 可拖拽旋转）：默认开启 3D 倾斜视角呈现峰体
+  const [pitched, setPitched] = useState(true)
   const [layersReady, setLayersReady] = useState(false)
   // 高斯 3D 网格图层句柄（真实三角网格曲面，见 gaussianPeaksLayer.ts）
   const meshRef = useRef<ReturnType<typeof createGaussianPeaksLayer> | null>(
@@ -581,11 +581,18 @@ export default function DongchengHeatmapMap({
     applyVisibility()
   }, [heatMode, layersReady])
 
-  // 3D 视角：俯仰角过渡
+  // 3D 视角：俯仰角过渡；倾斜时辖区面/描边淡化融入底图（大面积纯色面在斜视角下突兀），
+  // 恢复俯视还原
   useEffect(() => {
     const map = mapRef.current
     if (!map || !layersReady) return
     map.easeTo({ pitch: pitched ? 55 : 0, duration: 700 })
+    try {
+      map.setPaintProperty("street-fills", "fill-opacity", pitched ? 0.2 : 0.82)
+      map.setPaintProperty("street-lines", "line-opacity", pitched ? 0.25 : 1)
+    } catch {
+      // 图层尚未就绪时忽略，下一次切换会重新应用
+    }
   }, [pitched, layersReady])
 
   // Sync grid visibility + highlight
