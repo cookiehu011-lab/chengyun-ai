@@ -4693,6 +4693,9 @@ function CaseDecisionPage({
           flex: 1,
           display: "grid",
           gridTemplateColumns: "1fr 340px",
+          maxWidth: 1180,
+          margin: "0 auto",
+          width: "100%",
           overflow: "hidden",
           gap: 12,
           padding: 12,
@@ -5984,6 +5987,9 @@ function InspectDecisionPage({
           flex: 1,
           display: "grid",
           gridTemplateColumns: "1fr 320px",
+          maxWidth: 1180,
+          margin: "0 auto",
+          width: "100%",
           overflow: "hidden",
           gap: 12,
           padding: 12,
@@ -6017,7 +6023,7 @@ function InspectDecisionPage({
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
                 gap: 10,
-                maxWidth: 720,
+                maxWidth: 790,
               }}
             >
               {/* 发生中 */}
@@ -6184,7 +6190,7 @@ function InspectDecisionPage({
                 alt="处置后"
                 style={{
                   width: "100%",
-                  maxWidth: 720,
+                  maxWidth: 790,
                   aspectRatio: "16/9",
                   objectFit: "cover",
                   display: "block",
@@ -6853,6 +6859,9 @@ function VoidDecisionPage({
           flex: 1,
           display: "grid",
           gridTemplateColumns: "1fr 320px",
+          maxWidth: 1180,
+          margin: "0 auto",
+          width: "100%",
           overflow: "hidden",
           gap: 12,
           padding: 12,
@@ -6867,6 +6876,7 @@ function VoidDecisionPage({
             gap: 12,
           }}
         >
+          {/* 现场图片（ImageGallery 非 compact：16:9 自适应 + 880 封宽） */}
           <Card style={{ padding: 12 }}>
             <div
               style={{
