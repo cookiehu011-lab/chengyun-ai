@@ -453,8 +453,8 @@ function KpiStrip({
     )
   }
   // 实况五卡（口径见 DASH_RULES.kpi）：今日接入 / AI 自主发现 / 按期办结率 / 平均处置时长 / 超时预警。
-  // 本期无时限：AI 自主发现、按期办结率、平均处置时长、超时预警均显示「—」；昨日为 0 时今日接入环比显示「—」。
-  // （示例数据：282 件为演示值，DAY_HEAT[12] 为昨日相对量）
+  // 今日接入为实算演示值（282 = 在办 211 + 今日闭环 71）；其余四卡为演示 mock 数据（本版未接时限系统），
+  // 算法口径弹层中已标注「演示数据」。
   const yesterdayDemo = DAY_HEAT[12] ?? 0
   const cells = [
     <KpiCell
@@ -470,31 +470,40 @@ function KpiStrip({
     <KpiCell
       key="ai"
       label="AI 自主发现"
-      value="—"
+      value="261 件 · 占 92.6%"
       plain
-      title="这一版来源几乎都是相机，比率还不能算，显示「—」"
+      delta="▲2.1%"
+      deltaColor={T.green}
+      title="AI 自主发现 = 相机识别直接生成的线索件数（不含人工上报来源）÷ 今日接入 · 演示数据"
     />,
     <KpiCell
       key="rate"
       label="按期办结率"
-      value="—"
-      plain
-      title="这一期没有时限，显示「—」"
+      value="92.3"
+      unit="%"
+      delta="▲1.2pt"
+      deltaColor={T.green}
+      title="按期办结率 = 当日按期办结事件 ÷ 当日应办结事件 · 本版未接时限系统，数值为演示数据"
     />,
     <KpiCell
       key="duration"
       label="平均处置时长"
-      value="—"
-      plain
-      title="平均处置时长 = 派发成功到终态的有效时长合计 ÷ 已派发且已终态的事件数。本版不计时限，暂不计算。"
+      value="4.6"
+      unit="小时"
+      delta="▼18分"
+      deltaColor={T.green}
+      title="平均处置时长 = 派发成功到终态的有效时长合计 ÷ 已派发且已终态的事件数。本版未接时限系统，数值为演示数据。"
       ruleId="kpi_duration"
     />,
     <KpiCell
       key="timeout"
       label="超时预警"
-      value="—"
-      plain
-      title="超时预警 = 已派发、尚未终态、且已过提醒点或已过时限的事件件数。本版不计时限，暂不计算。"
+      value="7"
+      unit="件"
+      valueColor={T.red}
+      delta="▲2"
+      deltaColor={T.amber}
+      title="超时预警 = 已派发、尚未终态、且已过提醒点或已过时限的事件件数。只提醒并标识超时，不改变事件状态 · 演示数据。"
       ruleId="kpi_timeout"
     />,
   ]
