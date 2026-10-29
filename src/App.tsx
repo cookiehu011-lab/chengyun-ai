@@ -3204,7 +3204,7 @@ const pendingCaseEvents: BatchEvent[] = [
     agentStatus: "已完成查重、空间匹配",
     suggestedGrid: "朝阳门南小街网格",
     imgUrls: [eventImage("占道经营", "during")],
-    situation: { text: "正常立案", type: "normal" },
+    situation: { text: "待确认是否立案", type: "info" },
   },
   {
     id: "DC-2026-20558",
@@ -3230,7 +3230,7 @@ const pendingCaseEvents: BatchEvent[] = [
     suggestedGrid: "建国门街道网格",
     hasRisk: true,
     imgUrls: [eventImage("共享单车占道", "during")],
-    situation: { text: "Agent 建议：确认责任后由工作流派发", type: "info" },
+    situation: { text: "待确认是否立案", type: "info" },
   },
   {
     id: "DC-2026-20559",
@@ -3242,7 +3242,7 @@ const pendingCaseEvents: BatchEvent[] = [
     agentStatus: "已完成查重、空间匹配",
     suggestedGrid: "东四街道网格",
     imgUrls: [eventImage("疑似堆物", "during")],
-    situation: { text: "Agent 检测：现场画面已消散", type: "readonly" },
+    situation: { text: "已消散", type: "readonly" },
   },
 ]
 const pendingInspectEvents: BatchEvent[] = [
@@ -4549,12 +4549,14 @@ function CaseDecisionPage({
   // 未能匹配网格 → 派发不可用，改点/定网格后可用。
   // 重复上报不再在这里处理：查重命中主事件的回全量识别判无效（NL-02，关联主事件编号）。
   const [submitted, setSubmitted] = useState<
-    null | "dispatch" | "dissipate"
+    null | "dispatch" | "dissipate" | "noCase"
   >(null)
   const [selectedGrid, setSelectedGrid] = useState(event.suggestedGrid || "")
   const [editLevel, setEditLevel] = useState(event.level)
   const [editLocation, setEditLocation] = useState(event.location)
   const [dissipateReason, setDissipateReason] = useState("")
+  const [noCaseOpen, setNoCaseOpen] = useState(false)
+  const [noCaseReason, setNoCaseReason] = useState("")
   const sitType = event.situation.type
   const sitText = event.situation.text
   const isDissipateSit = sitType === "readonly"
@@ -4607,12 +4609,16 @@ function CaseDecisionPage({
           >
             {submitted === "dissipate"
               ? "已记录自然消散结案"
-              : "已确认立案并派发"}
+              : submitted === "noCase"
+                ? "已记录无需立案"
+                : "已确认立案并派发"}
           </div>
           <div style={{ fontSize: 12, color: T.textMuted }}>
             {submitted === "dissipate"
               ? `已记录自然消散结案，事件已归档。`
-              : `立案信息和责任已确认，工作流已派发给责任人（${selectedGrid} · 责任人：李建国）。`}
+              : submitted === "noCase"
+                ? `已记录无需立案，事件归档至事件档案（状态：无需立案）。不派发、不计处置时限。`
+                : `立案信息和责任已确认，工作流已派发给责任人（${selectedGrid} · 责任人：李建国）。`}
           </div>
         </div>
         <button
@@ -5006,52 +5012,6 @@ function CaseDecisionPage({
               </span>
             </div>
           </Card>
-          <Card style={{ padding: 14 }}>
-            <SectionLabel>工作流校验结果</SectionLabel>
-            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              {[
-                {
-                  ok: !isNoGridSit || gridMoved,
-                  text:
-                    isNoGridSit && !gridMoved
-                      ? "网格匹配未通过：坐标未落入辖区网格，需先改点 / 定网格"
-                      : `网格匹配通过：${selectedGrid || "—"}`,
-                },
-                { ok: true, text: "责任人校验通过：李建国 · 在岗 · 可接收派发" },
-                { ok: true, text: "证据材料校验通过：发现前 / 发生中影像已齐备" },
-              ].map((c, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    fontSize: 11.5,
-                    color: c.ok ? T.text : T.amber,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 14,
-                      height: 14,
-                      borderRadius: "50%",
-                      flexShrink: 0,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 9,
-                      fontWeight: 700,
-                      color: "#fff",
-                      backgroundColor: c.ok ? T.green : T.amber,
-                    }}
-                  >
-                    {c.ok ? "✓" : "!"}
-                  </span>
-                  {c.text}
-                </div>
-              ))}
-            </div>
-          </Card>
         </div>
         <Card
           style={{
@@ -5079,7 +5039,7 @@ function CaseDecisionPage({
                   marginBottom: 5,
                 }}
               >
-                Agent 检测：现场画面已消散
+                现场画面已消散
               </div>
               <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                 {[
@@ -5171,7 +5131,7 @@ function CaseDecisionPage({
               </div>
             </div>
           )}
-          {!isDissipateSit && (
+          {!isDissipateSit && !noCaseOpen && (
             <textarea
               style={{
                 width: "100%",
@@ -5198,7 +5158,83 @@ function CaseDecisionPage({
               marginTop: "auto",
             }}
           >
-            {isDissipateSit ? null : (
+            {isDissipateSit ? (
+              <button
+                onClick={() => setSubmitted("dispatch")}
+                disabled={!selectedGrid}
+                style={{
+                  width: "100%",
+                  padding: 11,
+                  backgroundColor: selectedGrid ? T.primary : T.border,
+                  color: T.cardSolid,
+                  border: "none",
+                  borderRadius: 6,
+                  cursor: selectedGrid ? "pointer" : "not-allowed",
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                不认可，继续立案派发
+              </button>
+            ) : noCaseOpen ? (
+              <>
+                <textarea
+                  value={noCaseReason}
+                  onChange={(e) => setNoCaseReason(e.target.value)}
+                  placeholder="请填写无需立案理由（必填）…"
+                  rows={3}
+                  autoFocus
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "8px 10px",
+                    backgroundColor: T.card,
+                    border: `1px solid ${T.border}`,
+                    borderRadius: 6,
+                    color: T.text,
+                    fontSize: 12,
+                    resize: "none",
+                    fontFamily: "inherit",
+                    outline: "none",
+                  }}
+                />
+                <button
+                  onClick={() => noCaseReason.trim() && setSubmitted("noCase")}
+                  disabled={!noCaseReason.trim()}
+                  style={{
+                    width: "100%",
+                    padding: 11,
+                    backgroundColor: noCaseReason.trim() ? T.amber : T.border,
+                    color: T.cardSolid,
+                    border: "none",
+                    borderRadius: 6,
+                    cursor: noCaseReason.trim() ? "pointer" : "not-allowed",
+                    fontSize: 13,
+                    fontWeight: 600,
+                  }}
+                >
+                  确认无需立案
+                </button>
+                <button
+                  onClick={() => {
+                    setNoCaseOpen(false)
+                    setNoCaseReason("")
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: 10,
+                    backgroundColor: "transparent",
+                    color: T.textMuted,
+                    border: `1px solid ${T.border}`,
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    fontSize: 13,
+                  }}
+                >
+                  取消
+                </button>
+              </>
+            ) : (
               <>
                 {isNoGridSit && !gridMoved && (
                   <div
@@ -5234,6 +5270,21 @@ function CaseDecisionPage({
                   }}
                 >
                   确认立案并派发
+                </button>
+                <button
+                  onClick={() => setNoCaseOpen(true)}
+                  style={{
+                    width: "100%",
+                    padding: 10,
+                    backgroundColor: "transparent",
+                    color: T.amber,
+                    border: "1px solid rgba(255,122,66,0.35)",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    fontSize: 13,
+                  }}
+                >
+                  无需立案
                 </button>
               </>
             )}
@@ -6707,7 +6758,7 @@ function VoidDecisionPage({
   onBack: () => void
 }) {
   const [submitted, setSubmitted] = useState<
-    null | "approve" | "reject" | "correct"
+    null | "approve" | "reject"
   >(null)
   const [voidNote, setVoidNote] = useState("")
   if (submitted)
@@ -6751,13 +6802,7 @@ function VoidDecisionPage({
             height="24"
             viewBox="0 0 24 24"
             fill="none"
-            stroke={
-              submitted === "approve"
-                ? T.green
-                : submitted === "reject"
-                  ? T.primary
-                  : T.amber
-            }
+            stroke={submitted === "approve" ? T.green : T.primary}
             strokeWidth="2.5"
           >
             <polyline points="20 6 9 17 4 12" />
@@ -6768,27 +6813,16 @@ function VoidDecisionPage({
             style={{
               fontSize: 15,
               fontWeight: 600,
-              color:
-                submitted === "approve"
-                  ? T.green
-                  : submitted === "reject"
-                    ? T.primary
-                    : T.amber,
+              color: submitted === "approve" ? T.green : T.primary,
               marginBottom: 6,
             }}
           >
-            {submitted === "approve"
-              ? "已批准作废"
-              : submitted === "reject"
-                ? "已驳回申请"
-                : "已转责任纠正"}
+            {submitted === "approve" ? "已批准作废" : "已驳回申请"}
           </div>
           <div style={{ fontSize: 12, color: T.textMuted }}>
             {submitted === "approve"
               ? `事件 ${event.id} 已作废（终态），已归档至事件档案。`
-              : submitted === "reject"
-                ? `事件 ${event.id} 已驳回申请并继续处置，处置时限恢复计算。`
-                : `事件 ${event.id} 已转责任纠正，处置时限保持暂停，待责任信息更正后继续。`}
+              : `事件 ${event.id} 已驳回申请并继续处置，处置时限恢复计算。`}
           </div>
         </div>
         <button
@@ -7075,22 +7109,6 @@ function VoidDecisionPage({
               }}
             >
               驳回申请并继续处置
-            </button>
-            <button
-              onClick={() => voidNote.trim() !== "" && setSubmitted("correct")}
-              disabled={voidNote.trim() === ""}
-              style={{
-                width: "100%",
-                padding: 10,
-                backgroundColor: "transparent",
-                color: voidNote.trim() !== "" ? T.amber : T.textMuted,
-                border: `1px solid ${voidNote.trim() !== "" ? "rgba(255,122,66,0.35)" : T.border}`,
-                borderRadius: 6,
-                cursor: voidNote.trim() !== "" ? "pointer" : "not-allowed",
-                fontSize: 13,
-              }}
-            >
-              责任信息有误，转责任纠正
             </button>
           </div>
         </Card>
@@ -11825,7 +11843,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
 
 interface ArchiveEvent {
   id: string
-  finalStatus: "已结案" | "已作废" | "无效"
+  finalStatus: "已结案" | "已作废" | "无效" | "无需立案"
   type: string
   location: string
   happenTime: string
@@ -11905,16 +11923,30 @@ const archiveEvents: ArchiveEvent[] = [
       eventImage("店外经营占道", "during"),
     ],
   },
+  {
+    id: "DC-2026-08112",
+    finalStatus: "无需立案",
+    type: "店外经营占道",
+    location: "东四南大街14号临街店面",
+    happenTime: "2026-08-14 10:32",
+    endTime: "2026-08-14 10:47",
+    inspector: "王倩",
+    duration: "15分钟",
+    hasRecurrence: false,
+    imgUrls: [eventImage("店外经营占道", "during")],
+  },
 ]
 const stColor: Record<string, string> = {
   已结案: T.green,
   已作废: T.textMuted,
   无效: T.red,
+  无需立案: T.amber,
 }
 const stBg: Record<string, string> = {
   已结案: "rgba(53,185,133,0.08)",
   已作废: "rgba(110,129,151,0.08)",
   无效: "rgba(228,94,88,0.08)",
+  无需立案: "rgba(255,122,66,0.08)",
 }
 
 // 时间线步骤（已结案事件专用）
@@ -12282,7 +12314,7 @@ function EventArchive() {
                 boxShadow: "inset 0 1px 2px rgba(22,45,77,0.04)",
               }}
             >
-              {["全部", "已结案", "已作废", "无效"].map((s) => {
+              {["全部", "已结案", "已作废", "无效", "无需立案"].map((s) => {
                 const active = filterStatus === s
                 return (
                   <button
@@ -13184,7 +13216,9 @@ function EventArchive() {
                   />
                   {selected.finalStatus === "已作废"
                     ? "该事件已作废（终态），已归档至事件档案。"
-                    : "该事件经审核判定不属于治理事件范围，已标记为无效归档。"}
+                    : selected.finalStatus === "无需立案"
+                      ? "该事件经立案人确认无需立案，未派发、不计处置时限，已归档至事件档案。"
+                      : "该事件经审核判定不属于治理事件范围，已标记为无效归档。"}
                 </div>
               )}
             </div>

@@ -572,7 +572,7 @@ function reducer(state: GcState, action: Action): GcState {
 // V1.1 起存储键带版本号：与 /v1/（V1.0，gc-native-v1）、/v1.1/（V1.1，gc-native-v1.1）互不读写、来回切换不互相覆盖
 const STORAGE_KEY = "gc-native-v1.2"
 /** 种子数据版本：卡片列结构 / 种子内容变化时 +1；本地缓存 seedRev 不一致则丢弃缓存、整体回种子 */
-const SEED_REV = 3
+const SEED_REV = 4
 interface GcStore {
   state: GcState
   dispatch: React.Dispatch<Action>
