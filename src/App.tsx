@@ -6719,59 +6719,6 @@ function InspectDecisionPage({
               </div>
             ))}
           </Card>
-          {/* 办理时间线 — 只读、不换图；两种样例：仅网格员已交 / 督察员已回传（12号提示词 §3） */}
-          <Card style={{ padding: 14 }}>
-            <SectionLabel>办理时间线</SectionLabel>
-            {(event.tl ?? []).map((s, i, arr) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "7px 0",
-                  borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: s.current ? 700 : 600,
-                    color: s.current ? T.primary : T.text,
-                    width: 122,
-                    flexShrink: 0,
-                  }}
-                >
-                  {s.step}
-                  {s.current ? "（当前）" : ""}
-                </span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: T.textMuted,
-                    fontFamily: T.mono,
-                    width: 88,
-                    flexShrink: 0,
-                  }}
-                >
-                  {s.time}
-                </span>
-                <span style={{ fontSize: 11, color: T.textSub, flex: 1, minWidth: 0 }}>
-                  {s.actor}
-                </span>
-                <span
-                  style={{
-                    fontSize: 10,
-                    color: s.imgs > 0 ? T.text : T.textMuted,
-                    fontWeight: s.imgs > 0 ? 600 : 400,
-                    flexShrink: 0,
-                  }}
-                >
-                  图 {s.imgs} 张
-                </span>
-              </div>
-            ))}
-          </Card>
         </div>
         <Card
           style={{
