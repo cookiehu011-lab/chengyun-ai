@@ -6222,6 +6222,8 @@ function EvidenceCompare({
   const g = groups.find((x) => x.key === tab) ?? groups[0]
   const curUrl = g.urls[Math.min(idx, Math.max(0, g.urls.length - 1))]
   const leftUrl = occurringUrls[Math.min(leftIdx, Math.max(0, occurringUrls.length - 1))]
+  // 无处置后、无核查时（如无效 / 无需立案）：只显示发生时刻，不预留空的对照主图
+  const single = gridUrls.length === 0 && fieldUrls.length === 0
   const badgeStyle: React.CSSProperties = {
     position: "absolute",
     top: 6,
@@ -6305,7 +6307,8 @@ function EvidenceCompare({
         }}
       >
         <SectionLabel style={{ marginBottom: 0 }}>证据对照</SectionLabel>
-        {/* 胶囊分段开关：只有处置后 / 核查两档；无回传时只出现「处置后」 */}
+        {/* 胶囊分段开关：只有处置后 / 核查两档；无回传时只出现「处置后」，无对照源时整排不出现 */}
+        {!single && (
         <div
           role="group"
           aria-label="证据档位"
@@ -6347,8 +6350,16 @@ function EvidenceCompare({
             )
           })}
         </div>
+        )}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: single ? "1fr" : "1fr 1fr",
+          gap: 10,
+          maxWidth: single ? 390 : undefined,
+        }}
+      >
         {/* 左：只放发生时刻图，点击进同机位叠图 */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 700, letterSpacing: "0.04em" }}>
@@ -6384,7 +6395,8 @@ function EvidenceCompare({
           </div>
           {occurringUrls.length > 1 && film(occurringUrls, leftIdx, setLeftIdx)}
         </div>
-        {/* 右：一次只显示一档；胶片条只含当前档 */}
+        {/* 右：一次只显示一档；胶片条只含当前档（无对照源时不渲染） */}
+        {!single && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 700, letterSpacing: "0.04em" }}>
             对照
@@ -6419,6 +6431,7 @@ function EvidenceCompare({
           </div>
           {g.urls.length > 1 && film(g.urls, Math.min(idx, g.urls.length - 1), onIdx)}
         </div>
+        )}
       </div>
     </div>
   )
@@ -12171,8 +12184,18 @@ interface ArchiveEvent {
   gridSubmits?: SubmitRec[]
   /** 督察员外场回传（现场反馈不是核查结论） */
   fieldReturns?: FieldReturnRec[]
-  /** 自定义完整处置时间线（缺省用 closedTimeline） */
-  timeline?: { time: string; title: string; actor: string; color: string; desc: string }[]
+  /**
+   * 处理轨迹（只读）：按事件实际走过的节点写，没发生过的环节不编。
+   * imgs 为该环节的材料张数，缺省按 0 张显示（0 张也保留该段）。
+   */
+  timeline?: {
+    time: string
+    title: string
+    actor: string
+    color: string
+    desc: string
+    imgs?: number
+  }[]
 }
 const archiveEvents: ArchiveEvent[] = [
   {
@@ -12194,21 +12217,21 @@ const archiveEvents: ArchiveEvent[] = [
       { by: "李建国", time: "2026-08-18 18:55", note: "现场已全部清理完毕，上传处置后图2张，申请核查", imgs: 2 },
     ],
     timeline: [
-      { time: "14:22", title: "AI摄像头识别", actor: "系统", color: T.primary,
+      { time: "14:22", title: "AI摄像头识别", actor: "系统", color: T.primary, imgs: 1,
         desc: "CAM-CYM-023 识别到地铁口西侧大量共享单车无序堆放，置信度 91%，触发自动上报" },
-      { time: "14:23", title: "Agent自动处理", actor: "Agent", color: T.accent,
+      { time: "14:23", title: "Agent自动处理", actor: "Agent", color: T.accent, imgs: 0,
         desc: "完成查重（无存续重复事件）、坐标匹配（朝阳门南小街网格 ±4m）、证据打包，预填立案字段，AI建议立案" },
-      { time: "14:31", title: "人工立案审核", actor: "张晓琳", color: T.primary,
+      { time: "14:31", title: "人工立案审核", actor: "张晓琳", color: T.primary, imgs: 0,
         desc: "审核员确认立案，事件等级调整为「较重」，派发至朝阳门南小街网格，责任人：李建国" },
-      { time: "14:45", title: "网格员接单", actor: "李建国（网格员）", color: T.purple,
+      { time: "14:45", title: "网格员接单", actor: "李建国（网格员）", color: T.purple, imgs: 0,
         desc: "接收任务并到场，反馈「已到达，正在联系共享单车运营方」" },
-      { time: "16:10", title: "运营方介入", actor: "李建国（网格员）", color: T.purple,
+      { time: "16:10", title: "运营方介入", actor: "李建国（网格员）", color: T.purple, imgs: 2,
         desc: "运营方到场整理，网格员现场监督清场，上传处置中图2张" },
-      { time: "18:55", title: "网格员提交处置", actor: "李建国（网格员）", color: T.purple,
+      { time: "18:55", title: "网格员提交处置", actor: "李建国（网格员）", color: T.purple, imgs: 2,
         desc: "上传处置后图2张并填写处置说明「现场已全部清理完毕」→ 进入待核查" },
-      { time: "19:08", title: "AI核查对照", actor: "Agent", color: T.accent,
+      { time: "19:08", title: "AI核查对照", actor: "Agent", color: T.accent, imgs: 0,
         desc: "处置后图与发生时刻图对照，确认违规情况已消除，建议结案，置信度 96%；仍由核查人决定" },
-      { time: "2026-08-19 09:15", title: "人工核查结案", actor: "张晓琳（核查人）", color: T.green,
+      { time: "2026-08-19 09:15", title: "人工核查结案", actor: "张晓琳（核查人）", color: T.green, imgs: 0,
         desc: "核查人确认结案并归档（人工决定），总处置时长 18小时53分" },
     ],
   },
@@ -12244,6 +12267,7 @@ const archiveEvents: ArchiveEvent[] = [
         title: "AI摄像头识别",
         actor: "系统",
         color: T.primary,
+        imgs: 1,
         desc: "CAM-ADM-014 识别到临街商户前暴露垃圾堆积，置信度 93%，触发自动上报（图1张）",
       },
       {
@@ -12251,6 +12275,7 @@ const archiveEvents: ArchiveEvent[] = [
         title: "人工立案审核",
         actor: "张晓琳",
         color: T.primary,
+        imgs: 0,
         desc: "确认立案，派发安定门街道网格，责任人：赵磊",
       },
       {
@@ -12258,6 +12283,7 @@ const archiveEvents: ArchiveEvent[] = [
         title: "网格员提交处置",
         actor: "赵磊（网格员）",
         color: T.purple,
+        imgs: 2,
         desc: "上传处置后图2张并填写处置说明「已清运完毕，现场冲洗干净」→ 进入待核查",
       },
       {
@@ -12265,6 +12291,7 @@ const archiveEvents: ArchiveEvent[] = [
         title: "AI核查对照",
         actor: "Agent",
         color: T.accent,
+        imgs: 0,
         desc: "处置后图与发生时刻图对照，建议结案；置信度不足阈值，转人工核查",
       },
       {
@@ -12272,6 +12299,7 @@ const archiveEvents: ArchiveEvent[] = [
         title: "发起外场督查",
         actor: "张晓琳（核查人）",
         color: T.purple,
+        imgs: 0,
         desc: "证据角度存疑，派督察员外场督查，事件转入待督查",
       },
       {
@@ -12279,6 +12307,7 @@ const archiveEvents: ArchiveEvent[] = [
         title: "督察员现场回传",
         actor: "孙倩（督察员）",
         color: T.purple,
+        imgs: 2,
         desc: "现场反馈「已恢复」，同机位回传督查图2张。注：现场反馈，不是核查结论",
       },
       {
@@ -12286,6 +12315,7 @@ const archiveEvents: ArchiveEvent[] = [
         title: "回到待核查",
         actor: "系统",
         color: T.textMuted,
+        imgs: 0,
         desc: "事件第二次进入待核查，等待核查人决定",
       },
       {
@@ -12293,6 +12323,7 @@ const archiveEvents: ArchiveEvent[] = [
         title: "人工核查结案",
         actor: "张晓琳（核查人）",
         color: T.green,
+        imgs: 0,
         desc: "核查人确认结案并归档（人工决定，与督察员现场反馈分开记录），总时长 25小时38分",
       },
     ],
@@ -12317,25 +12348,25 @@ const archiveEvents: ArchiveEvent[] = [
       { by: "王强", time: "2026-08-18 14:10", note: "剩余违规广告全部拆除完毕，采集处置后图2张", imgs: 2 },
     ],
     timeline: [
-      { time: "09:00", title: "AI摄像头识别", actor: "系统", color: T.primary,
+      { time: "09:00", title: "AI摄像头识别", actor: "系统", color: T.primary, imgs: 1,
         desc: "CAM-DZM-008 识别到东直门内大街32号楼南立面新增无证广告牌，置信度 92%，触发自动上报" },
-      { time: "09:03", title: "Agent自动处理", actor: "Agent", color: T.accent,
+      { time: "09:03", title: "Agent自动处理", actor: "Agent", color: T.accent, imgs: 0,
         desc: "查重无存续重复事件，坐标匹配东直门内大街网格，证据打包，预填立案字段，AI建议立案" },
-      { time: "09:14", title: "人工立案审核", actor: "陈明", color: T.primary,
+      { time: "09:14", title: "人工立案审核", actor: "陈明", color: T.primary, imgs: 0,
         desc: "审核员确认立案，事件等级「较重」，派发至东直门内大街网格，责任人：王强" },
-      { time: "13:05", title: "网格员接单", actor: "王强（网格员）", color: T.purple,
+      { time: "13:05", title: "网格员接单", actor: "王强（网格员）", color: T.purple, imgs: 0,
         desc: "到场核实，广告牌固定于楼体南立面，需联系商户配合拆除" },
-      { time: "15:20", title: "网格员提交处置", actor: "王强（网格员）", color: T.purple,
+      { time: "15:20", title: "网格员提交处置", actor: "王强（网格员）", color: T.purple, imgs: 1,
         desc: "第 1 次提交：广告牌已拆除一半，上传处置图1张，说明「剩余部分当日未能完成」→ 进入待核查" },
-      { time: "15:32", title: "AI核查对照", actor: "Agent", color: T.accent,
+      { time: "15:32", title: "AI核查对照", actor: "Agent", color: T.accent, imgs: 0,
         desc: "处置图与发生时刻图对照，违规情况部分消除，置信度不足阈值，转人工核查" },
-      { time: "16:45", title: "核查人退回处置", actor: "陈明（核查人）", color: T.red,
+      { time: "16:45", title: "核查人退回处置", actor: "陈明（核查人）", color: T.red, imgs: 0,
         desc: "证据不足且问题未闭环（广告牌仍有一半未拆），退回继续处置，不计入退回上限" },
-      { time: "2026-08-18 14:10", title: "网格员再次提交", actor: "王强（网格员）", color: T.purple,
+      { time: "2026-08-18 14:10", title: "网格员再次提交", actor: "王强（网格员）", color: T.purple, imgs: 2,
         desc: "第 2 次提交（本次）：剩余违规广告全部拆除完毕，上传处置后图2张 → 回到待核查" },
-      { time: "2026-08-18 14:26", title: "AI核查对照", actor: "Agent", color: T.accent,
+      { time: "2026-08-18 14:26", title: "AI核查对照", actor: "Agent", color: T.accent, imgs: 0,
         desc: "两次处置后图与发生时刻图对照，违规情况已消除，建议结案；仍由核查人决定" },
-      { time: "2026-08-18 16:40", title: "人工核查结案", actor: "陈明（核查人）", color: T.green,
+      { time: "2026-08-18 16:40", title: "人工核查结案", actor: "陈明（核查人）", color: T.green, imgs: 0,
         desc: "核查人确认结案并归档（人工决定，与核查退回分开记录），总处置时长 31小时40分" },
     ],
   },
@@ -12349,7 +12380,24 @@ const archiveEvents: ArchiveEvent[] = [
     inspector: "张晓琳",
     duration: "27小时30分",
     hasRecurrence: false,
-    imgUrls: [eventImage("违规施工", "after")],
+    imgUrls: [eventImage("违规施工", "during")],
+    // 已作废：只写实际走过的节点（发现 → 立案 → 待处置 → 作废申请 → 待作废审核 → 批准作废）
+    timeline: [
+      { time: "07:30", title: "AI摄像头识别", actor: "系统", color: T.primary, imgs: 1,
+        desc: "CAM-JGM-006 识别到在建项目围挡外渣土未覆盖，置信度 89%，触发自动上报" },
+      { time: "07:41", title: "人工立案审核", actor: "张晓琳", color: T.primary, imgs: 0,
+        desc: "审核员确认立案，事件等级「一般」，派发至建国门外大街网格，责任人：李建国" },
+      { time: "07:58", title: "待处置", actor: "网格员 李建国", color: T.purple, imgs: 0,
+        desc: "任务派发至网格员，进入待处置" },
+      { time: "2026-08-16 15:20", title: "网格员现场反馈无法处置", actor: "李建国（网格员）", color: T.purple, imgs: 1,
+        desc: "到场核实：该地块产权方不在本辖区，责任主体判定有误，非本网格可处置范围，上传现场照片1张" },
+      { time: "2026-08-16 15:35", title: "作废申请", actor: "李建国（网格员）", color: T.amber, imgs: 0,
+        desc: "申请人按事件标准「作废申请原因」提交：ZF-01 责任主体判定错误；附现场证据与申请说明，申请作废" },
+      { time: "2026-08-16 15:36", title: "待作废审核", actor: "系统", color: T.textMuted, imgs: 0,
+        desc: "事件转入待作废审核，处置时限暂停，等待审核人处理" },
+      { time: "2026-08-17 11:00", title: "批准作废", actor: "张晓琳（审核人）", color: T.textMuted, imgs: 0,
+        desc: "审核人核对产权与责任边界，批准作废：原因 ZF-01 责任主体判定错误；流程终止并归档" },
+    ],
   },
   {
     id: "DC-2026-08129",
@@ -12362,6 +12410,15 @@ const archiveEvents: ArchiveEvent[] = [
     duration: "27分钟",
     hasRecurrence: false,
     imgUrls: [eventImage("乱堆杂物（误报）", "during")],
+    // 无效：只写实际走过的节点（发现 → 判定无效），不编立案 / 处置 / 核查 / 督查
+    timeline: [
+      { time: "21:18", title: "AI摄像头识别", actor: "系统", color: T.primary, imgs: 1,
+        desc: "CAM-BXQ-011 识别到胡同深处堆放杂物，置信度 74%（低于阈值，转人工复核），触发上报" },
+      { time: "21:22", title: "全量识别审核", actor: "陈明", color: T.primary, imgs: 0,
+        desc: "审核人查看发生时刻图与线索信息，进入无效判定" },
+      { time: "2026-08-15 21:45", title: "判定无效", actor: "陈明（审核人）", color: T.red, imgs: 0,
+        desc: "固定原因：不属于事件范围（NL-01）。该处为居民装修材料临时堆放并已向胡同管家报备，不构成违规；不立案、不派发、不计时，归档至事件档案" },
+    ],
   },
   {
     id: "DC-2026-08121",
@@ -12382,19 +12439,19 @@ const archiveEvents: ArchiveEvent[] = [
       { by: "周敏", time: "2026-08-15 16:40", note: "店外物品已归店入室，占道解除，采集处置后图2张", imgs: 2 },
     ],
     timeline: [
-      { time: "12:10", title: "AI摄像头识别", actor: "系统", color: T.primary,
+      { time: "12:10", title: "AI摄像头识别", actor: "系统", color: T.primary, imgs: 1,
         desc: "CAM-DSS-021 识别到餐馆门前桌椅货架外摆占道，置信度 90%，触发自动上报" },
-      { time: "12:12", title: "Agent自动处理", actor: "Agent", color: T.accent,
+      { time: "12:12", title: "Agent自动处理", actor: "Agent", color: T.accent, imgs: 0,
         desc: "查重无存续重复事件，坐标匹配东四十条网格，证据打包，预填立案字段，AI建议立案" },
-      { time: "12:26", title: "人工立案审核", actor: "张晓琳", color: T.primary,
+      { time: "12:26", title: "人工立案审核", actor: "张晓琳", color: T.primary, imgs: 0,
         desc: "审核员确认立案，事件等级「一般」，派发至东四十条网格，责任人：周敏" },
-      { time: "12:41", title: "网格员接单", actor: "周敏（网格员）", color: T.purple,
+      { time: "12:41", title: "网格员接单", actor: "周敏（网格员）", color: T.purple, imgs: 0,
         desc: "到场核实并告知商户，商户配合将店外桌椅货架收回店内" },
-      { time: "16:40", title: "网格员提交处置", actor: "周敏（网格员）", color: T.purple,
+      { time: "16:40", title: "网格员提交处置", actor: "周敏（网格员）", color: T.purple, imgs: 2,
         desc: "店外物品已归店入室，上传处置后图2张并填写处置说明 → 进入待核查" },
-      { time: "16:52", title: "AI核查对照", actor: "Agent", color: T.accent,
+      { time: "16:52", title: "AI核查对照", actor: "Agent", color: T.accent, imgs: 0,
         desc: "处置后图与发生时刻图对照，占道已解除，建议结案；仍由核查人决定" },
-      { time: "17:55", title: "人工核查结案", actor: "张晓琳（核查人）", color: T.green,
+      { time: "17:55", title: "人工核查结案", actor: "张晓琳（核查人）", color: T.green, imgs: 0,
         desc: "核查人确认结案并归档（人工决定），总处置时长 5小时45分" },
     ],
   },
@@ -12409,6 +12466,17 @@ const archiveEvents: ArchiveEvent[] = [
     duration: "15分钟",
     hasRecurrence: false,
     imgUrls: [eventImage("店外经营占道", "during")],
+    // 无需立案：只写实际走过的节点（发现 → 审核有效 → 待立案 → 无需立案）
+    timeline: [
+      { time: "10:32", title: "AI摄像头识别", actor: "系统", color: T.primary, imgs: 1,
+        desc: "CAM-DSN-017 识别到临街店面门前物品外摆，置信度 86%，触发自动上报" },
+      { time: "10:35", title: "审核有效", actor: "王倩（审核人）", color: T.primary, imgs: 0,
+        desc: "审核人确认线索有效，事件进入待立案" },
+      { time: "10:36", title: "待立案", actor: "系统", color: T.textMuted, imgs: 0,
+        desc: "事件进入待立案，等待立案人确认立案或无需立案" },
+      { time: "2026-08-14 10:47", title: "无需立案", actor: "王倩（立案人）", color: T.amber, imgs: 0,
+        desc: "立案人确认无需立案，理由：商户在门前划定的临时卸货区内作业，属合规经营；不派发、不计处置时限，归档至事件档案" },
+    ],
   },
 ]
 const stColor: Record<string, string> = {
@@ -13511,10 +13579,10 @@ function EventArchive() {
                 </div>
               )}
 
-              {/* 已结案：完整时间线 */}
-              {selected.finalStatus === "已结案" && (
+              {/* 处理轨迹 — 只读、不换图；按事件实际走过的节点写，无效 / 已作废同样展示（每段写环节 / 时间 / 角色 / 图张数） */}
+              {(selected.timeline?.length ?? 0) > 0 && (
                 <>
-                  <SectionLabel style={{ marginBottom: 10 }}>完整处置过程</SectionLabel>
+                  <SectionLabel style={{ marginBottom: 10 }}>处理轨迹</SectionLabel>
                   <div style={{ position: "relative", paddingLeft: 22 }}>
                     <div
                       style={{
@@ -13585,6 +13653,16 @@ function EventArchive() {
                               }}
                             >
                               {step.actor}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 10,
+                                color: (step.imgs ?? 0) > 0 ? T.text : T.textMuted,
+                                fontWeight: (step.imgs ?? 0) > 0 ? 700 : 400,
+                                fontFamily: T.mono,
+                              }}
+                            >
+                              图 {step.imgs ?? 0} 张
                             </span>
                             <span
                               style={{
