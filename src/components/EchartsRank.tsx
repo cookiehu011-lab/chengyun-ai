@@ -23,6 +23,7 @@ export default function EchartsRank({
   thresholds,
   warningThreshold,
   sort = true,
+  onItemClick,
   skin,
 }: {
   data: { name: string value: number color?: string }[]
@@ -33,6 +34,7 @@ export default function EchartsRank({
   thresholds?: Threshold[]
   warningThreshold?: number
   sort?: boolean
+  onItemClick?: (name: string, value: number) => void
   skin?: Skin
 }) {
   const chartRef = useRef<HTMLDivElement>(null)
@@ -143,13 +145,17 @@ export default function EchartsRank({
 
     instance.setOption(option, true)
 
+    const handleClick = (p: any) => onItemClick?.(String(p.name), Number(p.value))
+    if (onItemClick) instance.on("click", handleClick)
+
     const handleResize = () => instance.resize()
     window.addEventListener("resize", handleResize)
     return () => {
+      if (onItemClick) instance.off("click", handleClick)
       window.removeEventListener("resize", handleResize)
       instance.dispose()
     }
-  }, [data, valueSuffix, colorize, colors, thresholds, warningThreshold, sort, skin])
+  }, [data, valueSuffix, colorize, colors, thresholds, warningThreshold, sort, onItemClick, skin])
 
   return <div ref={chartRef} style={{ width: "100%", height }} />
 }

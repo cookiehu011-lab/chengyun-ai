@@ -3,7 +3,6 @@ import { assetUrl } from "./assetUrl"
 import DongchengHeatmapMap from "./components/DongchengHeatmapMap?v=cr37"
 import AIConclusion from "./components/AIConclusion?v=cr8"
 import EventCarousel from "./components/EventCarousel?v=cr51"
-import AIStatisticsModule from "./modules/AIStatistics"
 import AIStatisticsV2 from "./modules/AIStatisticsV2"
 import GovernanceConfigNative from "./modules/gc/GovernanceConfigNative"
 import { GcProvider, useGc } from "./modules/gc/store"
@@ -141,14 +140,9 @@ export type ModuleId =
   // 自定义菜单项（菜单管理创建的占位模块）：保留内置 6 项的自动补全，同时放行任意字符串 id
   | (string & {})
 
-// 版本口径（2026-10-14）：默认地址展示原产品功能（AI 统计 1.0 七类版）；
-// 仅带 ?v=2 时渲染 AI 统计 2.0 四类收敛版。
-const IS_V2_STATS =
-  typeof window !== "undefined" &&
-  new URLSearchParams(window.location.search).get("v") === "2"
-
+// V1.3：AI 统计直接进入四类收敛版，不再保留七类切换与 ?v=2 入口。
 // 原型版本标识：随评审版本更新，展示在顶栏右侧（见 TopNav）
-const APP_VERSION = "V1.2"
+const APP_VERSION = "V1.3"
 
 function Card({
   children,
@@ -18490,7 +18484,7 @@ const DEFAULT_NAV_CONFIG: MenuAdminItem[] = [
   { id: "config", label: "治理配置", iconKey: "gear", builtin: true },
 ]
 
-const NAV_STORAGE_KEY = "app-nav-config-v1.2"
+const NAV_STORAGE_KEY = "app-nav-config-v1.3"
 
 function loadNavConfig(): MenuAdminItem[] {
   try {
@@ -18668,23 +18662,6 @@ function TopNav({
                 {navIcon(item.iconKey)}
               </span>
               {item.label}
-              {item.id === "statistics" && IS_V2_STATS && (
-                <span
-                  title="AI统计 2.0 · 四类收敛版"
-                  style={{
-                    fontSize: 9,
-                    fontWeight: 800,
-                    lineHeight: 1,
-                    padding: "2px 5px",
-                    borderRadius: 6,
-                    color: "#fff",
-                    background: `linear-gradient(135deg, ${T.primary}, #24D6D2)`,
-                    letterSpacing: "0.03em",
-                  }}
-                >
-                  2.0
-                </span>
-              )}
               {isActive && (
                 <span
                   style={{
@@ -19400,7 +19377,7 @@ function AppShell() {
   // 皮肤状态：清爽（浅色）/ 科技（深空蓝），持久化并同步 <html data-theme>
   const [skin, setSkin] = useState<"light" | "tech">(() => {
     try {
-      const v = localStorage.getItem("app-skin-v1.2")
+      const v = localStorage.getItem("app-skin-v1.3")
       return v === "tech" ? "tech" : "light"
     } catch {
       return "light"
@@ -19410,7 +19387,7 @@ function AppShell() {
     // 用 data-skin 承载皮肤（宿主运行时会强制改写 data-theme，故与其解耦）
     document.documentElement.setAttribute("data-skin", skin)
     try {
-      localStorage.setItem("app-skin-v1.2", skin)
+      localStorage.setItem("app-skin-v1.3", skin)
     } catch {
       /* ignore */
     }
@@ -19460,16 +19437,9 @@ function AppShell() {
         )}
         {activeModule === "realtime" && <RealtimeGovernance identity={identity} />}
         {activeModule === "archive" && <EventArchive />}
-        {activeModule === "statistics" &&
-          (IS_V2_STATS ? (
-            <AIStatisticsV2
-              skin={skin}
-              onGoArchive={() => setActiveModule("archive")}
-              onGoRealtime={() => setActiveModule("realtime")}
-            />
-          ) : (
-            <AIStatistics skin={skin} />
-          ))}
+        {activeModule === "statistics" && (
+          <AIStatisticsV2 skin={skin} />
+        )}
         {activeModule === "workbench" && <AIWorkbench />}
         {activeModule === "config" && (
           <GovernanceConfigNative identity={identity} onIdentityChange={setIdentity} />

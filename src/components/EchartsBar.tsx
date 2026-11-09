@@ -12,6 +12,9 @@ export default function EchartsBar({
   height = 220,
   valueSuffix = "",
   showLabel = false,
+  itemColors,
+  axisLabelInterval,
+  onItemClick,
   skin,
 }: {
   data: number[]
@@ -20,6 +23,11 @@ export default function EchartsBar({
   height?: number
   valueSuffix?: string
   showLabel?: boolean
+  /** 逐柱配色（用于阶段色序 / 时段最高柱高亮）；传入后优先于 color */
+  itemColors?: string[]
+  /** x 轴标签间隔，24 小时图传 2 表示每 3 小时标一次 */
+  axisLabelInterval?: number
+  onItemClick?: (name: string, value: number) => void
   skin?: Skin
 }) {
   const chartRef = useRef<HTMLDivElement>(null)
@@ -59,7 +67,12 @@ export default function EchartsBar({
         data: xAxis,
         axisLine: { lineStyle: { color: th.axisLine } },
         axisTick: { show: false },
-        axisLabel: { color: th.label, fontSize: 11, fontWeight: 500 },
+        axisLabel: {
+          color: th.label,
+          fontSize: 11,
+          fontWeight: 500,
+          ...(axisLabelInterval !== undefined ? { interval: axisLabelInterval } : {}),
+        },
       },
       yAxis: {
         type: "value",
@@ -68,12 +81,17 @@ export default function EchartsBar({
       },
       series: [
         {
-          data,
+          data: itemColors
+            ? data.map((value, i) => ({
+                value,
+                itemStyle: { color: resolveColor(itemColors[i]) },
+              }))
+            : data,
           type: "bar",
           barWidth: "36%",
           itemStyle: {
             borderRadius: [6, 6, 0, 0],
-            color: barColor,
+            color: itemColors ? undefined : barColor,
             shadowColor: "rgba(50,109,255,0.18)",
             shadowBlur: 8,
             shadowOffsetY: 3,
@@ -98,13 +116,17 @@ export default function EchartsBar({
 
     instance.setOption(option, true)
 
+    const handleClick = (p: any) => onItemClick?.(String(p.name), Number(p.value))
+    if (onItemClick) instance.on("click", handleClick)
+
     const handleResize = () => instance.resize()
     window.addEventListener("resize", handleResize)
     return () => {
+      if (onItemClick) instance.off("click", handleClick)
       window.removeEventListener("resize", handleResize)
       instance.dispose()
     }
-  }, [data, xAxis, color, valueSuffix, showLabel, skin])
+  }, [data, xAxis, color, valueSuffix, showLabel, itemColors, axisLabelInterval, onItemClick, skin])
 
   return <div ref={chartRef} style={{ width: "100%", height }} />
 }

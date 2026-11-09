@@ -18,7 +18,7 @@ export interface IdentityState {
 }
 
 // V1.1 起键带版本号：与 /v1/（app-identity-v1）、/v1.1/（app-identity-v1.1）互不读写
-export const IDENTITY_STORAGE_KEY = "app-identity-v1.2"
+export const IDENTITY_STORAGE_KEY = "app-identity-v1.3"
 
 export function loadIdentity(): IdentityState | null {
   try {

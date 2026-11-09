@@ -710,3 +710,34 @@ html[data-skin="tech"] img {
 @keyframes wb-spin {
   to { transform: rotate(360deg); }
 }
+
+/* ── AI 统计 V1.3：数字卡一行最多 4 张；图区默认两列，指定图通栏 ── */
+.stats-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.stats-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.stats-backlog {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid rgba(230, 159, 47, 0.24);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(230, 159, 47, 0.09) 0%, rgba(230, 159, 47, 0.035) 100%);
+}
+@media (max-width: 1200px) {
+  .stats-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .stats-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats-chart-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .stats-kpi-grid { grid-template-columns: 1fr; }
+}

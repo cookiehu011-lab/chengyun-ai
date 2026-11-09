@@ -18,6 +18,8 @@ export default function EchartsPie({
   centerText,
   centerSub,
   colors,
+  showValueInLegend = false,
+  onItemClick,
   skin,
 }: {
   data: { name?: string label?: string value: number color?: string }[]
@@ -25,6 +27,9 @@ export default function EchartsPie({
   centerText?: string
   centerSub?: string
   colors?: string[]
+  /** 图例同时展示件数与占比；默认仅占比，避免影响其他页面 */
+  showValueInLegend?: boolean
+  onItemClick?: (name: string, value: number) => void
   skin?: Skin
 }) {
   const chartRef = useRef<HTMLDivElement>(null)
@@ -115,17 +120,21 @@ export default function EchartsPie({
 
     instance.setOption(option, true)
 
+    const handleClick = (p: any) => onItemClick?.(String(p.name), Number(p.value))
+    if (onItemClick) instance.on("click", handleClick)
+
     const resize = () => instance.resize()
     resize()
     const ro = new ResizeObserver(resize)
     ro.observe(chartRef.current)
     window.addEventListener("resize", resize)
     return () => {
+      if (onItemClick) instance.off("click", handleClick)
       window.removeEventListener("resize", resize)
       ro.disconnect()
       instance.dispose()
     }
-  }, [data, centerText, centerSub, colors, effectiveColors, skin])
+  }, [data, centerText, centerSub, colors, effectiveColors, showValueInLegend, onItemClick, skin])
 
   return (
     <div
@@ -196,7 +205,7 @@ export default function EchartsPie({
                   flexShrink: 0,
                 }}
               >
-                {pct}%
+                {showValueInLegend ? `${d.value} 件 · ${pct}%` : `${pct}%`}
               </span>
             </div>
           )
