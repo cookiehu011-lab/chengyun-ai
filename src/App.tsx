@@ -12269,6 +12269,24 @@ const archiveEvents: ArchiveEvent[] = [
     gridSubmits: [
       { by: "李建国", time: "2026-08-18 18:55", note: "现场已全部清理完毕，上传处置后图2张，申请核查", imgs: 2 },
     ],
+    timeline: [
+      { time: "14:22", title: "AI摄像头识别", actor: "系统", color: T.primary,
+        desc: "CAM-CYM-023 识别到地铁口西侧大量共享单车无序堆放，置信度 91%，触发自动上报" },
+      { time: "14:23", title: "Agent自动处理", actor: "Agent", color: T.accent,
+        desc: "完成查重（无存续重复事件）、坐标匹配（朝阳门南小街网格 ±4m）、证据打包，预填立案字段，AI建议立案" },
+      { time: "14:31", title: "人工立案审核", actor: "张晓琳", color: T.primary,
+        desc: "审核员确认立案，事件等级调整为「较重」，派发至朝阳门南小街网格，责任人：李建国" },
+      { time: "14:45", title: "网格员接单", actor: "李建国（网格员）", color: T.purple,
+        desc: "接收任务并到场，反馈「已到达，正在联系共享单车运营方」" },
+      { time: "16:10", title: "运营方介入", actor: "李建国（网格员）", color: T.purple,
+        desc: "运营方到场整理，网格员现场监督清场，上传处置中图2张" },
+      { time: "18:55", title: "网格员提交处置", actor: "李建国（网格员）", color: T.purple,
+        desc: "上传处置后图2张并填写处置说明「现场已全部清理完毕」→ 进入待核查" },
+      { time: "19:08", title: "AI核查对照", actor: "Agent", color: T.accent,
+        desc: "处置后图与发生时刻图对照，确认违规情况已消除，建议结案，置信度 96%；仍由核查人决定" },
+      { time: "2026-08-19 09:15", title: "人工核查结案", actor: "张晓琳（核查人）", color: T.green,
+        desc: "核查人确认结案并归档（人工决定），总处置时长 18小时53分" },
+    ],
   },
   {
     id: "DC-2026-20580",
@@ -12374,6 +12392,28 @@ const archiveEvents: ArchiveEvent[] = [
       { by: "王强", time: "2026-08-17 15:20", note: "违规广告牌已拆除一半，剩余部分当日未能完成", imgs: 1 },
       { by: "王强", time: "2026-08-18 14:10", note: "剩余违规广告全部拆除完毕，采集处置后图2张", imgs: 2 },
     ],
+    timeline: [
+      { time: "09:00", title: "AI摄像头识别", actor: "系统", color: T.primary,
+        desc: "CAM-DZM-008 识别到东直门内大街32号楼南立面新增无证广告牌，置信度 92%，触发自动上报" },
+      { time: "09:03", title: "Agent自动处理", actor: "Agent", color: T.accent,
+        desc: "查重无存续重复事件，坐标匹配东直门内大街网格，证据打包，预填立案字段，AI建议立案" },
+      { time: "09:14", title: "人工立案审核", actor: "陈明", color: T.primary,
+        desc: "审核员确认立案，事件等级「较重」，派发至东直门内大街网格，责任人：王强" },
+      { time: "13:05", title: "网格员接单", actor: "王强（网格员）", color: T.purple,
+        desc: "到场核实，广告牌固定于楼体南立面，需联系商户配合拆除" },
+      { time: "15:20", title: "网格员提交处置", actor: "王强（网格员）", color: T.purple,
+        desc: "第 1 次提交：广告牌已拆除一半，上传处置图1张，说明「剩余部分当日未能完成」→ 进入待核查" },
+      { time: "15:32", title: "AI核查对照", actor: "Agent", color: T.accent,
+        desc: "处置图与发生时刻图对照，违规情况部分消除，置信度不足阈值，转人工核查" },
+      { time: "16:45", title: "核查人退回处置", actor: "陈明（核查人）", color: T.red,
+        desc: "证据不足且问题未闭环（广告牌仍有一半未拆），退回继续处置，不计入退回上限" },
+      { time: "2026-08-18 14:10", title: "网格员再次提交", actor: "王强（网格员）", color: T.purple,
+        desc: "第 2 次提交（本次）：剩余违规广告全部拆除完毕，上传处置后图2张 → 回到待核查" },
+      { time: "2026-08-18 14:26", title: "AI核查对照", actor: "Agent", color: T.accent,
+        desc: "两次处置后图与发生时刻图对照，违规情况已消除，建议结案；仍由核查人决定" },
+      { time: "2026-08-18 16:40", title: "人工核查结案", actor: "陈明（核查人）", color: T.green,
+        desc: "核查人确认结案并归档（人工决定，与核查退回分开记录），总处置时长 31小时40分" },
+    ],
   },
   {
     id: "DC-2026-08138",
@@ -12417,6 +12457,22 @@ const archiveEvents: ArchiveEvent[] = [
     gridSubmits: [
       { by: "周敏", time: "2026-08-15 16:40", note: "店外物品已归店入室，占道解除，采集处置后图2张", imgs: 2 },
     ],
+    timeline: [
+      { time: "12:10", title: "AI摄像头识别", actor: "系统", color: T.primary,
+        desc: "CAM-DSS-021 识别到餐馆门前桌椅货架外摆占道，置信度 90%，触发自动上报" },
+      { time: "12:12", title: "Agent自动处理", actor: "Agent", color: T.accent,
+        desc: "查重无存续重复事件，坐标匹配东四十条网格，证据打包，预填立案字段，AI建议立案" },
+      { time: "12:26", title: "人工立案审核", actor: "张晓琳", color: T.primary,
+        desc: "审核员确认立案，事件等级「一般」，派发至东四十条网格，责任人：周敏" },
+      { time: "12:41", title: "网格员接单", actor: "周敏（网格员）", color: T.purple,
+        desc: "到场核实并告知商户，商户配合将店外桌椅货架收回店内" },
+      { time: "16:40", title: "网格员提交处置", actor: "周敏（网格员）", color: T.purple,
+        desc: "店外物品已归店入室，上传处置后图2张并填写处置说明 → 进入待核查" },
+      { time: "16:52", title: "AI核查对照", actor: "Agent", color: T.accent,
+        desc: "处置后图与发生时刻图对照，占道已解除，建议结案；仍由核查人决定" },
+      { time: "17:55", title: "人工核查结案", actor: "张晓琳（核查人）", color: T.green,
+        desc: "核查人确认结案并归档（人工决定），总处置时长 5小时45分" },
+    ],
   },
   {
     id: "DC-2026-08112",
@@ -12443,66 +12499,6 @@ const stBg: Record<string, string> = {
   无效: "rgba(228,94,88,0.08)",
   无需立案: "rgba(255,122,66,0.08)",
 }
-
-// 时间线步骤（已结案事件专用）
-const closedTimeline = [
-  {
-    time: "14:22",
-    title: "AI摄像头识别",
-    actor: "系统",
-    color: T.primary,
-    desc: "CAM-CYM-023 识别到地铁口西侧大量共享单车无序堆放，置信度 91%，触发自动上报",
-  },
-  {
-    time: "14:23",
-    title: "Agent自动处理",
-    actor: "Agent",
-    color: T.accent,
-    desc: "完成查重（无存续重复事件）、坐标匹配（朝阳门南小街网格 ±4m）、证据打包，预填所有立案字段，AI建议立案",
-  },
-  {
-    time: "14:31",
-    title: "人工立案审核",
-    actor: "张晓琳",
-    color: T.primary,
-    desc: '审核员确认立案，事件等级调整为"较重"，派发至朝阳门南小街网格，责任人：李建国',
-  },
-  {
-    time: "14:45",
-    title: "网格员接单",
-    actor: "李建国",
-    color: T.purple,
-    desc: '网格员李建国接收任务，前往现场，反馈"已到达，正在联系运营方"',
-  },
-  {
-    time: "16:10",
-    title: "运营方介入",
-    actor: "李建国",
-    color: "T.purple",
-    desc: "哈啰出行运营员到场整理，网格员监督清场。上传处置中图2张",
-  },
-  {
-    time: "18:55",
-    title: "处置后图采集",
-    actor: "李建国",
-    color: "T.purple",
-    desc: "现场已全部清理完毕，上传处置后图2张。网格员填写处置报告，申请核查",
-  },
-  {
-    time: "19:08",
-    title: "AI核查",
-    actor: "Agent",
-    color: T.accent,
-    desc: "AI对比发现图与处置后图，确认违规情况已消除，建议结案，置信度 96%",
-  },
-  {
-    time: "2026-08-19 09:15",
-    title: "人工核查结案",
-    actor: "张晓琳",
-    color: T.green,
-    desc: "审核员确认结案，总处置时长 18小时53分，归档事件档案",
-  },
-]
 
 function EventArchive() {
   const [selected, setSelected] = useState<ArchiveEvent | null>(null)
@@ -13606,7 +13602,7 @@ function EventArchive() {
                         backgroundColor: T.border,
                       }}
                     />
-                    {(selected.timeline ?? closedTimeline).map((step, i) => (
+                    {(selected.timeline ?? []).map((step, i) => (
                       <div
                         key={i}
                         style={{ position: "relative", marginBottom: 14 }}
