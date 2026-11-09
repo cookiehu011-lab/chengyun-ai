@@ -1,9 +1,9 @@
-import { Fragment, useMemo, useState } from "react"
+import { Fragment, useMemo, useRef, useState } from "react"
 import EchartsBar from "../components/EchartsBar"
 import EchartsPie from "../components/EchartsPie"
 import EchartsRank from "../components/EchartsRank"
 import KpiIcon from "../components/KpiIcon"
-import { RuleChip, RuleChips } from "../data/dashboardRules"
+import { RuleChips } from "../data/dashboardRules"
 import { STATS2_ALGO_RULES, STATS2_USER_RULES } from "../data/statsV2Rules"
 
 // AI 统计 · V1.3 四类收敛版
@@ -523,17 +523,10 @@ function EmptyBox({ text }: { text: string }) {
   )
 }
 
-function SectionHead({ label, tone = "primary" }: { label: string; tone?: "primary" | "amber" }) {
-  const color = tone === "amber" ? "var(--amber)" : C.primary
-  const bg = tone === "amber" ? "rgba(230,159,47,0.10)" : "rgba(50,109,255,0.08)"
+function SectionHead({ label }: { label: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "2px 0 2px" }}>
-      <span
-        style={{
-          fontSize: 12, fontWeight: 800, letterSpacing: "0.04em", color,
-          padding: "4px 12px", borderRadius: 999, background: bg,
-        }}
-      >
+      <span style={{ fontSize: 13, fontWeight: 800, color: C.text, letterSpacing: "0.02em", whiteSpace: "nowrap" }}>
         {label}
       </span>
       <span style={{ flex: 1, height: 1, background: C.border }} />
@@ -645,11 +638,21 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
   const [type, setType] = useState<string | null>(null)
   const [spaceGran, setSpaceGran] = useState<SpaceGran>("street")
   const [slice, setSlice] = useState<SliceState | null>(null)
+  // 进入流程运行时记住时间；切回其他 tab 时恢复，不偷偷改成「今日」
+  const winBeforeProcess = useRef<TimeWin | null>(null)
 
-  const timeLocked = cat === "process"
+  const filterMeta = `${WIN_LABEL[win]} · ${street ?? "东城全区"} · ${type ?? "全部类型"}`
+  const backlogMeta = `截止此刻 · ${street ?? "东城全区"} · ${type ?? "全部类型"}`
 
-  const filterMeta = `${WIN_LABEL[win]} · ${street ?? "全区"} · ${type ?? "全部类型"}`
-  const backlogMeta = `截止此刻 · ${street ?? "全区"} · ${type ?? "全部类型"}`
+  const handleCatChange = (next: Cat) => {
+    if (next === "process" && cat !== "process") {
+      winBeforeProcess.current = win
+    } else if (cat === "process" && next !== "process" && winBeforeProcess.current !== null) {
+      setWin(winBeforeProcess.current)
+      winBeforeProcess.current = null
+    }
+    setCat(next)
+  }
 
   const v = useMemo(() => {
     const typeIdx = type ? TYPE_DEFS.findIndex((t) => t.label === type) : -1
@@ -863,63 +866,33 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
 
   return (
     <div style={{ flex: 1, overflowY: "auto", padding: "18px 22px 28px" }}>
-      {/* 页头 */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 14 }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <h1 style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: "-0.01em", margin: 0 }}>
-              AI 统计
-            </h1>
-            <RuleChips id="page" userRules={STATS2_USER_RULES} algoRules={STATS2_ALGO_RULES} />
-          </div>
-          <div style={{ fontSize: 12, color: C.muted, marginTop: 5, fontWeight: 500 }}>
-            四类统计 · 在给定筛选下看结构与成效 · 不办理、不在这里结案 · 数字均为示例
-          </div>
-        </div>
-      </div>
-
-      {/* 筛选条：只有时间 / 空间 / 类型三项 */}
+      {/* 筛选条：本页第一屏，滚动时保持可见；只有时间 / 空间 / 类型三项 */}
       <div
-        className="glass-card"
         style={{
-          padding: "10px 14px", marginBottom: 14,
+          position: "sticky", top: 0, zIndex: 20,
+          padding: "10px 14px", marginBottom: 10,
           display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap",
+          background: "var(--panel-solid, #fff)",
+          border: `1px solid ${C.border}`, borderRadius: 12,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <div
-            aria-disabled={timeLocked}
-            style={{
-              display: "flex", gap: 4, background: "var(--card-2)", borderRadius: 10, padding: 3,
-              opacity: timeLocked ? 0.45 : 1,
-            }}
-          >
-            {WINS.map((w) => (
-              <button
-                key={w.id}
-                disabled={timeLocked}
-                onClick={() => setWin(w.id)}
-                style={{
-                  border: "none", cursor: timeLocked ? "not-allowed" : "pointer",
-                  padding: "5px 14px", borderRadius: 8,
-                  fontSize: 12, fontWeight: win === w.id ? 800 : 600,
-                  background: win === w.id ? (timeLocked ? "var(--muted-foreground)" : "var(--primary)") : "transparent",
-                  color: win === w.id ? "#fff" : C.muted,
-                  transition: "all .15s ease",
-                }}
-              >
-                {w.label}
-              </button>
-            ))}
-          </div>
-          {timeLocked && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 11, color: "var(--amber)", fontWeight: 700 }}>
-                本页看的是当前积压，不按时间段统计
-              </span>
-              <RuleChip id="filter_time_locked" label="?" round rules={STATS2_USER_RULES} headerLabel="用户口径" />
-            </span>
-          )}
+        <div style={{ display: "flex", gap: 4, background: "var(--card-2)", borderRadius: 10, padding: 3 }}>
+          {WINS.map((w) => (
+            <button
+              key={w.id}
+              onClick={() => setWin(w.id)}
+              style={{
+                border: "none", cursor: "pointer",
+                padding: "5px 14px", borderRadius: 8,
+                fontSize: 12, fontWeight: win === w.id ? 800 : 600,
+                background: win === w.id ? "var(--primary)" : "transparent",
+                color: win === w.id ? "#fff" : C.muted,
+                transition: "all .15s ease",
+              }}
+            >
+              {w.label}
+            </button>
+          ))}
         </div>
         <select
           value={street ?? ""}
@@ -932,7 +905,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
           style={{ padding: "6px 10px", fontSize: 12, borderRadius: 8, border: "1px solid var(--border)", background: "var(--card)", color: C.text, cursor: "pointer" }}
           aria-label="空间筛选（到街道）"
         >
-          <option value="">空间：全区</option>
+          <option value="">东城全区</option>
           {STREETS.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
         <select
@@ -942,29 +915,28 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
           style={{ padding: "6px 10px", fontSize: 12, borderRadius: 8, border: "1px solid var(--border)", background: "var(--card)", color: C.text, cursor: "pointer" }}
           aria-label="类型筛选"
         >
-          <option value="">类型：全部</option>
+          <option value="">全部类型</option>
           {TYPE_DEFS.map((t) => <option key={t.label} value={t.label}>{t.label}</option>)}
         </select>
         <span style={{ fontSize: 11, color: C.muted, fontWeight: 600, marginLeft: "auto" }}>
-          东城区 · 全区范围 · 相机识别
+          {filterMeta}
         </span>
       </div>
 
-      {/* 四类导航 */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+      {/* 四类导航：下划线标明当前类 */}
+      <div style={{ display: "flex", gap: 22, marginBottom: 10, borderBottom: `1px solid ${C.border}`, flexWrap: "wrap" }}>
         {CATS.map((c) => (
           <button
             key={c.id}
-            onClick={() => setCat(c.id)}
+            onClick={() => handleCatChange(c.id)}
             title={c.hint}
             style={{
-              cursor: "pointer", padding: "8px 18px", borderRadius: 999,
-              border: `1px solid ${cat === c.id ? "transparent" : C.border}`,
-              background: cat === c.id ? `linear-gradient(135deg, ${C.primary}, ${C.cyan})` : "var(--card)",
-              color: cat === c.id ? "#fff" : C.muted,
+              cursor: "pointer", padding: "8px 2px 10px", marginBottom: -1,
+              border: "none", background: "transparent",
+              borderBottom: `2px solid ${cat === c.id ? C.primary : "transparent"}`,
+              color: cat === c.id ? C.text : C.muted,
               fontSize: 13, fontWeight: cat === c.id ? 800 : 600,
-              boxShadow: cat === c.id ? "0 6px 18px rgba(50,109,255,0.30)" : "none",
-              transition: "all .15s ease",
+              transition: "color .15s ease",
             }}
           >
             {c.label}
@@ -972,32 +944,9 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
         ))}
       </div>
 
-      {/* AI 解读 */}
-      <div
-        className="glass-card"
-        style={{
-          padding: "14px 18px", marginBottom: 18,
-          display: "flex", alignItems: "flex-start", gap: 14,
-          background: `linear-gradient(105deg, rgba(91,141,255,0.10) 0%, var(--card) 55%, rgba(46,230,224,0.06) 100%)`,
-          borderLeft: `3px solid ${C.primary}`,
-        }}
-      >
-        <div
-          style={{
-            width: 32, height: 32, borderRadius: 10, flexShrink: 0,
-            background: `linear-gradient(135deg, ${C.primary} 0%, ${C.cyan} 100%)`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#fff", fontSize: 11.5, fontWeight: 800,
-          }}
-        >
-          AI
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, color: C.primary, fontWeight: 800, marginBottom: 4, letterSpacing: "0.03em" }}>
-            AI 解读 · 只引用本页已展示的实算数
-          </div>
-          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.75, fontWeight: 500 }}>{insight}</div>
-        </div>
+      {/* 当前类的一句话解读：普通正文，不做卡片 */}
+      <div style={{ fontSize: 13, color: C.text, lineHeight: 1.75, fontWeight: 500, marginBottom: 16 }}>
+        {insight}
       </div>
 
       {/* ── 1 综合态势 ── */}
@@ -1049,30 +998,14 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                       onClick={val >= 1 ? () => openSlice(`链路吞吐 · ${s.label}`, val, "flow", sliceRows({ stages: FUNNEL_SLICE_STAGES[s.key] })) : undefined}
                       title={val >= 1 ? "点击查看切片" : undefined}
                       style={{
-                        flex: 1, minWidth: 150,
-                        padding: "12px 14px",
-                        background: "var(--card-2)",
-                        border: `1px solid ${C.borderLight}`,
-                        borderRadius: 12,
-                        display: "flex", flexDirection: "column", gap: 7,
+                        flex: 1, minWidth: 140,
+                        padding: "4px 6px",
+                        display: "flex", flexDirection: "column", gap: 5,
                         cursor: val >= 1 ? "pointer" : "default",
-                        transition: "border-color .15s ease, box-shadow .15s ease",
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span
-                          style={{
-                            width: 18, height: 18, borderRadius: 6, flexShrink: 0,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: 10, fontWeight: 800, color: "#fff",
-                            background: `linear-gradient(135deg, ${C.primary}, ${C.cyan})`,
-                            fontFamily: "JetBrains Mono, monospace",
-                          }}
-                        >
-                          {i + 1}
-                        </span>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                         <span style={{ fontSize: 12.5, fontWeight: 700, color: C.text }}>{s.label}</span>
-                        <RuleChips id={s.ruleId} userRules={STATS2_USER_RULES} algoRules={STATS2_ALGO_RULES} />
                       </div>
                       <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
                         <span
@@ -1096,9 +1029,9 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
             <div style={{ fontSize: 11, color: C.muted, fontWeight: 600 }}>各阶按本环节完成时间计</div>
           </div>
 
-          {/* 当前积压：浅暖底整段包住 */}
+          {/* 当前积压：浅底细边框整段包住 */}
           <div className="stats-backlog">
-            <SectionHead label="当前积压 · 截止此刻，不随时间变，随空间、类型变" tone="amber" />
+            <SectionHead label="当前积压（截止此刻，不随时间变，随空间、类型变）" />
             <div className="stats-kpi-grid">
               <KpiCard2
                 label="存续事件" value={v.sustained} unit="件" color={C.warning} icon="layers" ruleId="ov_sustained"
@@ -1263,7 +1196,10 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       {/* ── 3 流程运行 ── */}
       {cat === "process" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <SectionHead label="当前积压 · 截止此刻，不随时间变，随空间、类型变" tone="amber" />
+          <div style={{ fontSize: 12, color: C.muted, fontWeight: 600, padding: "0 2px" }}>
+            这一页不按时间统计，改时间这些数不变
+          </div>
+          <SectionHead label="当前积压（截止此刻，不随时间变，随空间、类型变）" />
           <div className="stats-kpi-grid">
             {v.stages.map((s, i) => (
               <KpiCard2

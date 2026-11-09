@@ -727,9 +727,9 @@ html[data-skin="tech"] img {
   flex-direction: column;
   gap: 14px;
   padding: 14px;
-  border: 1px solid rgba(230, 159, 47, 0.24);
+  border: 1px solid var(--border);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(230, 159, 47, 0.09) 0%, rgba(230, 159, 47, 0.035) 100%);
+  background: var(--card-2, rgba(22, 45, 77, 0.03));
 }
 @media (max-width: 1200px) {
   .stats-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
