@@ -13483,7 +13483,15 @@ function EventArchive() {
                   occurringBadge={`发生中 · ${selected.happenTime.slice(5, 16)}`}
                   gridUrls={
                     selected.finalStatus === "已结案"
-                      ? selected.afterImgs ?? [eventImage(selected.type, "after")]
+                      ? selected.afterImgs ?? [
+                          eventImage(selected.type, "after2"),
+                          eventImage(selected.type, "after3"),
+                          eventImage(selected.type, "after"),
+                          eventImage(selected.type, "before"),
+                        ].slice(
+                          0,
+                          (selected.gridSubmits ?? []).reduce((s, g) => s + g.imgs, 0) || 1,
+                        )
                       : []
                   }
                   fieldUrls={selected.supImgs ?? []}
