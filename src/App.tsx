@@ -5438,7 +5438,7 @@ function CompareLayer({
   leftUrl?: string
   rightUrls?: string[]
   rightLabels?: string[]
-  /** 对照源当前档位名（处置后 / 相机最新 / 督查），用于浮层标题 */
+  /** 对照源当前档位名（处置后 / 核查），用于浮层标题 */
   rightTitle?: string
   initialRightIdx?: number
   overlayBottomUrl?: string
@@ -5561,9 +5561,7 @@ function CompareLayer({
         >
           <div>
             <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>
-              {mode === "overlay"
-                ? "对照放大层 · 发生中 vs 相机最新"
-                : `对照放大层 · 发生中 vs ${rightTitle || "处置后"}`}
+              {`对照放大层 · 发生中 vs ${rightTitle || "处置后"}`}
             </div>
             <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2, lineHeight: 1.5 }}>
               {mode === "overlay"
@@ -5624,11 +5622,11 @@ function CompareLayer({
                   backgroundColor: "#000",
                 }}
               >
-                {/* 底层：相机最新 */}
+                {/* 底层：当前档位（处置后 / 核查） */}
                 {overlayBottomUrl && (
                   <img
                     src={overlayBottomUrl}
-                    alt="相机最新"
+                    alt="对照源"
                     draggable={false}
                     style={{
                       position: "absolute",
@@ -6176,6 +6174,256 @@ function SubmissionCards({
   )
 }
 
+/** 证据对照档位：处置后（网格员提交）/ 核查（督察员回传）——两页只这两档，不设相机档 */
+type EvidenceTab = "after" | "field"
+
+function shortStamp(t?: string) {
+  return t ? t.slice(5, 16) : ""
+}
+
+/**
+ * 证据对照壳（待核查 / 事件档案同一套，12号提示词 §2）：
+ * 左列只放发生时刻图；右列一次只显示一档（处置后 / 核查），用胶囊分段开关，
+ * 胶片条只含当前档、单行不折行；有回传时默认核查最新一张。
+ */
+function EvidenceCompare({
+  occurringUrls,
+  occurringBadge,
+  gridUrls,
+  fieldUrls,
+  gridBadge,
+  fieldBadge,
+  tab,
+  onTab,
+  idx,
+  onIdx,
+  onOpen,
+}: {
+  occurringUrls: string[]
+  occurringBadge: string
+  gridUrls: string[]
+  fieldUrls: string[]
+  gridBadge: string
+  fieldBadge: string
+  tab: EvidenceTab
+  onTab: (t: EvidenceTab) => void
+  idx: number
+  onIdx: (i: number) => void
+  /** 待核查可点开放大对照；档案只读不传 */
+  onOpen?: (mode: "side" | "overlay") => void
+}) {
+  const [leftIdx, setLeftIdx] = useState(0)
+  const groups: { key: EvidenceTab; label: string; urls: string[]; badge: string; empty: string }[] = [
+    { key: "after", label: "处置后", urls: gridUrls, badge: gridBadge, empty: "该事件无处置后图" },
+    ...(fieldUrls.length
+      ? [{ key: "field" as EvidenceTab, label: "核查", urls: fieldUrls, badge: fieldBadge, empty: "暂无核查图" }]
+      : []),
+  ]
+  const g = groups.find((x) => x.key === tab) ?? groups[0]
+  const curUrl = g.urls[Math.min(idx, Math.max(0, g.urls.length - 1))]
+  const leftUrl = occurringUrls[Math.min(leftIdx, Math.max(0, occurringUrls.length - 1))]
+  const badgeStyle: React.CSSProperties = {
+    position: "absolute",
+    top: 6,
+    left: 6,
+    fontSize: 9,
+    backgroundColor: "rgba(15,23,42,0.65)",
+    color: "#fff",
+    padding: "2px 7px",
+    borderRadius: 3,
+    fontWeight: 600,
+    backdropFilter: "blur(4px)",
+    WebkitBackdropFilter: "blur(4px)",
+  }
+  const imgBox = (clickable: boolean): React.CSSProperties => ({
+    borderRadius: 8,
+    overflow: "hidden",
+    position: "relative",
+    cursor: clickable ? "pointer" : "default",
+    transition: "transform 0.18s ease",
+  })
+  const film = (urls: string[], active: number, onPick: (i: number) => void) => (
+    <div
+      style={{
+        display: "flex",
+        gap: 8,
+        flexWrap: "nowrap",
+        overflowX: "auto",
+        paddingBottom: 2,
+      }}
+    >
+      {urls.map((u, i) => (
+        <div
+          key={i}
+          role="button"
+          tabIndex={0}
+          onClick={() => onPick(i)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault()
+              onPick(i)
+            }
+          }}
+          style={{
+            position: "relative",
+            width: 72,
+            height: 48,
+            borderRadius: 6,
+            overflow: "hidden",
+            cursor: "pointer",
+            flexShrink: 0,
+            border: `2px solid ${i === active ? T.primary : "transparent"}`,
+            backgroundColor: "#000",
+            transition: "border-color 0.2s ease",
+          }}
+        >
+          <img
+            src={u}
+            alt=""
+            draggable={false}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              display: "block",
+              WebkitUserDrag: "none",
+            }}
+          />
+        </div>
+      ))}
+    </div>
+  )
+  return (
+    <div style={{ maxWidth: 790 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+          marginBottom: 8,
+        }}
+      >
+        <SectionLabel style={{ marginBottom: 0 }}>证据对照</SectionLabel>
+        {/* 胶囊分段开关：只有处置后 / 核查两档；无回传时只出现「处置后」 */}
+        <div
+          role="group"
+          aria-label="证据档位"
+          style={{
+            display: "inline-flex",
+            padding: 2,
+            borderRadius: 999,
+            backgroundColor: T.card2,
+            border: `1px solid ${T.border}`,
+            gap: 2,
+          }}
+        >
+          {groups.map((x) => {
+            const active = x.key === g.key
+            return (
+              <button
+                key={x.key}
+                type="button"
+                onClick={() => {
+                  onTab(x.key)
+                  onIdx(x.key === "field" ? Math.max(0, x.urls.length - 1) : 0)
+                }}
+                style={{
+                  border: "none",
+                  cursor: "pointer",
+                  borderRadius: 999,
+                  padding: "3px 12px",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  lineHeight: 1.5,
+                  color: active ? "#fff" : T.textSub,
+                  backgroundColor: active ? T.primary : "transparent",
+                  transition: "background-color 0.18s ease, color 0.18s ease",
+                }}
+              >
+                {x.label}
+                {x.urls.length > 0 ? ` ${x.urls.length}` : ""}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {/* 左：只放发生时刻图，点击进同机位叠图 */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 700, letterSpacing: "0.04em" }}>
+            发生时刻
+          </div>
+          <div
+            role={onOpen ? "button" : undefined}
+            tabIndex={onOpen ? 0 : undefined}
+            onClick={() => onOpen?.("overlay")}
+            onKeyDown={(e) => {
+              if (!onOpen) return
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault()
+                onOpen("overlay")
+              }
+            }}
+            onMouseEnter={(e) => {
+              if (onOpen) e.currentTarget.style.transform = "scale(1.03)"
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "scale(1)"
+            }}
+            style={imgBox(!!onOpen)}
+          >
+            {leftUrl ? (
+              <img src={leftUrl} alt="发生时刻" style={{ width: "100%", height: 220, objectFit: "cover", display: "block" }} />
+            ) : (
+              <div style={{ height: 220, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: T.card2, color: T.textMuted, fontSize: 11 }}>
+                无发生时刻图
+              </div>
+            )}
+            {leftUrl && <div style={badgeStyle}>{occurringBadge}</div>}
+          </div>
+          {occurringUrls.length > 1 && film(occurringUrls, leftIdx, setLeftIdx)}
+        </div>
+        {/* 右：一次只显示一档；胶片条只含当前档 */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 700, letterSpacing: "0.04em" }}>
+            对照
+          </div>
+          <div
+            role={onOpen ? "button" : undefined}
+            tabIndex={onOpen ? 0 : undefined}
+            onClick={() => onOpen?.("side")}
+            onKeyDown={(e) => {
+              if (!onOpen) return
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault()
+                onOpen("side")
+              }
+            }}
+            onMouseEnter={(e) => {
+              if (onOpen) e.currentTarget.style.transform = "scale(1.03)"
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "scale(1)"
+            }}
+            style={imgBox(!!onOpen)}
+          >
+            {curUrl ? (
+              <img src={curUrl} alt={g.label} style={{ width: "100%", height: 220, objectFit: "cover", display: "block" }} />
+            ) : (
+              <div style={{ height: 220, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: T.card2, color: T.textMuted, fontSize: 11 }}>
+                {g.empty}
+              </div>
+            )}
+            {curUrl && <div style={badgeStyle}>{g.badge}</div>}
+          </div>
+          {g.urls.length > 1 && film(g.urls, Math.min(idx, g.urls.length - 1), onIdx)}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function InspectDecisionPage({
   event,
   onBack,
@@ -6221,34 +6469,21 @@ function InspectDecisionPage({
     0,
     (event.fieldReturns ?? []).reduce((s, f) => s + f.imgs, 0),
   )
-  // 对照源三档：处置后（网格员提交）/ 相机最新（同相机自动拉取）/ 督查（督察员回传）
-  const rightGroups: {
-    key: "after" | "camera" | "field"
-    label: string
-    badge: string
-    color: string
-    urls: string[]
-  }[] = [
-    { key: "after", label: "处置后", badge: "处置", color: T.green, urls: gridImgs },
-    { key: "camera", label: "相机最新", badge: "相机", color: T.primary, urls: [latestUrl] },
-    { key: "field", label: "督查", badge: "督查", color: T.purple, urls: fieldImgs },
-  ]
-  const rightImgs = rightGroups.flatMap((g) =>
-    g.urls.map((u) => ({ url: u, badge: g.badge, label: g.label, color: g.color, key: g.key })),
+  // 证据对照右栏：只有「处置后 / 核查」两档（12号提示词 §2），有回传默认核查最新一张
+  const gridStamp = shortStamp(
+    (event.gridSubmits ?? [])[Math.max(0, (event.gridSubmits?.length ?? 0) - 1)]?.time,
   )
-  const groupStart: Record<string, number> = {}
-  rightGroups.forEach((g, gi) => {
-    groupStart[g.key] = rightGroups
-      .slice(0, gi)
-      .reduce((s, x) => s + x.urls.length, 0)
-  })
-  // 默认主图：督察员已回传 → 督查最新一张；未回传 → 处置后关键一帧；处置图缺失 → 相机最新
-  const defaultRightIdx = event.fieldReturns?.length
-    ? Math.max(0, rightImgs.length - 1)
-    : Math.min(groupStart.after, Math.max(0, rightImgs.length - 1))
-  const [rightIdx, setRightIdx] = useState(defaultRightIdx)
-  const cur = rightImgs[Math.min(rightIdx, Math.max(0, rightImgs.length - 1))] ?? rightImgs[0]
-  const curGroup = rightGroups.find((g) => g.key === cur?.key) ?? rightGroups[0]
+  const fieldStamp = shortStamp(
+    (event.fieldReturns ?? [])[Math.max(0, (event.fieldReturns?.length ?? 0) - 1)]?.time,
+  )
+  const gridBadge = `网格员 · ${gridStamp || "已提交"}`
+  const fieldBadge = `督察员 · ${fieldStamp || "已回传"}`
+  const [rightTab, setRightTab] = useState<EvidenceTab>(fieldImgs.length ? "field" : "after")
+  const [rightIdx, setRightIdx] = useState(fieldImgs.length ? fieldImgs.length - 1 : 0)
+  const rightUrls = rightTab === "field" ? fieldImgs : gridImgs
+  const rightLabels = rightUrls.map(
+    (_, i) => `${rightTab === "field" ? "督察员" : "网格员"} · 第${i + 1}张`,
+  )
   if (submitted)
     return (
       <div
@@ -6413,286 +6648,21 @@ function InspectDecisionPage({
             gap: 12,
           }}
         >
-          {/* 证据对照 — 双列对照壳：左固定发生时刻，右为对照源主图（处置后 / 相机最新 / 督查三档）+ 胶片条 + 文字筛选（12号提示词 §2） */}
+          {/* 证据对照 — 待核查 / 事件档案同一套壳：左发生时刻，右处置后 / 核查两档（12号提示词 §2） */}
           <Card style={{ padding: 12 }}>
-            <SectionLabel>证据对照（发生时刻 · 处置 · 相机 · 督查）</SectionLabel>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 10,
-                maxWidth: 790,
-              }}
-            >
-              {/* 左：发生时刻（固定不切换，点击进同机位叠图模式） */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <div
-                  style={{
-                    fontSize: 10,
-                    color: T.textMuted,
-                    fontWeight: 700,
-                    letterSpacing: "0.04em",
-                  }}
-                >
-                  发生时刻
-                </div>
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setCmpMode("overlay")}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault()
-                      setCmpMode("overlay")
-                    }
-                  }}
-                  style={{
-                    borderRadius: 8,
-                    overflow: "hidden",
-                    position: "relative",
-                    cursor: "pointer",
-                    transition: "transform 0.18s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "scale(1.03)"
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "scale(1)"
-                  }}
-                >
-                  <img
-                    src={occurringUrl}
-                    alt="发生中"
-                    style={{
-                      width: "100%",
-                      height: 220,
-                      objectFit: "cover",
-                      display: "block",
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 6,
-                      left: 6,
-                      fontSize: 9,
-                      backgroundColor: "rgba(15,23,42,0.65)",
-                      color: "#fff",
-                      padding: "2px 7px",
-                      borderRadius: 3,
-                      fontWeight: 600,
-                      backdropFilter: "blur(4px)",
-                      WebkitBackdropFilter: "blur(4px)",
-                    }}
-                  >
-                    发生中 · {event.time}
-                  </div>
-                </div>
-              </div>
-              {/* 右：对照源（处置后 / 相机最新 / 督查 三档，单主图随胶片条与筛选切换） */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    letterSpacing: "0.04em",
-                    color: curGroup.color,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  对照源 · {curGroup.label}
-                  <span
-                    style={{
-                      fontSize: 9,
-                      padding: "1px 6px",
-                      borderRadius: 3,
-                      color: "#fff",
-                      backgroundColor: curGroup.color,
-                      fontWeight: 700,
-                      letterSpacing: "0.06em",
-                    }}
-                  >
-                    {curGroup.badge}
-                  </span>
-                </div>
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setCmpMode("side")}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault()
-                      setCmpMode("side")
-                    }
-                  }}
-                  style={{
-                    borderRadius: 8,
-                    overflow: "hidden",
-                    position: "relative",
-                    cursor: "pointer",
-                    transition: "transform 0.18s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "scale(1.03)"
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "scale(1)"
-                  }}
-                >
-                  <img
-                    src={cur.url}
-                    alt={cur.label}
-                    style={{
-                      width: "100%",
-                      height: 220,
-                      objectFit: "cover",
-                      display: "block",
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 6,
-                      left: 6,
-                      fontSize: 9,
-                      backgroundColor: cur.color,
-                      color: "#fff",
-                      padding: "2px 7px",
-                      borderRadius: 3,
-                      fontWeight: 700,
-                      letterSpacing: "0.06em",
-                    }}
-                  >
-                    {cur.badge}
-                  </div>
-                </div>
-                {/* 文字筛选：处置后 · 相机最新 · 督查·无/·N */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    fontSize: 11,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <span style={{ color: T.textMuted }}>筛选</span>
-                  {rightGroups.map((g, gi) => {
-                    const empty = g.urls.length === 0
-                    const active = curGroup.key === g.key
-                    return (
-                      <span
-                        key={g.key}
-                        style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-                      >
-                        {gi > 0 && (
-                          <span style={{ color: T.textMuted, opacity: 0.6 }}>·</span>
-                        )}
-                        <span
-                          role={empty ? undefined : "button"}
-                          tabIndex={empty ? undefined : 0}
-                          onClick={() => {
-                            if (empty) return
-                            setRightIdx(
-                              g.key === "field"
-                                ? groupStart.field + g.urls.length - 1
-                                : groupStart[g.key],
-                            )
-                          }}
-                          onKeyDown={(e) => {
-                            if (empty) return
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault()
-                              setRightIdx(
-                                g.key === "field"
-                                  ? groupStart.field + g.urls.length - 1
-                                  : groupStart[g.key],
-                              )
-                            }
-                          }}
-                          style={{
-                            color: empty ? T.textMuted : active ? T.primary : T.text,
-                            fontWeight: active ? 700 : 400,
-                            cursor: empty ? "not-allowed" : "pointer",
-                            opacity: empty ? 0.55 : 1,
-                          }}
-                        >
-                          {g.label}
-                          {g.key === "field"
-                            ? empty
-                              ? "·无"
-                              : `·${g.urls.length}`
-                            : ""}
-                        </span>
-                      </span>
-                    )
-                  })}
-                </div>
-                {/* 胶片条：处置图与督查图都在条内、以角标区分；网格员图不因回传而消失 */}
-                {rightImgs.length > 1 && (
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {rightImgs.map((r, i) => (
-                      <div
-                        key={i}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setRightIdx(i)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault()
-                            setRightIdx(i)
-                          }
-                        }}
-                        style={{
-                          position: "relative",
-                          width: 72,
-                          height: 48,
-                          borderRadius: 6,
-                          overflow: "hidden",
-                          cursor: "pointer",
-                          border: `2px solid ${i === rightIdx ? T.primary : "transparent"}`,
-                          backgroundColor: "#000",
-                          flexShrink: 0,
-                          transition: "border-color 0.2s ease",
-                        }}
-                      >
-                        <img
-                          src={r.url}
-                          alt={r.label}
-                          draggable={false}
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            display: "block",
-                            WebkitUserDrag: "none",
-                          }}
-                        />
-                        <span
-                          style={{
-                            position: "absolute",
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            fontSize: 8,
-                            lineHeight: 1.6,
-                            textAlign: "center",
-                            color: "#fff",
-                            backgroundColor: "rgba(15,23,42,0.65)",
-                            fontWeight: 700,
-                            letterSpacing: "0.08em",
-                          }}
-                        >
-                          {r.badge}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+            <EvidenceCompare
+              occurringUrls={[occurringUrl]}
+              occurringBadge={`发生中 · ${event.time}`}
+              gridUrls={gridImgs}
+              fieldUrls={fieldImgs}
+              gridBadge={gridBadge}
+              fieldBadge={fieldBadge}
+              tab={rightTab}
+              onTab={(t) => setRightTab(t)}
+              idx={rightIdx}
+              onIdx={setRightIdx}
+              onOpen={(m) => setCmpMode(m)}
+            />
           </Card>
 
           {/* 人员提交 — 网格员处置与督察员回传分卡展示，禁止互相覆盖或合成一条（12号提示词 §1） */}
@@ -6702,9 +6672,14 @@ function InspectDecisionPage({
               gridSubmits={event.gridSubmits}
               fieldReturns={event.fieldReturns}
               onPick={(grp) => {
-                if (grp === "after" && gridImgs.length > 0) setRightIdx(groupStart.after)
-                if (grp === "field" && fieldImgs.length > 0)
-                  setRightIdx(groupStart.field + fieldImgs.length - 1)
+                if (grp === "after" && gridImgs.length > 0) {
+                  setRightTab("after")
+                  setRightIdx(0)
+                }
+                if (grp === "field" && fieldImgs.length > 0) {
+                  setRightTab("field")
+                  setRightIdx(fieldImgs.length - 1)
+                }
               }}
             />
           </Card>
@@ -7122,11 +7097,13 @@ function InspectDecisionPage({
         <CompareLayer
           mode={cmpMode}
           leftUrl={occurringUrl}
-          rightUrls={rightImgs.map((r) => r.url)}
-          rightLabels={rightImgs.map((r) => r.label)}
-          rightTitle={cur.label}
+          rightUrls={rightUrls}
+          rightLabels={rightLabels}
+          rightTitle={rightTab === "field" ? "核查" : "处置后"}
           initialRightIdx={rightIdx}
-          overlayBottomUrl={latestUrl}
+          overlayBottomUrl={
+            rightUrls[Math.min(rightIdx, Math.max(0, rightUrls.length - 1))] ?? latestUrl
+          }
           overlayTopUrl={occurringUrl}
           aiBox={aiBox}
           onClose={() => setCmpMode(null)}
@@ -12510,6 +12487,15 @@ function EventArchive() {
   const [aiLoading, setAiLoading] = useState(false)
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
+  // 证据对照（档案只读）：与待核查同一套壳，右栏只有处置后 / 核查两档
+  const [evTab, setEvTab] = useState<EvidenceTab>("after")
+  const [evIdx, setEvIdx] = useState(0)
+  useEffect(() => {
+    if (!selected) return
+    const hasField = (selected.supImgs?.length ?? 0) > 0
+    setEvTab(hasField ? "field" : "after")
+    setEvIdx(hasField ? (selected.supImgs?.length ?? 0) - 1 : 0)
+  }, [selected])
 
   const handleAiQuery = (q: string) => {
     setAiQuery(q)
@@ -13490,52 +13476,36 @@ function EventArchive() {
                 ))}
               </div>
 
-              {/* 图片 */}
-              <SectionLabel style={{ marginBottom: 10 }}>关键图片</SectionLabel>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 10,
-                  marginBottom: 16,
-                }}
-              >
-                <div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: T.textMuted,
-                      marginBottom: 6,
-                      fontWeight: 600,
-                    }}
-                  >
-                    发现图（{selected.imgUrls.length}张）
-                  </div>
-                  <ImageGallery urls={selected.imgUrls} />
-                </div>
-                {selected.finalStatus === "已结案" && (
-                  <div>
-                    <div
-                      style={{ fontSize: 11, color: T.green, marginBottom: 6, fontWeight: 600 }}
-                    >
-                      处置后图（{(selected.afterImgs ?? [eventImage(selected.type, "after")]).length}张）
-                    </div>
-                    <ImageGallery
-                      urls={selected.afterImgs ?? [eventImage(selected.type, "after")]}
-                    />
-                  </div>
-                )}
-                {/* 督察员回传图：与处置图并存，都保留（12号提示词 §5） */}
-                {selected.finalStatus === "已结案" && selected.supImgs?.length ? (
-                  <div>
-                    <div
-                      style={{ fontSize: 11, color: T.purple, marginBottom: 6, fontWeight: 600 }}
-                    >
-                      督查回传图（{selected.supImgs.length}张）
-                    </div>
-                    <ImageGallery urls={selected.supImgs} />
-                  </div>
-                ) : null}
+              {/* 证据对照 — 与待核查同一套壳（12号提示词 §2、§5）：左发生时刻，右处置后 / 核查，只读 */}
+              <div style={{ marginBottom: 16 }}>
+                <EvidenceCompare
+                  occurringUrls={selected.imgUrls}
+                  occurringBadge={`发生中 · ${selected.happenTime.slice(5, 16)}`}
+                  gridUrls={
+                    selected.finalStatus === "已结案"
+                      ? selected.afterImgs ?? [eventImage(selected.type, "after")]
+                      : []
+                  }
+                  fieldUrls={selected.supImgs ?? []}
+                  gridBadge={`网格员 · ${
+                    shortStamp(
+                      (selected.gridSubmits ?? [])[
+                        Math.max(0, (selected.gridSubmits?.length ?? 0) - 1)
+                      ]?.time,
+                    ) || "已提交"
+                  }`}
+                  fieldBadge={`督察员 · ${
+                    shortStamp(
+                      (selected.fieldReturns ?? [])[
+                        Math.max(0, (selected.fieldReturns?.length ?? 0) - 1)
+                      ]?.time,
+                    ) || "已回传"
+                  }`}
+                  tab={evTab}
+                  onTab={setEvTab}
+                  idx={evIdx}
+                  onIdx={setEvIdx}
+                />
               </div>
 
               {/* 人员提交 — 与待核查详情同一套卡结构（只读，不合成一条；12号提示词 §5） */}
