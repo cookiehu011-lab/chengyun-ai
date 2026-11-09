@@ -3191,7 +3191,26 @@ interface BatchEvent {
     conclusion: "正常结案" | "建议退回" | "证据不足，建议外场核查" | "待人工判断"
     basis: string
   }
+  /** 网格员处置提交（按时间序，最后一条为最新） */
+  gridSubmits?: SubmitRec[]
+  /** 督察员外场回传（有值 = 已从待督查回传，进入第二次待核查） */
+  fieldReturns?: FieldReturnRec[]
+  /** 办理时间线（待核查详情底部只读展示） */
+  tl?: InspectTlStep[]
 }
+
+/** 人员提交（网格员处置提交）——按时间序排列，最后一条为最新；多次提交全部保留、不互相覆盖 */
+type SubmitRec = { by: string; time: string; note: string; imgs: number }
+/** 人员提交（督察员外场回传）——现场反馈只是现场说法，不是核查结论 */
+type FieldReturnRec = {
+  by: string
+  time: string
+  feedback: "已恢复" | "未恢复"
+  note: string
+  imgs: number
+}
+/** 待核查办理时间线步骤（只读）：环节 / 时间 / 角色 / 图张数 */
+type InspectTlStep = { step: string; time: string; actor: string; imgs: number; current?: boolean }
 
 const pendingCaseEvents: BatchEvent[] = [
   {
@@ -3260,8 +3279,18 @@ const pendingInspectEvents: BatchEvent[] = [
     situation: { text: "正常立案", type: "normal" },
     aiReview: {
       conclusion: "正常结案",
-      basis: "处置后图与发生中图对比，施工围挡已拆除、裸土已覆盖、洒水设备到位，扬尘迹象消除",
+      basis: "对照发生时刻图与网格员提交处置图：施工围挡已拆除、裸土已覆盖、洒水设备到位，扬尘迹象消除",
     },
+    gridSubmits: [
+      { by: "李建国", time: "2026-08-18 08:30", note: "已联系相关方，现场违规情况已清除，采集处置后图2张", imgs: 2 },
+    ],
+    tl: [
+      { step: "发现", time: "08-18 07:30", actor: "AI相机", imgs: 1 },
+      { step: "立案", time: "08-18 07:52", actor: "立案审核", imgs: 0 },
+      { step: "待处置", time: "08-18 07:55", actor: "网格员 李建国", imgs: 0 },
+      { step: "网格员提交", time: "08-18 08:30", actor: "网格员 李建国", imgs: 2 },
+      { step: "待核查", time: "08-18 08:31", actor: "核查审核", imgs: 0, current: true },
+    ],
   },
   {
     id: "DC-2026-20563",
@@ -3279,6 +3308,16 @@ const pendingInspectEvents: BatchEvent[] = [
       conclusion: "建议退回",
       basis: "处置后图拍摄角度偏移较大，无法确认原堆放点位已清理，需重新上传同机位照片",
     },
+    gridSubmits: [
+      { by: "王强", time: "2026-08-17 18:20", note: "垃圾已清运，现场已清扫干净", imgs: 2 },
+    ],
+    tl: [
+      { step: "发现", time: "08-17 16:20", actor: "AI相机", imgs: 1 },
+      { step: "立案", time: "08-17 16:45", actor: "立案审核", imgs: 0 },
+      { step: "待处置", time: "08-17 16:50", actor: "网格员 王强", imgs: 0 },
+      { step: "网格员提交", time: "08-17 18:20", actor: "网格员 王强", imgs: 2 },
+      { step: "待核查", time: "08-17 18:25", actor: "核查审核", imgs: 0, current: true },
+    ],
   },
   {
     id: "DC-2026-20564",
@@ -3295,6 +3334,16 @@ const pendingInspectEvents: BatchEvent[] = [
       conclusion: "待人工判断",
       basis: "处置后图显示摊位已撤离，但画面右下角出现新的疑似占道物品，需人工确认是否属于同一事件",
     },
+    gridSubmits: [
+      { by: "刘洋", time: "2026-08-17 14:05", note: "摊位已撤离，现场恢复通行", imgs: 2 },
+    ],
+    tl: [
+      { step: "发现", time: "08-17 11:45", actor: "AI相机", imgs: 1 },
+      { step: "立案", time: "08-17 12:10", actor: "立案审核", imgs: 0 },
+      { step: "待处置", time: "08-17 12:15", actor: "网格员 刘洋", imgs: 0 },
+      { step: "网格员提交", time: "08-17 14:05", actor: "网格员 刘洋", imgs: 2 },
+      { step: "待核查", time: "08-17 14:10", actor: "核查审核", imgs: 0, current: true },
+    ],
   },
   {
     id: "DC-2026-20568",
@@ -3311,6 +3360,54 @@ const pendingInspectEvents: BatchEvent[] = [
       conclusion: "证据不足，建议外场核查",
       basis: "处置后影像未回传，仅凭系统记录无法确认现场已清理，建议派监督员外场核查取证",
     },
+    gridSubmits: [
+      { by: "赵磊", time: "2026-08-17 12:10", note: "现场已清理完毕；处置图上传失败，已申请补传", imgs: 0 },
+    ],
+    tl: [
+      { step: "发现", time: "08-17 10:05", actor: "AI相机", imgs: 1 },
+      { step: "立案", time: "08-17 10:30", actor: "立案审核", imgs: 0 },
+      { step: "待处置", time: "08-17 10:35", actor: "网格员 赵磊", imgs: 0 },
+      { step: "网格员提交", time: "08-17 12:10", actor: "网格员 赵磊", imgs: 0 },
+      { step: "待核查", time: "08-17 12:15", actor: "核查审核", imgs: 0, current: true },
+    ],
+  },
+  {
+    id: "DC-2026-20579",
+    type: "占道经营",
+    level: "较重",
+    location: "东四南大街12号临街商铺",
+    time: "08-18 09:12",
+    camera: "CAM-DST-012",
+    agentStatus: "外场督查已回传：现场反馈未恢复，建议人工复核",
+    suggestedGrid: "东四街道网格",
+    imgUrls: [eventImage("占道经营", "during")],
+    situation: { text: "外场已回传，待复核", type: "info" },
+    aiReview: {
+      conclusion: "建议退回",
+      basis: "对照三方证据：发生时刻图显示占道摊位；网格员提交处置图（08-18 16:05）显示现场已清空；督察员回传（08-19 15:47）同机位照片显示仍有残留垃圾，其现场反馈为「未恢复」。建议退回处置并要求补齐同机位处置证据，是否退回由核查人决定",
+    },
+    gridSubmits: [
+      { by: "李建国", time: "2026-08-18 16:05", note: "占道摊位已劝离，物品已清运，路面恢复整洁，采集处置后图2张", imgs: 2 },
+    ],
+    fieldReturns: [
+      {
+        by: "孙倩",
+        time: "2026-08-19 15:47",
+        feedback: "未恢复",
+        note: "现场仍有残留垃圾约两平方米未清运，与网格员处置说明不符，已同机位拍照回传",
+        imgs: 2,
+      },
+    ],
+    tl: [
+      { step: "发现", time: "08-18 09:12", actor: "AI相机", imgs: 1 },
+      { step: "立案", time: "08-18 09:35", actor: "立案审核", imgs: 0 },
+      { step: "待处置", time: "08-18 09:40", actor: "网格员 李建国", imgs: 0 },
+      { step: "网格员提交", time: "08-18 16:05", actor: "网格员 李建国", imgs: 2 },
+      { step: "待核查", time: "08-18 16:10", actor: "核查审核", imgs: 0 },
+      { step: "待督查", time: "08-18 17:02", actor: "核查审核 发起外场督查", imgs: 0 },
+      { step: "督察员回传", time: "08-19 15:47", actor: "督察员 孙倩", imgs: 2 },
+      { step: "待核查", time: "08-19 15:48", actor: "核查审核", imgs: 0, current: true },
+    ],
   },
 ]
 
@@ -5330,6 +5427,7 @@ function CompareLayer({
   leftUrl,
   rightUrls = [],
   rightLabels = [],
+  rightTitle,
   initialRightIdx = 0,
   overlayBottomUrl,
   overlayTopUrl,
@@ -5340,6 +5438,8 @@ function CompareLayer({
   leftUrl?: string
   rightUrls?: string[]
   rightLabels?: string[]
+  /** 对照源当前档位名（处置后 / 相机最新 / 督查），用于浮层标题 */
+  rightTitle?: string
   initialRightIdx?: number
   overlayBottomUrl?: string
   overlayTopUrl?: string
@@ -5463,12 +5563,12 @@ function CompareLayer({
             <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>
               {mode === "overlay"
                 ? "对照放大层 · 发生中 vs 相机最新"
-                : "对照放大层 · 发生中 vs 处置后"}
+                : `对照放大层 · 发生中 vs ${rightTitle || "处置后"}`}
             </div>
             <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2, lineHeight: 1.5 }}>
               {mode === "overlay"
                 ? "同机位才能叠图。左右拖动分割线：左侧看发生中，右侧看现在；虚线框为识别框映射到最新帧同一位置。"
-                : "左右并排，各自放大。处置后为现场拍摄，视角不同，不能叠图；胶片条只切换右侧。"}
+                : "左右并排，各自放大。对照源为现场拍摄，视角不同，不能叠图；胶片条只切换右侧。"}
             </div>
           </div>
           <button
@@ -5865,6 +5965,217 @@ function CompareLayer({
   )
 }
 
+// ─── 人员提交卡 — 待核查详情与事件档案详情共用同一套卡结构：网格员处置 / 督察员回传分卡列出，禁止互相覆盖或合成一条（12号提示词 §1/§5） ───
+function SubmissionCards({
+  gridSubmits,
+  fieldReturns,
+  onPick,
+}: {
+  gridSubmits?: SubmitRec[]
+  fieldReturns?: FieldReturnRec[]
+  /** 点击「材料张数」切证据组（网格员 → 处置；督察员 → 督查）；档案只读时不传 */
+  onPick?: (group: "after" | "field") => void
+}) {
+  const cardWrap: React.CSSProperties = {
+    border: `1px solid ${T.border}`,
+    borderRadius: 8,
+    padding: "10px 12px",
+    backgroundColor: T.card2,
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+  }
+  const headStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8 }
+  const rowStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 8,
+    fontSize: 12,
+    lineHeight: 1.5,
+    color: T.text,
+  }
+  const labStyle: React.CSSProperties = {
+    fontSize: 11,
+    color: T.textMuted,
+    width: 60,
+    flexShrink: 0,
+    paddingTop: 1,
+  }
+  const chipThis = (
+    <span
+      style={{
+        fontSize: 9,
+        padding: "1px 6px",
+        borderRadius: 3,
+        backgroundColor: "rgba(22,125,255,0.1)",
+        color: T.primary,
+        fontWeight: 700,
+        flexShrink: 0,
+      }}
+    >
+      本次
+    </span>
+  )
+  // 材料张数：可点时切到对应角标那一组证据；0 张或档案（只读）为纯文本
+  const matBtn = (imgs: number, group: "after" | "field", color: string) =>
+    imgs > 0 && onPick ? (
+      <span
+        role="button"
+        tabIndex={0}
+        onClick={() => onPick(group)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            onPick(group)
+          }
+        }}
+        style={{
+          color,
+          fontWeight: 700,
+          cursor: "pointer",
+          textDecoration: "underline dotted",
+          textUnderlineOffset: 3,
+        }}
+        title="点击查看这一组证据"
+      >
+        {imgs} 张
+      </span>
+    ) : (
+      <span style={{ color: imgs > 0 ? T.text : T.textMuted }}>{imgs} 张</span>
+    )
+  const gs = gridSubmits ?? []
+  const fr = fieldReturns ?? []
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 790 }}>
+      {/* 网格员处置提交：按时间列出，多次提交全部保留，最新一条标「本次」 */}
+      {gs.map((g, i) => (
+        <div key={`grid-${i}`} style={{ ...cardWrap, borderLeft: `3px solid ${T.green}` }}>
+          <div style={headStyle}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: T.text }}>网格员处置</span>
+            {gs.length > 1 && i === gs.length - 1 && chipThis}
+            <span style={{ marginLeft: "auto", fontSize: 10, color: T.textMuted }}>
+              第 {i + 1} / {gs.length} 次提交
+            </span>
+          </div>
+          <div style={rowStyle}>
+            <span style={labStyle}>提交人</span>
+            <span>{g.by}</span>
+          </div>
+          <div style={rowStyle}>
+            <span style={labStyle}>角色</span>
+            <span
+              style={{
+                fontSize: 10,
+                padding: "1px 8px",
+                borderRadius: 3,
+                backgroundColor: "rgba(53,185,133,0.12)",
+                color: T.green,
+                fontWeight: 700,
+              }}
+            >
+              网格员
+            </span>
+          </div>
+          <div style={rowStyle}>
+            <span style={labStyle}>提交时间</span>
+            <span>{g.time}</span>
+          </div>
+          <div style={rowStyle}>
+            <span style={labStyle}>处置说明</span>
+            <span>{g.note}</span>
+          </div>
+          <div style={rowStyle}>
+            <span style={labStyle}>材料张数</span>
+            <span>{matBtn(g.imgs, "after", T.green)}</span>
+          </div>
+        </div>
+      ))}
+      {/* 督察员外场回传：只与网格员卡并列展示；现场反馈只是现场说法，不是核查结论 */}
+      {fr.length > 0 ? (
+        fr.map((f, i) => (
+          <div key={`field-${i}`} style={{ ...cardWrap, borderLeft: `3px solid ${T.purple}` }}>
+            <div style={headStyle}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: T.text }}>督察员回传</span>
+              {fr.length > 1 && i === fr.length - 1 && chipThis}
+              <span style={{ marginLeft: "auto", fontSize: 10, color: T.textMuted }}>
+                第 {i + 1} / {fr.length} 次回传
+              </span>
+            </div>
+            <div style={rowStyle}>
+              <span style={labStyle}>提交人</span>
+              <span>{f.by}</span>
+            </div>
+            <div style={rowStyle}>
+              <span style={labStyle}>角色</span>
+              <span
+                style={{
+                  fontSize: 10,
+                  padding: "1px 8px",
+                  borderRadius: 3,
+                  backgroundColor: "rgba(163,87,244,0.12)",
+                  color: T.purple,
+                  fontWeight: 700,
+                }}
+              >
+                督察员
+              </span>
+            </div>
+            <div style={rowStyle}>
+              <span style={labStyle}>回传时间</span>
+              <span>{f.time}</span>
+            </div>
+            <div style={rowStyle}>
+              <span style={labStyle}>现场反馈</span>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "flex-start",
+                  gap: 6,
+                  flexWrap: "wrap",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 10,
+                    padding: "1px 8px",
+                    borderRadius: 3,
+                    fontWeight: 700,
+                    flexShrink: 0,
+                    backgroundColor:
+                      f.feedback === "已恢复" ? "rgba(53,185,133,0.12)" : "rgba(255,122,66,0.12)",
+                    color: f.feedback === "已恢复" ? T.green : T.amber,
+                  }}
+                >
+                  {f.feedback}
+                </span>
+                <span>{f.note}</span>
+              </span>
+            </div>
+            <div style={rowStyle}>
+              <span style={labStyle}>材料张数</span>
+              <span>{matBtn(f.imgs, "field", T.purple)}</span>
+            </div>
+            <div
+              style={{
+                fontSize: 10,
+                color: T.textMuted,
+                paddingTop: 2,
+                borderTop: `1px dashed ${T.border}`,
+              }}
+            >
+              现场反馈，不是核查结论
+            </div>
+          </div>
+        ))
+      ) : (
+        <div style={{ fontSize: 11, color: T.textMuted, padding: "2px 2px 0" }}>
+          尚未派出督查
+        </div>
+      )}
+    </div>
+  )
+}
+
 function InspectDecisionPage({
   event,
   onBack,
@@ -5885,7 +6196,6 @@ function InspectDecisionPage({
   const [returnSel, setReturnSel] = useState("")
   const [returnOther, setReturnOther] = useState("")
   const [cmpMode, setCmpMode] = useState<"side" | "overlay" | null>(null)
-  const [cmpRightIdx, setCmpRightIdx] = useState(0)
   // 退回原因固定选项；选「其他」必须手填具体原因
   const returnReady =
     returnSel !== "" &&
@@ -5894,12 +6204,51 @@ function InspectDecisionPage({
   const prefix = eventPrefixOf(event.type)
   const occurringUrl = eventImage(event.type, "during")
   const latestUrl = eventImage(event.type, "after")
-  const afterUrls = [
+  const aiBox = AI_BOX_MAP[prefix]
+  // 网格员处置图池 / 督察员督查图池：按各次提交的张数从池中取图（演示数据）
+  const gridPool = [
     eventImage(event.type, "after2"),
     eventImage(event.type, "after3"),
+    eventImage(event.type, "after"),
+    eventImage(event.type, "before"),
   ]
-  const afterLabels = ["处置后", "附件 1"]
-  const aiBox = AI_BOX_MAP[prefix]
+  const fieldPool = [eventImage(event.type, "before"), eventImage(event.type, "during")]
+  const gridImgs = gridPool.slice(
+    0,
+    (event.gridSubmits ?? []).reduce((s, g) => s + g.imgs, 0),
+  )
+  const fieldImgs = fieldPool.slice(
+    0,
+    (event.fieldReturns ?? []).reduce((s, f) => s + f.imgs, 0),
+  )
+  // 对照源三档：处置后（网格员提交）/ 相机最新（同相机自动拉取）/ 督查（督察员回传）
+  const rightGroups: {
+    key: "after" | "camera" | "field"
+    label: string
+    badge: string
+    color: string
+    urls: string[]
+  }[] = [
+    { key: "after", label: "处置后", badge: "处置", color: T.green, urls: gridImgs },
+    { key: "camera", label: "相机最新", badge: "相机", color: T.primary, urls: [latestUrl] },
+    { key: "field", label: "督查", badge: "督查", color: T.purple, urls: fieldImgs },
+  ]
+  const rightImgs = rightGroups.flatMap((g) =>
+    g.urls.map((u) => ({ url: u, badge: g.badge, label: g.label, color: g.color, key: g.key })),
+  )
+  const groupStart: Record<string, number> = {}
+  rightGroups.forEach((g, gi) => {
+    groupStart[g.key] = rightGroups
+      .slice(0, gi)
+      .reduce((s, x) => s + x.urls.length, 0)
+  })
+  // 默认主图：督察员已回传 → 督查最新一张；未回传 → 处置后关键一帧；处置图缺失 → 相机最新
+  const defaultRightIdx = event.fieldReturns?.length
+    ? Math.max(0, rightImgs.length - 1)
+    : Math.min(groupStart.after, Math.max(0, rightImgs.length - 1))
+  const [rightIdx, setRightIdx] = useState(defaultRightIdx)
+  const cur = rightImgs[Math.min(rightIdx, Math.max(0, rightImgs.length - 1))] ?? rightImgs[0]
+  const curGroup = rightGroups.find((g) => g.key === cur?.key) ?? rightGroups[0]
   if (submitted)
     return (
       <div
@@ -5971,14 +6320,14 @@ function InspectDecisionPage({
               ? "已确认完成并结案"
               : submitted === "return"
                 ? "已退回处置"
-                : "已创建外场核查任务"}
+                : "已创建外场督查任务"}
           </div>
           <div style={{ fontSize: 12, color: T.textMuted }}>
             {submitted === "close"
               ? `事件 ${event.id} 已归入事件档案`
               : submitted === "return"
                 ? `事件 ${event.id} 已退回责任人重新处置，处置时限继续计算。`
-                : "已创建关联外场核查任务，核查时限已暂停。"}
+                : "已创建关联外场督查任务，核查时限已暂停。"}
           </div>
         </div>
         <button
@@ -6064,20 +6413,9 @@ function InspectDecisionPage({
             gap: 12,
           }}
         >
-          {/* 证据时间线 — 发现前材料 / 处置后材料 / 外场回传，并排可点击进入叠图模式 */}
+          {/* 证据对照 — 双列对照壳：左固定发生时刻，右为对照源主图（处置后 / 相机最新 / 督查三档）+ 胶片条 + 文字筛选（12号提示词 §2） */}
           <Card style={{ padding: 12 }}>
-            <SectionLabel>证据时间线（发现前材料 · 处置后材料 · 外场回传）</SectionLabel>
-            <div
-              style={{
-                fontSize: 10,
-                color: T.textMuted,
-                fontWeight: 700,
-                letterSpacing: "0.04em",
-                marginBottom: 8,
-              }}
-            >
-              监控图片
-            </div>
+            <SectionLabel>证据对照（发生时刻 · 处置 · 相机 · 督查）</SectionLabel>
             <div
               style={{
                 display: "grid",
@@ -6086,264 +6424,289 @@ function InspectDecisionPage({
                 maxWidth: 790,
               }}
             >
-              {/* 发生中 */}
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => {
-                  setCmpRightIdx(0)
-                  setCmpMode("overlay")
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault()
-                    setCmpRightIdx(0)
-                    setCmpMode("overlay")
-                  }
-                }}
-                style={{
-                  borderRadius: 8,
-                  overflow: "hidden",
-                  position: "relative",
-                  cursor: "pointer",
-                  transition: "transform 0.18s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "scale(1.03)"
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "scale(1)"
-                }}
-              >
-                <img
-                  src={occurringUrl}
-                  alt="发生中"
-                  style={{
-                    width: "100%",
-                    height: 220,
-                    objectFit: "cover",
-                    display: "block",
-                  }}
-                />
+              {/* 左：发生时刻（固定不切换，点击进同机位叠图模式） */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <div
                   style={{
-                    position: "absolute",
-                    top: 6,
-                    left: 6,
-                    fontSize: 9,
-                    backgroundColor: "rgba(15,23,42,0.65)",
-                    color: "#fff",
-                    padding: "2px 7px",
-                    borderRadius: 3,
-                    fontWeight: 600,
-                    backdropFilter: "blur(4px)",
-                    WebkitBackdropFilter: "blur(4px)",
+                    fontSize: 10,
+                    color: T.textMuted,
+                    fontWeight: 700,
+                    letterSpacing: "0.04em",
                   }}
                 >
-                  发生中 · {event.time}
+                  发生时刻
+                </div>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setCmpMode("overlay")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      setCmpMode("overlay")
+                    }
+                  }}
+                  style={{
+                    borderRadius: 8,
+                    overflow: "hidden",
+                    position: "relative",
+                    cursor: "pointer",
+                    transition: "transform 0.18s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "scale(1.03)"
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "scale(1)"
+                  }}
+                >
+                  <img
+                    src={occurringUrl}
+                    alt="发生中"
+                    style={{
+                      width: "100%",
+                      height: 220,
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 6,
+                      left: 6,
+                      fontSize: 9,
+                      backgroundColor: "rgba(15,23,42,0.65)",
+                      color: "#fff",
+                      padding: "2px 7px",
+                      borderRadius: 3,
+                      fontWeight: 600,
+                      backdropFilter: "blur(4px)",
+                      WebkitBackdropFilter: "blur(4px)",
+                    }}
+                  >
+                    发生中 · {event.time}
+                  </div>
                 </div>
               </div>
-              {/* 相机最新 */}
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => {
-                  setCmpRightIdx(0)
-                  setCmpMode("overlay")
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault()
-                    setCmpRightIdx(0)
-                    setCmpMode("overlay")
-                  }
-                }}
-                style={{
-                  borderRadius: 8,
-                  overflow: "hidden",
-                  position: "relative",
-                  cursor: "pointer",
-                  transition: "transform 0.18s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "scale(1.03)"
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "scale(1)"
-                }}
-              >
-                <img
-                  src={latestUrl}
-                  alt="相机最新"
-                  style={{
-                    width: "100%",
-                    height: 220,
-                    objectFit: "cover",
-                    display: "block",
-                  }}
-                />
+              {/* 右：对照源（处置后 / 相机最新 / 督查 三档，单主图随胶片条与筛选切换） */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <div
                   style={{
-                    position: "absolute",
-                    top: 6,
-                    left: 6,
-                    fontSize: 9,
-                    backgroundColor: "rgba(15,23,42,0.65)",
-                    color: "#fff",
-                    padding: "2px 7px",
-                    borderRadius: 3,
-                    fontWeight: 600,
-                    backdropFilter: "blur(4px)",
-                    WebkitBackdropFilter: "blur(4px)",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: "0.04em",
+                    color: curGroup.color,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
                   }}
                 >
-                  相机最新 · {event.time}
+                  对照源 · {curGroup.label}
+                  <span
+                    style={{
+                      fontSize: 9,
+                      padding: "1px 6px",
+                      borderRadius: 3,
+                      color: "#fff",
+                      backgroundColor: curGroup.color,
+                      fontWeight: 700,
+                      letterSpacing: "0.06em",
+                    }}
+                  >
+                    {curGroup.badge}
+                  </span>
                 </div>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setCmpMode("side")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      setCmpMode("side")
+                    }
+                  }}
+                  style={{
+                    borderRadius: 8,
+                    overflow: "hidden",
+                    position: "relative",
+                    cursor: "pointer",
+                    transition: "transform 0.18s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "scale(1.03)"
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "scale(1)"
+                  }}
+                >
+                  <img
+                    src={cur.url}
+                    alt={cur.label}
+                    style={{
+                      width: "100%",
+                      height: 220,
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 6,
+                      left: 6,
+                      fontSize: 9,
+                      backgroundColor: cur.color,
+                      color: "#fff",
+                      padding: "2px 7px",
+                      borderRadius: 3,
+                      fontWeight: 700,
+                      letterSpacing: "0.06em",
+                    }}
+                  >
+                    {cur.badge}
+                  </div>
+                </div>
+                {/* 文字筛选：处置后 · 相机最新 · 督查·无/·N */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 11,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span style={{ color: T.textMuted }}>筛选</span>
+                  {rightGroups.map((g, gi) => {
+                    const empty = g.urls.length === 0
+                    const active = curGroup.key === g.key
+                    return (
+                      <span
+                        key={g.key}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+                      >
+                        {gi > 0 && (
+                          <span style={{ color: T.textMuted, opacity: 0.6 }}>·</span>
+                        )}
+                        <span
+                          role={empty ? undefined : "button"}
+                          tabIndex={empty ? undefined : 0}
+                          onClick={() => {
+                            if (empty) return
+                            setRightIdx(
+                              g.key === "field"
+                                ? groupStart.field + g.urls.length - 1
+                                : groupStart[g.key],
+                            )
+                          }}
+                          onKeyDown={(e) => {
+                            if (empty) return
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault()
+                              setRightIdx(
+                                g.key === "field"
+                                  ? groupStart.field + g.urls.length - 1
+                                  : groupStart[g.key],
+                              )
+                            }
+                          }}
+                          style={{
+                            color: empty ? T.textMuted : active ? T.primary : T.text,
+                            fontWeight: active ? 700 : 400,
+                            cursor: empty ? "not-allowed" : "pointer",
+                            opacity: empty ? 0.55 : 1,
+                          }}
+                        >
+                          {g.label}
+                          {g.key === "field"
+                            ? empty
+                              ? "·无"
+                              : `·${g.urls.length}`
+                            : ""}
+                        </span>
+                      </span>
+                    )
+                  })}
+                </div>
+                {/* 胶片条：处置图与督查图都在条内、以角标区分；网格员图不因回传而消失 */}
+                {rightImgs.length > 1 && (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {rightImgs.map((r, i) => (
+                      <div
+                        key={i}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setRightIdx(i)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault()
+                            setRightIdx(i)
+                          }
+                        }}
+                        style={{
+                          position: "relative",
+                          width: 72,
+                          height: 48,
+                          borderRadius: 6,
+                          overflow: "hidden",
+                          cursor: "pointer",
+                          border: `2px solid ${i === rightIdx ? T.primary : "transparent"}`,
+                          backgroundColor: "#000",
+                          flexShrink: 0,
+                          transition: "border-color 0.2s ease",
+                        }}
+                      >
+                        <img
+                          src={r.url}
+                          alt={r.label}
+                          draggable={false}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            display: "block",
+                            WebkitUserDrag: "none",
+                          }}
+                        />
+                        <span
+                          style={{
+                            position: "absolute",
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            fontSize: 8,
+                            lineHeight: 1.6,
+                            textAlign: "center",
+                            color: "#fff",
+                            backgroundColor: "rgba(15,23,42,0.65)",
+                            fontWeight: 700,
+                            letterSpacing: "0.08em",
+                          }}
+                        >
+                          {r.badge}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </Card>
 
-          {/* 处置图片区 — 处置后主图 + 附件缩略图，点击进入并排对照模式 */}
-          <Card style={{ padding: 12 }}>
-            <div
-              style={{
-                fontSize: 10,
-                color: T.green,
-                fontWeight: 700,
-                letterSpacing: "0.04em",
-                marginBottom: 8,
+          {/* 人员提交 — 网格员处置与督察员回传分卡展示，禁止互相覆盖或合成一条（12号提示词 §1） */}
+          <Card style={{ padding: 14 }}>
+            <SectionLabel>人员提交</SectionLabel>
+            <SubmissionCards
+              gridSubmits={event.gridSubmits}
+              fieldReturns={event.fieldReturns}
+              onPick={(grp) => {
+                if (grp === "after" && gridImgs.length > 0) setRightIdx(groupStart.after)
+                if (grp === "field" && fieldImgs.length > 0)
+                  setRightIdx(groupStart.field + fieldImgs.length - 1)
               }}
-            >
-              处置图片
-            </div>
-            {/* 处置后主图 */}
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => {
-                setCmpRightIdx(0)
-                setCmpMode("side")
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault()
-                  setCmpRightIdx(0)
-                  setCmpMode("side")
-                }
-              }}
-              style={{
-                borderRadius: 8,
-                overflow: "hidden",
-                position: "relative",
-                cursor: "pointer",
-                transition: "transform 0.18s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "scale(1.03)"
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "scale(1)"
-              }}
-            >
-              <img
-                src={afterUrls[0]}
-                alt="处置后"
-                style={{
-                  width: "100%",
-                  maxWidth: 790,
-                  aspectRatio: "16/9",
-                  objectFit: "cover",
-                  display: "block",
-                }}
-              />
-              <div
-                style={{
-                  position: "absolute",
-                  top: 6,
-                  left: 6,
-                  fontSize: 9,
-                  backgroundColor: "rgba(53,185,133,0.9)",
-                  color: T.cardSolid,
-                  padding: "2px 6px",
-                  borderRadius: 3,
-                  fontWeight: 600,
-                }}
-              >
-                处置后 · {event.time}
-              </div>
-            </div>
-            {/* 附件缩略图 */}
-            {afterUrls.length > 1 && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  marginTop: 8,
-                }}
-              >
-                {afterUrls.map((u, i) => (
-                  <div
-                    key={i}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => {
-                      setCmpRightIdx(i)
-                      setCmpMode("side")
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault()
-                        setCmpRightIdx(i)
-                        setCmpMode("side")
-                      }
-                    }}
-                    style={{
-                      width: 96,
-                      height: 64,
-                      borderRadius: 6,
-                      overflow: "hidden",
-                      border: `1px solid ${T.border}`,
-                      cursor: "pointer",
-                      flexShrink: 0,
-                      transition: "border-color 0.18s ease, transform 0.18s ease",
-                      position: "relative",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = T.primary
-                      e.currentTarget.style.transform = "scale(1.04)"
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = T.border
-                      e.currentTarget.style.transform = "scale(1)"
-                    }}
-                  >
-                    <img
-                      src={u}
-                      alt={afterLabels[i] || `附件 ${i}`}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                        display: "block",
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-            <div
-              style={{
-                marginTop: 10,
-                padding: "8px 10px",
-                backgroundColor: "rgba(53,185,133,0.05)",
-                border: "1px solid rgba(53,185,133,0.15)",
-                borderRadius: 6,
-                fontSize: 11,
-                color: T.green,
-              }}
-            >
-              · AI核查：原违规情况已消除，现场整洁，画面内无异常迹象
-            </div>
+            />
           </Card>
           {/* 事件信息 */}
           <Card style={{ padding: 14 }}>
@@ -6381,41 +6744,55 @@ function InspectDecisionPage({
               </div>
             ))}
           </Card>
-          {/* 处置信息 */}
+          {/* 办理时间线 — 只读、不换图；两种样例：仅网格员已交 / 督察员已回传（12号提示词 §3） */}
           <Card style={{ padding: 14 }}>
-            <SectionLabel>处置记录</SectionLabel>
-            {[
-              { label: "派发网格员", value: "李建国" },
-              { label: "派发时间", value: "2026-08-20 07:45" },
-              { label: "首次反馈", value: "2026-08-20 08:30 · 已到场处置" },
-              {
-                label: "处置说明",
-                value: "已联系相关方，现场违规情况已清除，采集处置后图2张",
-              },
-            ].map((f) => (
+            <SectionLabel>办理时间线</SectionLabel>
+            {(event.tl ?? []).map((s, i, arr) => (
               <div
-                key={f.label}
+                key={i}
                 style={{
                   display: "flex",
-                  alignItems: "flex-start",
-                  gap: 12,
-                  padding: "8px 0",
-                  borderBottom: `1px solid ${T.border}`,
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "7px 0",
+                  borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none",
                 }}
               >
                 <span
                   style={{
-                    fontSize: 11,
-                    color: T.textMuted,
-                    width: 76,
+                    fontSize: 12,
+                    fontWeight: s.current ? 700 : 600,
+                    color: s.current ? T.primary : T.text,
+                    width: 122,
                     flexShrink: 0,
-                    paddingTop: 1,
                   }}
                 >
-                  {f.label}
+                  {s.step}
+                  {s.current ? "（当前）" : ""}
                 </span>
-                <span style={{ fontSize: 12, color: T.text, lineHeight: 1.5 }}>
-                  {f.value}
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: T.textMuted,
+                    fontFamily: T.mono,
+                    width: 88,
+                    flexShrink: 0,
+                  }}
+                >
+                  {s.time}
+                </span>
+                <span style={{ fontSize: 11, color: T.textSub, flex: 1, minWidth: 0 }}>
+                  {s.actor}
+                </span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    color: s.imgs > 0 ? T.text : T.textMuted,
+                    fontWeight: s.imgs > 0 ? 600 : 400,
+                    flexShrink: 0,
+                  }}
+                >
+                  图 {s.imgs} 张
                 </span>
               </div>
             ))}
@@ -6589,8 +6966,16 @@ function InspectDecisionPage({
               color: T.textMuted,
             }}
           >
-            <div>工作流信息：处置责任人 李建国 · 派发快照网格 {event.suggestedGrid || "—"}</div>
-            <div>已退回 1 次 · 核查时限内（示例数据）</div>
+            <div>
+              工作流信息：处置责任人{" "}
+              {event.gridSubmits?.[event.gridSubmits.length - 1]?.by ?? "李建国"} · 派发快照网格{" "}
+              {event.suggestedGrid || "—"}
+            </div>
+            <div>
+              {event.fieldReturns?.length
+                ? `外场督查已回传 · 第 ${event.fieldReturns.length + 1} 次待核查 · 核查时限内（示例数据）`
+                : "已退回 1 次 · 核查时限内（示例数据）"}
+            </div>
           </div>
           <select
             value={returnSel}
@@ -6728,7 +7113,7 @@ function InspectDecisionPage({
                 fontSize: 13,
               }}
             >
-              证据不足，发起外场核查
+              证据不足，发起外场督查
             </button>
           </div>
         </Card>
@@ -6737,9 +7122,10 @@ function InspectDecisionPage({
         <CompareLayer
           mode={cmpMode}
           leftUrl={occurringUrl}
-          rightUrls={afterUrls}
-          rightLabels={afterLabels}
-          initialRightIdx={cmpRightIdx}
+          rightUrls={rightImgs.map((r) => r.url)}
+          rightLabels={rightImgs.map((r) => r.label)}
+          rightTitle={cur.label}
+          initialRightIdx={rightIdx}
           overlayBottomUrl={latestUrl}
           overlayTopUrl={occurringUrl}
           aiBox={aiBox}
@@ -9511,6 +9897,7 @@ function RealtimeGovernance({ identity }: { identity: IdentityState }) {
   if (view === "inspect-decision" && selectedEvent)
     return (
       <InspectDecisionPage
+        key={selectedEvent.id}
         event={selectedEvent}
         onBack={() => setView("overview")}
         hasFieldReturnStep={hasFieldReturnStep}
@@ -11852,6 +12239,16 @@ interface ArchiveEvent {
   duration: string
   hasRecurrence: boolean
   imgUrls: string[]
+  /** 处置后图（网格员提交；缺省时回退为 1 张处置后图） */
+  afterImgs?: string[]
+  /** 督察员回传图（外场督查） */
+  supImgs?: string[]
+  /** 网格员处置提交（与待核查同一套卡结构；只读） */
+  gridSubmits?: SubmitRec[]
+  /** 督察员外场回传（现场反馈不是核查结论） */
+  fieldReturns?: FieldReturnRec[]
+  /** 自定义完整处置时间线（缺省用 closedTimeline） */
+  timeline?: { time: string; title: string; actor: string; color: string; desc: string }[]
 }
 const archiveEvents: ArchiveEvent[] = [
   {
@@ -11868,6 +12265,95 @@ const archiveEvents: ArchiveEvent[] = [
       eventImage("共享单车违规停放", "after"),
       eventImage("共享单车违规停放", "during"),
     ],
+    // 只经过网格员处置结案：仅网格员提交卡（12号提示词 §5）
+    gridSubmits: [
+      { by: "李建国", time: "2026-08-18 18:55", note: "现场已全部清理完毕，上传处置后图2张，申请核查", imgs: 2 },
+    ],
+  },
+  {
+    id: "DC-2026-20580",
+    finalStatus: "已结案",
+    type: "暴露垃圾",
+    location: "安定门内大街17号临街商户前",
+    happenTime: "2026-08-16 08:42",
+    endTime: "2026-08-17 10:20",
+    inspector: "张晓琳",
+    duration: "25小时38分",
+    hasRecurrence: false,
+    imgUrls: [eventImage("暴露垃圾", "during")],
+    afterImgs: [eventImage("暴露垃圾", "after2"), eventImage("暴露垃圾", "after3")],
+    supImgs: [eventImage("暴露垃圾", "before"), eventImage("暴露垃圾", "during")],
+    // 网格员处置提交 + 督察员外场回传：两份记录并存，不合成一条（12号提示词 §5）
+    gridSubmits: [
+      { by: "赵磊", time: "2026-08-16 14:30", note: "暴露垃圾已清运完毕并转运至垃圾楼，现场冲洗干净，采集处置后图2张", imgs: 2 },
+    ],
+    fieldReturns: [
+      {
+        by: "孙倩",
+        time: "2026-08-17 08:55",
+        feedback: "已恢复",
+        note: "现场已清理，路面无残留，同机位拍照回传",
+        imgs: 2,
+      },
+    ],
+    timeline: [
+      {
+        time: "08:42",
+        title: "AI摄像头识别",
+        actor: "系统",
+        color: T.primary,
+        desc: "CAM-ADM-014 识别到临街商户前暴露垃圾堆积，置信度 93%，触发自动上报（图1张）",
+      },
+      {
+        time: "08:55",
+        title: "人工立案审核",
+        actor: "张晓琳",
+        color: T.primary,
+        desc: "确认立案，派发安定门街道网格，责任人：赵磊",
+      },
+      {
+        time: "14:30",
+        title: "网格员提交处置",
+        actor: "赵磊（网格员）",
+        color: T.purple,
+        desc: "上传处置后图2张并填写处置说明「已清运完毕，现场冲洗干净」→ 进入待核查",
+      },
+      {
+        time: "14:41",
+        title: "AI核查对照",
+        actor: "Agent",
+        color: T.accent,
+        desc: "处置后图与发生时刻图对照，建议结案；置信度不足阈值，转人工核查",
+      },
+      {
+        time: "16:02",
+        title: "发起外场督查",
+        actor: "张晓琳（核查人）",
+        color: T.purple,
+        desc: "证据角度存疑，派督察员外场督查，事件转入待督查",
+      },
+      {
+        time: "08:55",
+        title: "督察员现场回传",
+        actor: "孙倩（督察员）",
+        color: T.purple,
+        desc: "现场反馈「已恢复」，同机位回传督查图2张。注：现场反馈，不是核查结论",
+      },
+      {
+        time: "08:56",
+        title: "回到待核查",
+        actor: "系统",
+        color: T.textMuted,
+        desc: "事件第二次进入待核查，等待核查人决定",
+      },
+      {
+        time: "10:20",
+        title: "人工核查结案",
+        actor: "张晓琳（核查人）",
+        color: T.green,
+        desc: "核查人确认结案并归档（人工决定，与督察员现场反馈分开记录），总时长 25小时38分",
+      },
+    ],
   },
   {
     id: "DC-2026-08147",
@@ -11882,6 +12368,11 @@ const archiveEvents: ArchiveEvent[] = [
     imgUrls: [
       eventImage("无证户外广告", "after"),
       eventImage("无证户外广告", "during"),
+    ],
+    // 曾发生 1 次核查退回：同一角色（网格员）两次提交按时间列出，最新一条标「本次」（12号提示词 §1）
+    gridSubmits: [
+      { by: "王强", time: "2026-08-17 15:20", note: "违规广告牌已拆除一半，剩余部分当日未能完成", imgs: 1 },
+      { by: "王强", time: "2026-08-18 14:10", note: "剩余违规广告全部拆除完毕，采集处置后图2张", imgs: 2 },
     ],
   },
   {
@@ -11921,6 +12412,10 @@ const archiveEvents: ArchiveEvent[] = [
     imgUrls: [
       eventImage("店外经营占道", "after"),
       eventImage("店外经营占道", "during"),
+    ],
+    // 只经过网格员处置结案：仅网格员提交卡
+    gridSubmits: [
+      { by: "周敏", time: "2026-08-15 16:40", note: "店外物品已归店入室，占道解除，采集处置后图2张", imgs: 2 },
     ],
   },
   {
@@ -13027,30 +13522,38 @@ function EventArchive() {
                     <div
                       style={{ fontSize: 11, color: T.green, marginBottom: 6, fontWeight: 600 }}
                     >
-                      处置后图（1张）
+                      处置后图（{(selected.afterImgs ?? [eventImage(selected.type, "after")]).length}张）
                     </div>
-                    <div
-                      style={{
-                        borderRadius: 10,
-                        overflow: "hidden",
-                        boxShadow: "0 4px 14px rgba(22,45,77,0.08)",
-                        border: `1px solid ${T.glassBorder}`,
-                      }}
-                    >
-                      <img
-                        src={eventImage(selected.type, "after")}
-                        alt="处置后图"
-                        style={{
-                          width: "100%",
-                          aspectRatio: "16/9",
-                          objectFit: "cover",
-                          display: "block",
-                        }}
-                      />
-                    </div>
+                    <ImageGallery
+                      urls={selected.afterImgs ?? [eventImage(selected.type, "after")]}
+                    />
                   </div>
                 )}
+                {/* 督察员回传图：与处置图并存，都保留（12号提示词 §5） */}
+                {selected.finalStatus === "已结案" && selected.supImgs?.length ? (
+                  <div>
+                    <div
+                      style={{ fontSize: 11, color: T.purple, marginBottom: 6, fontWeight: 600 }}
+                    >
+                      督查回传图（{selected.supImgs.length}张）
+                    </div>
+                    <ImageGallery urls={selected.supImgs} />
+                  </div>
+                ) : null}
               </div>
+
+              {/* 人员提交 — 与待核查详情同一套卡结构（只读，不合成一条；12号提示词 §5） */}
+              {selected.gridSubmits?.length ? (
+                <>
+                  <SectionLabel style={{ marginBottom: 10 }}>人员提交</SectionLabel>
+                  <div style={{ marginBottom: 16 }}>
+                    <SubmissionCards
+                      gridSubmits={selected.gridSubmits}
+                      fieldReturns={selected.fieldReturns}
+                    />
+                  </div>
+                </>
+              ) : null}
 
               {selected.hasRecurrence && (
                 <div
@@ -13103,7 +13606,7 @@ function EventArchive() {
                         backgroundColor: T.border,
                       }}
                     />
-                    {closedTimeline.map((step, i) => (
+                    {(selected.timeline ?? closedTimeline).map((step, i) => (
                       <div
                         key={i}
                         style={{ position: "relative", marginBottom: 14 }}
