@@ -451,15 +451,10 @@ interface AskDesc {
   rest?: { count: number; sum: number } | null
   aboveAvg?: string[]      // 时长排行里长于当前平均的项
   daysMoreFound?: string[] // 发现多于闭环的天
-}
-
-const ASK_SUGGESTIONS: Record<AskKind, string[]> = {
-  count: ["这个数怎么读", "改时间会不会变"],
-  rate: ["分子和分母各是什么", "什么时候会变成「—」"],
-  rank: ["最多的是哪一项", "没画出来的有多少"],
-  durationRank: ["哪一项长于当前平均", "没画出来的有多少件"],
-  composition: ["占比最高的是哪一项"],
-  daily: ["哪一天发现多于闭环"],
+  items?: { name: string; value: number | string }[] // 可见的排行/构成/柱状条目，用于生成动态建议
+  isDuration?: boolean     // 时长类排行建议问「最久」，否则问「最多」
+  dwellNames?: string[]    // 环节停留三段名称
+  dwellMaxName?: string   // 环节停留里最长的一段名
 }
 
 // 用于识别「问的是另一项统计」
@@ -579,6 +574,60 @@ function persistAsk(desc: AskDesc, q: string, ans: AskAnswer) {
 
 interface AskMsg { role: "q" | "a" | "divider"; text: string; used?: string[]; ok?: boolean }
 
+/** 动态生成建议问题。按第 4 节规则，最多 2 条，仅用图上看得见的数填。 */
+function buildAskSuggestions(desc: AskDesc): string[] {
+  if (desc.empty) return []
+  const out: string[] = []
+
+  // 单总数、没有对比项的 count 卡：不给建议
+  if (desc.kind === "count" && (!desc.items || desc.items.length === 0) && desc.numbers.length === 1) {
+    return []
+  }
+
+  if (desc.kind === "daily" && desc.daysMoreFound && desc.daysMoreFound.length > 0) {
+    const d = desc.daysMoreFound[0]
+    out.push(`${d} 的发现是不是多于闭环`)
+  }
+
+  if (desc.kind === "rate") {
+    // 从 numbers[0] 里用 regex 捞百分数和分子，例如 "87.0%（分子 15 / 分母 18）"
+    const s = desc.numbers[0] ?? ""
+    const m = s.match(/^([0-9.]+)%.*分子\s*(\d+)/)
+    if (m) out.push(`这 ${m[1]}% 对应 ${m[2]} 件吗`)
+  }
+
+  if (desc.kind === "rank" || desc.kind === "durationRank" || desc.kind === "composition") {
+    const items = desc.items ?? []
+    if (items.length >= 1) {
+      // 前 k 名是否相同：看前两个数值型是否相等
+      const v0 = items[0].value
+      const v1 = items[1]?.value
+      if (typeof v0 === "number" && typeof v1 === "number" && v0 === v1) {
+        let k = 1
+        while (k < items.length && typeof items[k].value === "number" && items[k].value === v0) k++
+        out.push(`前 ${k} 名是不是一样`)
+      } else {
+        const unit = desc.isDuration ? "最久" : "最多"
+        const valStr = typeof v0 === "number" ? `${v0}${desc.isDuration ? " 小时" : " 件"}` : v0
+        out.push(`${items[0].name} 的 ${valStr} 是不是${unit}`)
+      }
+    }
+    // 有「其余」行 → 第二条
+    if (desc.rest && desc.rest.count > 0) {
+      out.push(`还有 ${desc.rest.count} 个没画出来，一共 ${desc.rest.sum} 件`)
+    }
+  }
+
+  // 环节停留特判：问最长的一段
+  if (desc.kind === "rank" && desc.dwellNames && desc.dwellMaxName) {
+    out.length = 0
+    out.push(`${desc.dwellMaxName} 是不是停得最久`)
+    if (desc.rest && desc.rest.count > 0) out.push(`还有 ${desc.rest.count} 个没画出来，一共 ${desc.rest.sum} 件`)
+  }
+
+  return out.slice(0, 2)
+}
+
 function AskAiDrawer({ desc, onClose }: { desc: AskDesc; onClose: () => void }) {
   const [msgs, setMsgs] = useState<AskMsg[]>([])
   const [input, setInput] = useState("")
@@ -599,7 +648,7 @@ function AskAiDrawer({ desc, onClose }: { desc: AskDesc; onClose: () => void }) 
     setInput("")
   }
 
-  const suggestions = desc.empty ? [] : ASK_SUGGESTIONS[desc.kind]
+  const suggestions = desc.empty ? [] : buildAskSuggestions(desc)
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "stretch", justifyContent: "flex-end", pointerEvents: "none" }}>
@@ -1333,16 +1382,16 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
         return { id, title: "严重事件", kind: "count", scope: backlogMeta, numbers: [`${v.severe} 件`], empty: v.severe === 0, caliber: rl("ov_severe"), timeVaries: false }
       case "ov_stages": {
         const top = v.stages.reduce((a, b) => (b.value > a.value ? b : a))
-        return { id, title: "各阶段待处理", kind: "rank", scope: backlogMeta, numbers: v.stages.map((s) => `${s.label} ${s.value} 件`), empty: v.sustained === 0, caliber: rl("ov_stages"), timeVaries: false, topItem: `${top.label} ${top.value} 件` }
+        return { id, title: "各阶段待处理", kind: "rank", scope: backlogMeta, numbers: v.stages.map((s) => `${s.label} ${s.value} 件`), empty: v.sustained === 0, caliber: rl("ov_stages"), timeVaries: false, topItem: `${top.label} ${top.value} 件`, items: v.stages.map((s) => ({ name: s.label, value: s.value })) }
       }
       case "ov_severe_space": {
         const rest = { count: v.severeTop.restCount, sum: v.severeTop.restSum }
         const top = v.severeTop.visible[0]
-        return { id, title: "严重问题空间", kind: "rank", scope: scopeG(backlogMeta), numbers: [...rankLines(v.severeTop.visible), ...restLine(rest)], empty: v.severe === 0, caliber: rl("ov_severe_space"), timeVaries: false, topItem: top ? `${top.name} ${top.value} 件` : undefined, rest }
+        return { id, title: "严重问题空间", kind: "rank", scope: scopeG(backlogMeta), numbers: [...rankLines(v.severeTop.visible), ...restLine(rest)], empty: v.severe === 0, caliber: rl("ov_severe_space"), timeVaries: false, topItem: top ? `${top.name} ${top.value} 件` : undefined, rest, items: v.severeTop.visible.map((r) => ({ name: r.name, value: r.value })) }
       }
       case "ov_sustained_types": {
         const top = v.sustainedTypes.reduce<{ label: string; value: number } | null>((a, b) => (!a || b.value > a.value ? b : a), null)
-        return { id, title: "当前存续类型", kind: "composition", scope: backlogMeta, numbers: v.sustainedTypes.map((t) => `${t.label} ${t.value} 件（${pct(t.value, v.sustained)}）`), empty: v.sustained === 0, caliber: rl("ov_sustained_types"), timeVaries: false, topItem: top ? `${top.label}（${pct(top.value, v.sustained)}）` : undefined }
+        return { id, title: "当前存续类型", kind: "composition", scope: backlogMeta, numbers: v.sustainedTypes.map((t) => `${t.label} ${t.value} 件（${pct(t.value, v.sustained)}）`), empty: v.sustained === 0, caliber: rl("ov_sustained_types"), timeVaries: false, topItem: top ? `${top.label}（${pct(top.value, v.sustained)}）` : undefined, items: v.sustainedTypes.map((t) => ({ name: t.label, value: t.value })) }
       }
       case "ev_total":
         return { id, title: "事件总数", kind: "count", scope: filterMeta, numbers: [`${v.total} 件`], empty: v.total === 0, caliber: rl("ev_total"), timeVaries: true }
@@ -1353,32 +1402,35 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       case "ev_space_dist": {
         const rest = { count: v.spaceTop.restCount, sum: v.spaceTop.restSum }
         const top = v.spaceTop.visible[0]
-        return { id, title: "空间分布", kind: "rank", scope: scopeG(filterMeta), numbers: [...rankLines(v.spaceTop.visible), ...restLine(rest)], empty: v.total === 0, caliber: rl("ev_space_dist"), timeVaries: true, topItem: top ? `${top.name} ${top.value} 件` : undefined, rest }
+        return { id, title: "空间分布", kind: "rank", scope: scopeG(filterMeta), numbers: [...rankLines(v.spaceTop.visible), ...restLine(rest)], empty: v.total === 0, caliber: rl("ev_space_dist"), timeVaries: true, topItem: top ? `${top.name} ${top.value} 件` : undefined, rest, items: v.spaceTop.visible.map((r) => ({ name: r.name, value: r.value })) }
       }
-      case "ev_hourly":
-        return { id, title: "发生时段", kind: "rank", scope: filterMeta, numbers: [`合计 ${v.total} 件`, `高峰 ${String(v.peakHour).padStart(2, "0")} 时 ${v.hourly[v.peakHour] ?? 0} 件`], empty: v.total === 0, caliber: rl("ev_hourly"), timeVaries: true, topItem: `${String(v.peakHour).padStart(2, "0")} 时 ${v.hourly[v.peakHour] ?? 0} 件` }
+      case "ev_hourly": {
+        const label = String(v.peakHour).padStart(2, "0")
+        const val = v.hourly[v.peakHour] ?? 0
+        return { id, title: "发生时段", kind: "rank", scope: filterMeta, numbers: [`合计 ${v.total} 件`, `高峰 ${label} 时 ${val} 件`], empty: v.total === 0, caliber: rl("ev_hourly"), timeVaries: true, topItem: `${label} 时 ${val} 件`, items: [{ name: `${label} 时`, value: val }] }
+      }
       case "ev_top_cameras": {
         const visible = v.cameras.slice(0, 8)
         const restRows = v.cameras.slice(8)
         const rest = { count: restRows.length, sum: sum(restRows.map((c) => c.value)) }
         const top = visible[0]
-        return { id, title: "高发相机", kind: "rank", scope: filterMeta, numbers: [...visible.map((c) => `${c.point}（${c.id}）${c.value} 件`), ...restLine(rest)], empty: v.cameras.length === 0, caliber: rl("ev_top_cameras"), timeVaries: true, topItem: top ? `${top.point} ${top.value} 件` : undefined, rest }
+        return { id, title: "高发相机", kind: "rank", scope: filterMeta, numbers: [...visible.map((c) => `${c.point}（${c.id}）${c.value} 件`), ...restLine(rest)], empty: v.cameras.length === 0, caliber: rl("ev_top_cameras"), timeVaries: true, topItem: top ? `${top.point} ${top.value} 件` : undefined, rest, items: visible.map((c) => ({ name: c.point, value: c.value })) }
       }
       case "pr_avg":
-        return { id, title: "平均处置时长", kind: "count", scope: filterMeta, numbers: [v.doneAvg === null ? "—（当前范围无可计算样本）" : `${v.doneAvg} 小时（办完 ${v.doneN} 件）`], empty: v.doneN === 0, caliber: rl("pr_avg"), timeVaries: true }
+        return { id, title: "从派给网格到处置完，平均要多久", kind: "count", scope: filterMeta, numbers: [v.doneAvg === null ? "—（当前范围无可计算样本）" : `${v.doneAvg} 小时（办完 ${v.doneN} 件）`], empty: v.doneN === 0, caliber: rl("pr_avg"), timeVaries: true }
       case "pr_dwell": {
-        const names = ["等到派发", "派发到处置完", "处置完到核查完"]
+        const names = ["发现 → 派给网格", "派给网格 → 处置完", "处置完 → 核查完"]
         const nums = v.dwellVals.map((val, i) => `${names[i]} ${val === null ? "—" : `${val} 小时`}`)
         const top = v.dwellVals[v.dwellMaxIdx]
-        return { id, title: "环节停留", kind: "rank", scope: filterMeta, numbers: nums, empty: v.doneN === 0, caliber: rl("pr_dwell"), timeVaries: true, topItem: top === null ? undefined : `${names[v.dwellMaxIdx]} ${top} 小时` }
+        return { id, title: "各环节停了多久", kind: "rank", scope: filterMeta, numbers: nums, empty: v.doneN === 0, caliber: rl("pr_dwell"), timeVaries: true, topItem: top === null ? undefined : `${names[v.dwellMaxIdx]} ${top} 小时`, dwellNames: names, dwellMaxName: names[v.dwellMaxIdx], items: names.map((n, i) => ({ name: n, value: v.dwellVals[i] ?? 0 })) }
       }
       case "pr_grid_dur":
       case "pr_type_dur": {
         const d = id === "pr_grid_dur" ? v.gridDur : v.typeDur
-        const title = id === "pr_grid_dur" ? "按网格" : "按事件类型"
+        const title = id === "pr_grid_dur" ? "哪个网格办完更久" : "哪类事件办完更久"
         const rest = { count: d.restCount, sum: d.restSum }
         const above = d.visible.filter((r) => r.color === "var(--primary)").map((r) => `${r.name} ${r.value} 小时`)
-        return { id, title, kind: "durationRank", scope: filterMeta, numbers: [...d.visible.map((r) => `${r.name} ${r.value} 小时（办完 ${r.n} 件）`), ...restLine(rest)], empty: v.doneN === 0, caliber: rl(id), timeVaries: true, aboveAvg: above, rest }
+        return { id, title, kind: "durationRank", scope: filterMeta, numbers: [...d.visible.map((r) => `${r.name} ${r.value} 小时（办完 ${r.n} 件）`), ...restLine(rest)], empty: v.doneN === 0, caliber: rl(id), timeVaries: true, aboveAvg: above, rest, isDuration: true, items: d.visible.map((r) => ({ name: r.name, value: r.value })) }
       }
       case "pr_pending":
       case "pr_dispose":
@@ -1390,12 +1442,12 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       }
       case "pr_stages": {
         const top = v.stages.reduce((a, b) => (b.value > a.value ? b : a))
-        return { id, title: "环节存量", kind: "rank", scope: backlogMeta, numbers: v.stages.map((s) => `${s.label} ${s.value} 件`), empty: v.sustained === 0, caliber: rl("pr_stages"), timeVaries: false, topItem: `${top.label} ${top.value} 件` }
+        return { id, title: "环节存量", kind: "rank", scope: backlogMeta, numbers: v.stages.map((s) => `${s.label} ${s.value} 件`), empty: v.sustained === 0, caliber: rl("pr_stages"), timeVaries: false, topItem: `${top.label} ${top.value} 件`, items: v.stages.map((s) => ({ name: s.label, value: s.value })) }
       }
       case "pr_grid": {
         const rest = { count: v.gridOnDutyTop.restCount, sum: v.gridOnDutyTop.restSum }
         const top = v.gridOnDutyTop.visible[0]
-        return { id, title: "责任网格在办", kind: "rank", scope: backlogMeta, numbers: [...rankLines(v.gridOnDutyTop.visible), ...restLine(rest)], empty: v.gridOnDutyTop.visible.length === 0, caliber: rl("pr_grid"), timeVaries: false, topItem: top ? `${top.name} ${top.value} 件` : undefined, rest }
+        return { id, title: "责任网格在办", kind: "rank", scope: backlogMeta, numbers: [...rankLines(v.gridOnDutyTop.visible), ...restLine(rest)], empty: v.gridOnDutyTop.visible.length === 0, caliber: rl("pr_grid"), timeVaries: false, topItem: top ? `${top.name} ${top.value} 件` : undefined, rest, items: v.gridOnDutyTop.visible.map((r) => ({ name: r.name, value: r.value })) }
       }
       case "ql_composition": {
         const rows = [
@@ -1829,7 +1881,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
           </div>
           <div className="stats-kpi-grid cols-1">
             <KpiCard2
-              label="平均处置时长"
+              label="从派给网格到处置完，平均要多久"
               value={v.doneAvg === null ? "—" : v.doneAvg}
               unit={v.doneAvg === null ? undefined : "小时"}
               color={C.primary} icon="clock" ruleId="pr_avg"
@@ -1839,8 +1891,12 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
           </div>
           <div className="stats-chart-grid stats-chart-grid-3">
             <ChartCard2
-              title="环节停留" ruleId="pr_dwell"
-              note="三柱固定顺序 · 最长的一根用主色 · 没办完的不进平均"
+              title="各环节停了多久" ruleId="pr_dwell"
+              note={
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <div>只计算这段时间里走完这一步的事件，柱高是平均小时。最长的一步用深色。</div>
+                </div>
+              }
               onAsk={() => openAsk("pr_dwell")}
             >
               {v.doneN === 0 ? (
@@ -1848,7 +1904,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               ) : (
                 <EchartsBar
                   data={v.dwellVals.map((val) => val ?? 0)}
-                  xAxis={["等到派发", "派发到处置完", "处置完到核查完"]}
+                  xAxis={["发现 → 派给网格", "派给网格 → 处置完", "处置完 → 核查完"]}
                   itemColors={v.dwellVals.map((_, i) => (i === v.dwellMaxIdx ? C.primary : "#9AA4B2"))}
                   skin={skin}
                   height={210}
@@ -1857,10 +1913,10 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               )}
             </ChartCard2>
             <ChartCard2
-              title="按网格" ruleId="pr_grid_dur"
+              title="哪个网格办完更久" ruleId="pr_grid_dur"
               note={
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <div>派发成功 → 处置完成 · 长于平均用深色</div>
+                  <div>深色表示长于当前平均 {v.doneAvg === null ? "—" : `${v.doneAvg} 小时`} · 办完 {v.doneN} 件</div>
                   <RankNote by="时长" restCount={v.gridDur.restCount} restSum={v.gridDur.restSum} />
                 </div>
               }
@@ -1874,14 +1930,31 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                   skin={skin}
                   height={210}
                   valueSuffix=" 小时"
+                  onItemClick={(name, value) => {
+                    const gridRows = WIN_DONE[win].filter((e) => e.grid === name)
+                    if (gridRows.length > 0) {
+                      openSlice(
+                        `哪个网格办完更久 · ${name}`,
+                        gridRows.length,
+                        "flow",
+                        gridRows.map<EvRow>((r) => ({
+                          type: r.type,
+                          place: name,
+                          stage: "已结案",
+                          time: `${WIN_LABEL[win]}办完`,
+                          status: `派给网格 ${r.wait}h · 处置 ${r.doIt}h · 核查 ${r.check}h`,
+                        })),
+                      )
+                    }
+                  }}
                 />
               )}
             </ChartCard2>
             <ChartCard2
-              title="按事件类型" ruleId="pr_type_dur"
+              title="哪类事件办完更久" ruleId="pr_type_dur"
               note={
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <div>派发成功 → 处置完成 · 长于平均用深色</div>
+                  <div>深色表示长于当前平均 {v.doneAvg === null ? "—" : `${v.doneAvg} 小时`} · 办完 {v.doneN} 件</div>
                   <RankNote by="时长" restCount={v.typeDur.restCount} restSum={v.typeDur.restSum} />
                 </div>
               }
@@ -1895,6 +1968,23 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                   skin={skin}
                   height={210}
                   valueSuffix=" 小时"
+                  onItemClick={(name, value) => {
+                    const typeRows = WIN_DONE[win].filter((e) => e.type === name)
+                    if (typeRows.length > 0) {
+                      openSlice(
+                        `哪类事件办完更久 · ${name}`,
+                        typeRows.length,
+                        "flow",
+                        typeRows.map<EvRow>((r) => ({
+                          type: name,
+                          place: r.grid,
+                          stage: "已结案",
+                          time: `${WIN_LABEL[win]}办完`,
+                          status: `派给网格 ${r.wait}h · 处置 ${r.doIt}h · 核查 ${r.check}h`,
+                        })),
+                      )
+                    }
+                  }}
                 />
               )}
             </ChartCard2>
