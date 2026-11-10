@@ -711,16 +711,21 @@ html[data-skin="tech"] img {
   to { transform: rotate(360deg); }
 }
 
-/* ── AI 统计 V1.3：数字卡一行最多 4 张；图区默认两列，指定图通栏 ── */
+/* ── AI 统计 V1.3：数字卡按实际张数铺，不预留空白格；图区默认两列 ── */
 .stats-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
 }
+.stats-kpi-grid.cols-1 { grid-template-columns: minmax(0, 340px); }
+.stats-kpi-grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.stats-kpi-grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .stats-chart-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+}
+.stats-chart-grid.stats-chart-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .stats-backlog {
   display: flex;
@@ -732,12 +737,16 @@ html[data-skin="tech"] img {
   background: var(--card-2, rgba(22, 45, 77, 0.03));
 }
 @media (max-width: 1200px) {
-  .stats-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .stats-kpi-grid.cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 1000px) {
+  .stats-chart-grid,
+  .stats-chart-grid.stats-chart-grid-3 { grid-template-columns: 1fr; }
 }
 @media (max-width: 900px) {
-  .stats-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .stats-chart-grid { grid-template-columns: 1fr; }
+  .stats-kpi-grid.cols-2,
+  .stats-kpi-grid.cols-4 { grid-template-columns: 1fr; }
 }
 @media (max-width: 560px) {
-  .stats-kpi-grid { grid-template-columns: 1fr; }
+  .stats-kpi-grid.cols-1 { grid-template-columns: 1fr; }
 }

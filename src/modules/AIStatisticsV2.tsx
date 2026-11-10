@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useRef, useState } from "react"
 import EchartsBar from "../components/EchartsBar"
+import EchartsDiscoverClose from "../components/EchartsDiscoverClose"
 import EchartsPie from "../components/EchartsPie"
 import EchartsRank from "../components/EchartsRank"
 import KpiIcon from "../components/KpiIcon"
@@ -84,6 +85,31 @@ const HOUR_WEIGHTS = [
   0, 0, 0, 0, 0, 0, 1.2, 2.4, 4.6, 5.2, 4.2, 3.2,
   2.2, 2, 2.4, 2.6, 1.8, 1.4, 1, 0.6, 0.3, 0, 0, 0,
 ]
+
+// 发现 / 闭环按日权重：由 alloc 按窗口总数分配，保证日合计精确等于两张卡
+const FOUND_7_WEIGHTS = [0.18, 0.16, 0.15, 0.14, 0.13, 0.12, 0.12]
+const CLOSED_7_WEIGHTS = [0.06, 0.08, 0.12, 0.16, 0.18, 0.2, 0.2]
+const DAILY_PATTERN = [0.8, 1.0, 1.2, 0.9, 1.1, 1.3, 1.0]
+
+function dailyWeights(n: number, kind: "found" | "closed"): number[] {
+  if (n <= 1) return [1]
+  if (n === 7) return kind === "found" ? FOUND_7_WEIGHTS : CLOSED_7_WEIGHTS
+  return Array.from({ length: n }, (_, i) =>
+    kind === "found"
+      ? DAILY_PATTERN[i % 7] * (0.85 + i * 0.008)
+      : DAILY_PATTERN[(i + 5) % 7] * (0.7 + i * 0.012),
+  )
+}
+
+function buildDays(n: number): { label: string; date: string }[] {
+  const now = new Date()
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (n - 1 - i))
+    const mm = String(d.getMonth() + 1).padStart(2, "0")
+    const dd = String(d.getDate()).padStart(2, "0")
+    return { label: `${d.getMonth() + 1}/${d.getDate()}`, date: `${d.getFullYear()}-${mm}-${dd}` }
+  })
+}
 
 const CAMERA_DEFS = [
   { id: "C-A11-03", point: "雍和宫大街·国子监街口", place: "北新桥街道 · 北新桥-04网格", weight: 0.16 },
@@ -694,6 +720,14 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
     const closedCase = Math.round(WIN_CLOSED[win].closedCase * ff)
     const closedNonCase = Math.round(WIN_CLOSED[win].closedNonCase * ff)
     const closedAll = closedCase + closedNonCase
+
+    // 发现与闭环：同一窗口按日汇总，日合计分别等于两张卡
+    const dayCount = win === "today" ? 1 : win === "7d" ? 7 : 30
+    const days = buildDays(dayCount)
+    const foundDaily = alloc(total, dailyWeights(dayCount, "found"))
+    const closedDaily = alloc(closedAll, dailyWeights(dayCount, "closed"))
+    const dayMode: "bar" | "line" = dayCount === 1 ? "bar" : "line"
+
     const fb = WIN_FUNNEL[win]
     const funnel = {
       found: total,
@@ -771,6 +805,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
     return {
       total, typeStruct, hourly, peakHour, spaceDist, spaceTop, effectiveGran,
       cameras, camerasWithoutId, closedCase, closedNonCase, closedAll, funnel,
+      days, foundDaily, closedDaily, dayMode,
       stages, sustained, severe, severeSpace, severeTop, sustainedTypes, gridOnDuty,
       quality, aiRates,
     }
@@ -789,6 +824,18 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
   const sliceRows = (opts: { stages?: string[]; severe?: boolean }) =>
     filterPool({ street, type, ...opts })
 
+  const openDaySlice = (label: string, series: "发现" | "闭环", value: number) => {
+    if (value < 1) return
+    const idx = v.days.findIndex((d) => d.label === label)
+    const date = idx >= 0 ? v.days[idx].date : ""
+    const stages = series === "闭环"
+      ? ["已结案", "已作废", "无效"]
+      : EVENT_POOL.map((e) => e.stage)
+    const base = sliceRows({ stages })
+    const sameDay = date ? base.filter((r) => r.time.startsWith(date)) : []
+    openSlice(`发现与闭环 · ${label} ${series}`, value, "flow", sameDay.length > 0 ? sameDay : base)
+  }
+
   // ── AI 解读：只引用当前 tab、当前筛选下已经显示出来的数 ──
   const insight = useMemo(() => {
     if (cat === "overview") {
@@ -796,6 +843,18 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       const parts: string[] = [
         `${filterMeta}：新发现 ${v.total} 件、区间闭环 ${v.closedAll} 件（结案 ${v.closedCase}、作废/无效 ${v.closedNonCase}）。`,
       ]
+      if (v.dayMode === "line" && (v.total > 0 || v.closedAll > 0)) {
+        const gapIdx = v.foundDaily.reduce(
+          (best, n, i) => (n - v.closedDaily[i] > v.foundDaily[best] - v.closedDaily[best] ? i : best),
+          0,
+        )
+        const gap = v.foundDaily[gapIdx] - v.closedDaily[gapIdx]
+        parts.push(
+          gap > 0
+            ? `${v.days[gapIdx].label} 发现 ${v.foundDaily[gapIdx]} 件、闭环 ${v.closedDaily[gapIdx]} 件，差 ${gap} 件。`
+            : "窗口内每天闭环都不少于发现。",
+        )
+      }
       if (v.sustained > 0) {
         const maxStage = v.stages.reduce((a, b) => (b.value > a.value ? b : a))
         parts.push(
@@ -953,7 +1012,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       {cat === "overview" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <SectionHead label="区间流水（随时间、空间、类型变）" />
-          <div className="stats-kpi-grid">
+          <div className="stats-kpi-grid cols-2">
             <KpiCard2
               label="事件总数" value={v.total} unit="件" color={C.primary} icon="archive" ruleId="ov_total"
               sub={`${filterMeta} · 按发现时间归日`}
@@ -965,6 +1024,25 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               onClick={v.closedAll >= 1 ? () => openSlice("区间闭环", v.closedAll, "flow", sliceRows({ stages: ["已结案", "已作废", "无效"] })) : undefined}
             />
           </div>
+
+          <ChartCard2
+            title="发现与闭环"
+            ruleId="ov_daily"
+            note={v.dayMode === "bar"
+              ? "按天看发现有没有被闭环跟上 · 今天只有一天，用两根柱 · 柱为 0 不可点"
+              : "每天发现之和 = 事件总数；每天闭环之和 = 区间闭环 · 0 的天保留、不可点"}
+          >
+            <EchartsDiscoverClose
+              labels={v.days.map((d) => d.label)}
+              found={v.foundDaily}
+              closed={v.closedDaily}
+              mode={v.dayMode}
+              axisLabelInterval={v.dayMode === "line" && v.days.length > 7 ? 4 : 0}
+              skin={skin}
+              height={210}
+              onItemClick={openDaySlice}
+            />
+          </ChartCard2>
 
           {/* 链路吞吐：横向五阶，不是漏斗 */}
           <div className="glass-card" style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
@@ -1032,7 +1110,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
           {/* 当前积压：浅底细边框整段包住 */}
           <div className="stats-backlog">
             <SectionHead label="当前积压（截止此刻，不随时间变，随空间、类型变）" />
-            <div className="stats-kpi-grid">
+            <div className="stats-kpi-grid cols-2">
               <KpiCard2
                 label="存续事件" value={v.sustained} unit="件" color={C.warning} icon="layers" ruleId="ov_sustained"
                 sub="截止此刻 · 四环节之和"
@@ -1044,7 +1122,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                 onClick={v.severe >= 1 ? () => openSlice("严重事件", v.severe, "backlog", sliceRows({ severe: true })) : undefined}
               />
             </div>
-            <div className="stats-chart-grid">
+            <div className="stats-chart-grid stats-chart-grid-3">
               <ChartCard2
                 title="各阶段待处理" ruleId="ov_stages"
                 note="截止此刻 · 改时间不变，改空间/类型变 · 与流程运行「环节存量」同口径"
@@ -1075,8 +1153,6 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                   />
                 )}
               </ChartCard2>
-            </div>
-            <div className="stats-chart-grid">
               <ChartCard2
                 title="当前存续类型" ruleId="ov_sustained_types"
                 note="按存续计 · 截止此刻"
@@ -1105,7 +1181,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       {/* ── 2 事件发生 ── */}
       {cat === "events" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div className="stats-kpi-grid">
+          <div className="stats-kpi-grid cols-1">
             <KpiCard2
               label="事件总数" value={v.total} unit="件" color={C.primary} icon="archive" ruleId="ev_total"
               sub={`${filterMeta} · 按发现时间归日 · 本版发现均来自相机`}
@@ -1173,23 +1249,21 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
             />
           </ChartCard2>
 
-          <div className="stats-chart-grid">
-            <ChartCard2
-              title="高发相机" ruleId="ev_top_cameras"
-              note={`点位名为主、相机编号为次${v.camerasWithoutId > 0 ? ` · 另有 ${v.camerasWithoutId} 件没有相机编号，未进榜` : ""}`}
-              sliceEnabled={v.cameras.length >= 1}
-              onSlice={() => openSlice("高发相机", sum(v.cameras.map((c) => c.value)), "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) }))}
-            >
-              {v.cameras.length === 0 ? (
-                <EmptyBox text="当前范围没有可计算该口径的样本" />
-              ) : (
-                <CameraRank
-                  cameras={v.cameras}
-                  onItemClick={(point, value) => openSlice(`高发相机 · ${point}`, value, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) }))}
-                />
-              )}
-            </ChartCard2>
-          </div>
+          <ChartCard2
+            title="高发相机" ruleId="ev_top_cameras"
+            note={`点位名为主、相机编号为次${v.camerasWithoutId > 0 ? ` · 另有 ${v.camerasWithoutId} 件没有相机编号，未进榜` : ""}`}
+            sliceEnabled={v.cameras.length >= 1}
+            onSlice={() => openSlice("高发相机", sum(v.cameras.map((c) => c.value)), "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) }))}
+          >
+            {v.cameras.length === 0 ? (
+              <EmptyBox text="当前范围没有可计算该口径的样本" />
+            ) : (
+              <CameraRank
+                cameras={v.cameras}
+                onItemClick={(point, value) => openSlice(`高发相机 · ${point}`, value, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) }))}
+              />
+            )}
+          </ChartCard2>
         </div>
       )}
 
@@ -1200,7 +1274,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
             这一页不按时间统计，改时间这些数不变
           </div>
           <SectionHead label="当前积压（截止此刻，不随时间变，随空间、类型变）" />
-          <div className="stats-kpi-grid">
+          <div className="stats-kpi-grid cols-4">
             {v.stages.map((s, i) => (
               <KpiCard2
                 key={s.key}
@@ -1225,26 +1299,24 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               if (idx >= 0) stageTop(idx)
             }} />
           </ChartCard2>
-          <div className="stats-chart-grid">
-            <ChartCard2
-              title="责任网格在办" ruleId="pr_grid"
-              note="截止此刻 · 各网格当前在办件数之和 = 待处置"
-              sliceEnabled={v.gridOnDuty.some((d) => d.value >= 1)}
-              onSlice={() => openSlice("责任网格在办", v.stages[1].value, "backlog", sliceRows({ stages: ["待处置"] }))}
-            >
-              {v.gridOnDuty.length === 0 ? (
-                <EmptyBox text="当前范围没有可计算该口径的样本" />
-              ) : (
-                <EchartsRank
-                  data={v.gridOnDuty}
-                  skin={skin}
-                  height={210}
-                  valueSuffix=" 件"
-                  onItemClick={(name, value) => openSlice(`责任网格在办 · ${name}`, value, "backlog", sliceRows({ stages: ["待处置"] }))}
-                />
-              )}
-            </ChartCard2>
-          </div>
+          <ChartCard2
+            title="责任网格在办" ruleId="pr_grid"
+            note="截止此刻 · 各网格当前在办件数之和 = 待处置"
+            sliceEnabled={v.gridOnDuty.some((d) => d.value >= 1)}
+            onSlice={() => openSlice("责任网格在办", v.stages[1].value, "backlog", sliceRows({ stages: ["待处置"] }))}
+          >
+            {v.gridOnDuty.length === 0 ? (
+              <EmptyBox text="当前范围没有可计算该口径的样本" />
+            ) : (
+              <EchartsRank
+                data={v.gridOnDuty}
+                skin={skin}
+                height={210}
+                valueSuffix=" 件"
+                onItemClick={(name, value) => openSlice(`责任网格在办 · ${name}`, value, "backlog", sliceRows({ stages: ["待处置"] }))}
+              />
+            )}
+          </ChartCard2>
         </div>
       )}
 
@@ -1300,7 +1372,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
           <div style={{ marginTop: 4 }}>
             <SectionHead label="AI 成效" />
           </div>
-          <div className="stats-kpi-grid">
+          <div className="stats-kpi-grid cols-4">
             <KpiCard2
               label="发现有效率" value={v.aiRates.discoveryRate} color={C.primary} icon="target" ruleId="ai_discovery_rate"
               sub={v.aiRates.discoveryCandidates === 0 ? "当前范围无可计算样本" : `分子 ${v.aiRates.discoveryValid} 件 · 分母 ${v.aiRates.discoveryCandidates} 件`}
