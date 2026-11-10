@@ -712,6 +712,11 @@ html[data-skin="tech"] img {
 }
 
 /* ── AI 统计 V1.3：数字卡按实际张数铺，不预留空白格；图区默认两列 ── */
+/* 问 AI 抽屉：窄屏让出吸顶筛选条，保证抽屉打开时仍能改时间 / 空间 / 类型 / tab */
+@media (max-width: 768px) {
+  .ask-ai-drawer { margin-top: 112px; }
+}
+
 .stats-kpi-grid {
   display: grid;
   gap: 14px;
