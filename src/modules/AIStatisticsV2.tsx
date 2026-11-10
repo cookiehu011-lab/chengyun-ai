@@ -442,7 +442,8 @@ interface AskDesc {
   title: string
   kind: AskKind
   scope: string            // 范围一行：时间 · 空间 · 类型（空间图加粒度）
-  sig?: string             // 切换签名（含 tab）：变了就插一行「已切换为…」
+  sig?: string             // 切换签名（tab + 筛选态）：变了就插一行「已切换为…」
+  filterText?: string      // 分隔行文案：时间 · 空间 · 类型（跟筛选器走，积压页也随时间变）
   numbers: string[]        // 只读的数，与卡片/图上看见的一致
   empty: boolean           // 0 / 「—」/ 空图：不给建议问题
   caliber: string          // 这项自己的口径（流水随时间变 / 积压不随时间变）
@@ -480,8 +481,15 @@ function answerAsk(desc: AskDesc, q: string): AskAnswer {
   if (/哪些事件|具体是哪些|事件明细|事件名单/.test(q)) {
     return { ok: false, text: "名单在这项的切片里。" }
   }
-  // 问另一项统计
-  const other = ASK_OTHER_TITLES.find((t) => t !== desc.title && !desc.title.includes(t) && q.includes(t))
+  // 问另一项统计：本项自己的条目名（如「待立案」「待核查」）不算另一项
+  const ownNames = new Set<string>([
+    desc.title,
+    ...(desc.items?.map((i) => i.name) ?? []),
+    ...(desc.dwellNames ?? []),
+  ])
+  const other = ASK_OTHER_TITLES.find(
+    (t) => !ownNames.has(t) && !desc.title.includes(t) && q.includes(t),
+  )
   if (other) {
     return { ok: false, text: "这是当前这项的问答。要看那一项，请打开那一项的问 AI。" }
   }
@@ -642,7 +650,7 @@ function AskAiDrawer({ desc, onClose }: { desc: AskDesc; onClose: () => void }) 
     const sig = desc.sig ?? desc.scope
     const needDivider = msgs.length > 0 && sig !== lastScope.current
     if (needDivider) lastScope.current = sig
-    const divider: AskMsg[] = needDivider ? [{ role: "divider", text: `已切换为 ${desc.scope}` }] : []
+    const divider: AskMsg[] = needDivider ? [{ role: "divider", text: `已切换为 ${desc.filterText ?? desc.scope}` }] : []
     setMsgs((m) => [...m, ...divider, { role: "q", text: q }, { role: "a", text: ans.text, used: ans.used, ok: ans.ok }])
     persistAsk(desc, q, ans)
     setInput("")
@@ -1478,7 +1486,12 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
   }
 
   const askDesc = askId ? buildAsk(askId) : null
-  if (askDesc) askDesc.sig = `${cat}|${askDesc.scope}`
+  if (askDesc) {
+    // 切换签名跟「筛选器状态 + tab」走：积压类统计的范围行写「截止此刻」，
+    // 但改时间仍是筛选变化，也要插「已切换为 …」。
+    askDesc.sig = `${cat}|${win}|${street ?? ""}|${type ?? ""}|${spaceGran}`
+    askDesc.filterText = `${WIN_LABEL[win]} · ${street ?? "东城全区"} · ${type ?? "全部类型"}`
+  }
 
   return (
     <div style={{ flex: 1, overflowY: "auto", padding: "18px 22px 28px" }}>
