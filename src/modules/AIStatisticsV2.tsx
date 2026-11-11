@@ -1252,6 +1252,9 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
     const dissipated = Math.round(q.dissipated * ff)
     const returned = Math.round(q.returned * ff)
     const inspected = checkedN + returned
+    // 演示数据里结案和退回不重叠：结案的都是一次通过，被退回的尚未结案。
+    const firstPass = checkedN
+    const firstDecided = checkedN + returned
     const discoveryCandidates = total
     const discoveryValid = Math.min(discoveryCandidates, valid)
     const prefillTotal = Math.round(q.prefillTotal * ff)
@@ -1270,6 +1273,9 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       returnRate: pct(returned, inspected),
       returned,
       inspected,
+      firstPassRate: pct(firstPass, firstDecided),
+      firstPass,
+      firstDecided,
     }
     const aiRates = {
       discoveryRate: pct(discoveryValid, discoveryCandidates),
@@ -1547,6 +1553,9 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
     if (v.quality.returnRate !== "—") {
       bits.push(`退回率 ${v.quality.returnRate}（${v.quality.returned}/${v.quality.inspected}）`)
     }
+    if (v.quality.firstPassRate !== "—") {
+      bits.push(`一次核查通过率 ${v.quality.firstPassRate}（${v.quality.firstPass}/${v.quality.firstDecided}）`)
+    }
     if (v.aiRates.discoveryRate !== "—") {
       bits.push(`发现有效率 ${v.aiRates.discoveryRate}（${v.aiRates.discoveryValid}/${v.aiRates.discoveryCandidates}）`)
     }
@@ -1557,7 +1566,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       bits.push(`建议一致率 ${v.aiRates.suggestMatch}（${v.aiRates.suggestMatchCount}/${v.aiRates.suggestTotal}）`)
     }
     if (v.aiRates.spaceFail > 0) bits.push(`空间匹配失败 ${v.aiRates.spaceFail} 件`)
-    if (bits.length === 0) return `${filterMeta}：当前范围暂无可计算的治理质量与 AI 成效样本。`
+    if (bits.length === 0) return `${filterMeta}：当前范围没有可计算的数据。`
     return `${filterMeta}：${bits.join("；")}。`
   }, [cat, v, filterMeta, backlogMeta])
 
@@ -2134,7 +2143,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                 onAsk={showAsk("ov_severe_space", v.severe === 0) ? () => openAsk("ov_severe_space") : undefined}
               >
                 {v.severe === 0 || v.severeTop.visible.length === 0 ? (
-                  <EmptyBox text="当前范围没有可计算该口径的样本" />
+                  <EmptyBox text="当前范围没有可计算的数据" />
                 ) : (
                   <EchartsRank
                     data={[...v.severeTop.visible, ...(v.severeTop.restCount > 0 ? [{ name: `其余 ${v.severeTop.restCount} 个`, value: v.severeTop.restSum, color: "#9AA4B2" }] : [])]}
@@ -2153,7 +2162,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                 onAsk={showAsk("ov_sustained_types", v.sustained === 0) ? () => openAsk("ov_sustained_types") : undefined}
               >
                 {v.sustained === 0 ? (
-                  <EmptyBox text="当前范围没有可计算该口径的样本" />
+                  <EmptyBox text="当前范围没有可计算的数据" />
                 ) : (
                   <EchartsPie
                     data={v.sustainedTypes}
@@ -2189,7 +2198,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               onAsk={showAsk("ev_type_struct", v.total === 0) ? () => openAsk("ev_type_struct") : undefined}
             >
               {v.total === 0 ? (
-                <EmptyBox text="当前范围没有可计算该口径的样本" />
+                <EmptyBox text="当前范围没有可计算的数据" />
               ) : (
                 <EchartsPie
                   data={v.typeStruct}
@@ -2216,7 +2225,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               onAsk={showAsk("ev_space_dist", v.total === 0) ? () => openAsk("ev_space_dist") : undefined}
             >
               {v.spaceTop.visible.length === 0 ? (
-                <EmptyBox text="当前范围没有可计算该口径的样本" />
+                <EmptyBox text="当前范围没有可计算的数据" />
               ) : (
                 <EchartsRank
                   data={[...v.spaceTop.visible, ...(v.spaceTop.restCount > 0 ? [{ name: `其余 ${v.spaceTop.restCount} 个`, value: v.spaceTop.restSum, color: "#9AA4B2" }] : [])]}
@@ -2267,7 +2276,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
             onAsk={showAsk("ev_top_cameras", v.cameras.length === 0) ? () => openAsk("ev_top_cameras") : undefined}
           >
             {v.cameras.length === 0 ? (
-              <EmptyBox text="当前范围没有可计算该口径的样本" />
+              <EmptyBox text="当前范围没有可计算的数据" />
             ) : (
               <CameraRank
                 cameras={v.cameras}
@@ -2297,7 +2306,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               value={v.doneAvg === null ? "—" : v.doneAvg}
               unit={v.doneAvg === null ? undefined : "小时"}
               color={C.primary} icon="clock" ruleId="pr_avg"
-              sub={v.doneN === 0 ? "当前范围无可计算样本" : `办完 ${v.doneN} 件 · 从派给网格到处置完`}
+              sub={v.doneN === 0 ? "当前范围没有可计算的数据" : `办完 ${v.doneN} 件 · 从派给网格到处置完`}
             />
           </div>
           <div className="stats-chart-grid stats-chart-grid-3">
@@ -2311,7 +2320,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               onAsk={showAsk("pr_dwell", v.doneN === 0) ? () => openAsk("pr_dwell") : undefined}
             >
               {v.doneN === 0 ? (
-                <EmptyBox text="当前范围没有可计算该口径的样本" />
+                <EmptyBox text="当前范围没有可计算的数据" />
               ) : (
                 <EchartsBar
                   data={v.dwellVals.map((val) => val ?? 0)}
@@ -2334,7 +2343,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               onAsk={showAsk("pr_grid_dur", v.doneN === 0) ? () => openAsk("pr_grid_dur") : undefined}
             >
               {v.doneN === 0 ? (
-                <EmptyBox text="当前范围没有可计算该口径的样本" />
+                <EmptyBox text="当前范围没有可计算的数据" />
               ) : (
                 <EchartsRank
                   data={v.gridDur.visible}
@@ -2372,7 +2381,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               onAsk={showAsk("pr_type_dur", v.doneN === 0) ? () => openAsk("pr_type_dur") : undefined}
             >
               {v.doneN === 0 ? (
-                <EmptyBox text="当前范围没有可计算该口径的样本" />
+                <EmptyBox text="当前范围没有可计算的数据" />
               ) : (
                 <EchartsRank
                   data={v.typeDur.visible}
@@ -2442,7 +2451,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
             onAsk={showAsk("pr_grid", v.gridOnDuty.length === 0) ? () => openAsk("pr_grid") : undefined}
           >
             {v.gridOnDuty.length === 0 ? (
-              <EmptyBox text="当前范围没有可计算该口径的样本" />
+              <EmptyBox text="当前范围没有可计算的数据" />
             ) : (
               <EchartsRank
                 data={[...v.gridOnDutyTop.visible, ...(v.gridOnDutyTop.restCount > 0 ? [{ name: `其余 ${v.gridOnDutyTop.restCount} 个`, value: v.gridOnDutyTop.restSum, color: "#9AA4B2" }] : [])]}
@@ -2471,7 +2480,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               onAsk={showAsk("ql_composition", v.quality.composition === 0) ? () => openAsk("ql_composition") : undefined}
             >
               {v.quality.composition === 0 ? (
-                <EmptyBox text="当前范围没有可计算该口径的样本" />
+                <EmptyBox text="当前范围没有可计算的数据" />
               ) : (
                 <EchartsPie
                   data={[
@@ -2491,18 +2500,18 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14, alignContent: "start" }}>
               <KpiCard2
                 label="事件有效率" value={v.quality.effectiveRate} color={C.success} icon="target" ruleId="ql_effective_rate"
-                sub={v.quality.effectiveDenom === 0 ? "当前范围无可计算样本" : `审完 ${v.quality.effectiveDenom} 件，确认有效 ${v.quality.valid} 件`}
+                sub={v.quality.effectiveDenom === 0 ? "当前范围没有可计算的数据" : `审完 ${v.quality.effectiveDenom} 件，确认有效 ${v.quality.valid} 件`}
                 onClick={v.quality.valid >= 1 ? () => openSlice("事件有效率", v.quality.valid, "flow", sliceRows({ stages: ["已结案", "已作废", "待立案"] })) : undefined}
               />
               <KpiCard2
                 label="退回率" value={v.quality.returnRate} color={C.warning} icon="refreshCw" ruleId="ql_return_rate"
-                sub={v.quality.inspected === 0 ? "当前范围无可计算样本" : `有核查结果 ${v.quality.inspected} 件，被退回 ${v.quality.returned} 件`}
+                sub={v.quality.inspected === 0 ? "当前范围没有可计算的数据" : `有核查结果 ${v.quality.inspected} 件，被退回 ${v.quality.returned} 件`}
                 onClick={v.quality.inspected >= 1 ? () => openSlice("退回率", v.quality.inspected, "flow", sliceRows({ stages: ["待核查", "已结案"] })) : undefined}
                 onAsk={showAsk("ql_return_rate", v.quality.inspected === 0) ? () => openAsk("ql_return_rate") : undefined}
               />
               <KpiCard2
-                label="一次核查通过率" value="—" color={C.purple} icon="checkSquare" ruleId="ql_first_pass"
-                sub="本版暂不计算"
+                label="一次核查通过率" value={v.quality.firstPassRate} color={C.purple} icon="checkSquare" ruleId="ql_first_pass"
+                sub={v.quality.firstDecided === 0 ? "当前范围没有可计算的数据" : `已有第一次核查决定 ${v.quality.firstDecided} 件，第一次就结案 ${v.quality.firstPass} 件`}
               />
             </div>
           </div>
@@ -2513,19 +2522,19 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
           <div className="stats-kpi-grid cols-4">
             <KpiCard2
               label="发现有效率" value={v.aiRates.discoveryRate} color={C.primary} icon="target" ruleId="ai_discovery_rate"
-              sub={v.aiRates.discoveryCandidates === 0 ? "当前范围无可计算样本" : `相机发现 ${v.aiRates.discoveryCandidates} 件，最后要办 ${v.aiRates.discoveryValid} 件`}
+              sub={v.aiRates.discoveryCandidates === 0 ? "当前范围没有可计算的数据" : `相机发现 ${v.aiRates.discoveryCandidates} 件，最后要办 ${v.aiRates.discoveryValid} 件`}
               onClick={v.aiRates.discoveryValid >= 1 ? () => openSlice("发现有效率", v.aiRates.discoveryValid, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) : undefined}
               onAsk={showAsk("ai_discovery_rate", v.aiRates.discoveryCandidates === 0) ? () => openAsk("ai_discovery_rate") : undefined}
             />
             <KpiCard2
               label="预填少改" value={v.aiRates.prefillType} color={C.cyan} icon="checkSquare" ruleId="ai_prefill_type"
-              sub={v.aiRates.prefillTotal === 0 ? "当前范围无可计算样本" : `AI 预填 ${v.aiRates.prefillTotal} 件，类型没被人工改 ${v.aiRates.prefillMatch} 件`}
+              sub={v.aiRates.prefillTotal === 0 ? "当前范围没有可计算的数据" : `AI 预填 ${v.aiRates.prefillTotal} 件，类型没被人工改 ${v.aiRates.prefillMatch} 件`}
               onClick={v.aiRates.prefillMatch >= 1 ? () => openSlice("预填少改", v.aiRates.prefillMatch, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) : undefined}
               onAsk={showAsk("ai_prefill_type", v.aiRates.prefillTotal === 0) ? () => openAsk("ai_prefill_type") : undefined}
             />
             <KpiCard2
               label="建议一致率" value={v.aiRates.suggestMatch} color={C.purple} icon="thumbsUp" ruleId="ai_suggest_match"
-              sub={v.aiRates.suggestTotal === 0 ? "当前范围无可计算样本" : `系统给建议 ${v.aiRates.suggestTotal} 件，人工判断一致 ${v.aiRates.suggestMatchCount} 件`}
+              sub={v.aiRates.suggestTotal === 0 ? "当前范围没有可计算的数据" : `系统给建议 ${v.aiRates.suggestTotal} 件，人工判断一致 ${v.aiRates.suggestMatchCount} 件`}
               onClick={v.aiRates.suggestMatchCount >= 1 ? () => openSlice("建议一致率", v.aiRates.suggestMatchCount, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) : undefined}
               onAsk={showAsk("ai_suggest_match", v.aiRates.suggestTotal === 0) ? () => openAsk("ai_suggest_match") : undefined}
             />
