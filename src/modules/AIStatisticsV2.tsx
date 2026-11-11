@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useRef, useState } from "react"
+import { Fragment, useEffect, useMemo, useRef, useState } from "react"
 import EchartsBar from "../components/EchartsBar"
 import EchartsDiscoverClose from "../components/EchartsDiscoverClose"
 import EchartsPie from "../components/EchartsPie"
@@ -6,6 +6,10 @@ import EchartsRank from "../components/EchartsRank"
 import KpiIcon from "../components/KpiIcon"
 import { RuleChips } from "../data/dashboardRules"
 import { STATS2_ALGO_RULES, STATS2_USER_RULES } from "../data/statsV2Rules"
+import {
+  answerFromEvents, buildSuggestions, fieldsPhrase, fill, seeded, shuffleIdx,
+  type AskEv, type AskReply, type AskSpec, type FieldKey,
+} from "./statsAskEngine"
 
 // AI 统计 · V1.3 四类收敛版
 // 本版只改 AI 统计：打开即四类，不再保留 ?v=2 入口与七类切换。
@@ -434,178 +438,49 @@ function SliceDrawer({ slice, onClose }: { slice: SliceState | null; onClose: ()
 }
 
 // ─── 问 AI ───────────────────────────────────────────────────────────────────
-// 每条已展示的统计都有「问 AI」。只根据这一条统计当前可见的数回答，不接外部模型。
-type AskKind = "count" | "rate" | "rank" | "durationRank" | "composition" | "daily"
-
-interface Suggestion { text: string }
-
+// 只有白名单里的统计给入口。每项统计背后挂一批示例事件（件数与图上一致），
+// 建议问题和回答都只从这批事件里算，不接外部模型。
 interface AskDesc {
   id: string
   title: string
-  kind: AskKind
   scope: string
   sig?: string
   filterText?: string
-
-  // 旧字段保留（buildAsk 用）
   empty: boolean
-  timeVaries: boolean
-  caliber: string
-  topItem?: string
+  scopeLine: string
+  askFields: string[]
+  suggestions: string[]
+  sampleHint: string
   rest?: { count: number; sum: number } | null
-  aboveAvg?: string[]
-  daysMoreFound?: string[]
-  items?: { name: string; value: number | string }[]
-  isDuration?: boolean
-  dwellNames?: string[]
-  dwellMaxName?: string
-  dwellVals?: (number | null)[]
-
-  // 新字段（§3/§4/§5）
-  eventPhrase: string        // "这批事件"的说法：窗口内发现的、截止此刻存续的……
-  eventCount: number         // 事件总数 N
-  askFields: string[]       // 可问字段（人话）
-  suggestions: Suggestion[] // §4 生成的建议问题（没有信号时为空）
-  usedNumbers: string[]     // 回答要引用的数（替代旧 numbers）
-  itemsNumeric: { name: string; value: number }[] // 数值型条目，用于信号计算
-  titleForOther: string     // §3 答不出时用来填 "这里只看 {title}。"
-  sampleHint?: string        // 输入框 placeholder 提示
-  fieldMissingSet?: string[] // 这批事件没记录的字段，answerAsk 用来答"没记录"
+  spec: AskSpec
 }
 
 const ASK_OTHER_TITLES = [
   "事件总数", "区间闭环", "存续事件", "严重事件", "发现与闭环", "链路吞吐",
   "各阶段待处理", "严重问题空间", "当前存续类型", "类型结构", "空间分布",
-  "发生时段", "高发相机", "平均处置时长", "环节停留", "按网格", "按事件类型",
-  "待立案", "待处置", "待核查", "待作废审核", "环节存量", "责任网格在办",
-  "有效 / 无效 / 消散", "事件有效率", "退回率", "一次核查通过率",
+  "发生时段", "高发相机", "平均处置时长", "各环节停了多久", "哪个网格办完更久", "哪类事件办完更久",
+  "环节存量", "责任网格在办", "有效 / 无效 / 消散", "事件有效率", "退回率", "一次核查通过率",
   "发现有效率", "预填少改", "建议一致率", "空间匹配失败",
 ]
 
-interface AskAnswer { ok: boolean; text: string; used?: string[] }
-
-/** 问这批事件没有记录的字段时返回哪些字段没记录。 */
-function findMissingField(q: string, desc: AskDesc): string | null {
-  // 简单映射：如果 query 里出现不在 askFields 里的关键词 → 返回那个字段
-  const knownFieldNames = new Set([
-    "发现日", "闭环日", "当前环节", "结论", "说明", "类型", "街道", "网格",
-    "街巷", "相机点位", "发现小时", "三步", "用时", "街道", "责任网格", "等级",
-    "等待时长", "派过去多久", "AI 预填", "人工最终类型", "系统建议", "人工最终判断",
-    "退回次数", "核查决定", "空间匹配", "是否严重", "卡点", "步骤", "现在在哪一步",
-    "派给网格", "处置完", "核查完", "现在办到", "走到",
-  ])
-  for (const w of q.split(/[\s，。？、]+/)) {
-    if (w.length >= 2 && !knownFieldNames.has(w) && !ASK_OTHER_TITLES.includes(w) && !desc.askFields.some((f) => f.includes(w))) {
-      // 粗略认为这是一个 askFields 没覆盖的字段
-      // 但要排除常见虚词
-      if (/^(是|不是|吗|的|了|在|有|没|还有|多久|几|件|最|前|合计|没画出来)$/.test(w)) continue
-      return w
-    }
-  }
-  return null
-}
+type AskAnswer = AskReply
 
 function answerAsk(desc: AskDesc, q: string): AskAnswer {
-  // §3 答不出 1：问原因、预测、追责、派人办理、和其他城市比
-  if (/为什么|原因|怎么回事|背后|预测|以后会|将来|会不会变|派人|谁去办|安排谁|追责|其他城市|对比|比一比|和.*比/.test(q)) {
+  if (/为什么|原因|怎么回事|预测|以后会|将来|明天会|会不会再|派人|谁去办|安排谁|追责|问责|处分|其他城市|别的区|和.*区比/.test(q)) {
     return { ok: false, text: "这里只有这批事件的记录，看不出原因，也不能预测。" }
   }
-
-  // §3 答不出 2：问没画出来的名字
-  if ((/没画出来/.test(q) || /其余/.test(q)) && (/名字|名单|哪些|是谁|分别/.test(q)) && desc.rest && desc.rest.count > 0) {
+  if (desc.rest && desc.rest.count > 0 && /其余|没画出|没显示|后面那些/.test(q)) {
     return { ok: false, text: `只知道其余 ${desc.rest.count} 个合计 ${desc.rest.sum} 件，没有名单。` }
   }
-  if ((/名字|名单|哪些|是谁|事件明细|具体是哪些/.test(q)) && !/切片/.test(q)) {
+  if (/名单|事件编号|明细|列出来/.test(q)) {
     return { ok: false, text: "名单在这项统计的切片里。" }
   }
-
-  // §3 答不出 3：问另一项统计
-  const ownNames = new Set<string>([
-    desc.title,
-    ...(desc.items?.map((i) => i.name) ?? []),
-    ...(desc.dwellNames ?? []),
-  ])
-  const other = ASK_OTHER_TITLES.find((t) => !ownNames.has(t) && !desc.title.includes(t) && q.includes(t))
-  if (other) {
-    return { ok: false, text: `这里只看 ${desc.titleForOther}。要看那一项，请打开那一项的问 AI。` }
-  }
-
-  // §3 答不出 4：问这批事件没有记录的字段
-  const missing = findMissingField(q, desc)
-  if (missing) {
-    return { ok: false, text: `这批事件没有记录 ${missing}。` }
-  }
-
-  const used = desc.usedNumbers
-  const isYesNo = /^是|^不是|吗\?|吗$/.test(q.trim()) || /是不是|对不对|有没有|能不能/.test(q)
-
-  // 自由回答：能从这批事件回答的，第一句直接答，第二行依据
-  switch (desc.kind) {
-    case "count": {
-      // 单总数：直接报数
-      const firstNum = desc.usedNumbers[0] ?? "—"
-      const first = isYesNo
-        ? "能看到这批事件。"
-        : desc.eventCount > 0
-          ? `${desc.eventPhrase}共 ${desc.eventCount} 件。`
-          : "当前范围没有这批事件。"
-      return { ok: true, text: first, used }
-    }
-    case "daily": {
-      // 发现与闭环
-      if (/发现多于闭环/.test(q) || /哪一天|哪天/.test(q)) {
-        if (desc.daysMoreFound && desc.daysMoreFound.length > 0) {
-          const days = desc.daysMoreFound.join("、")
-          return { ok: true, text: `${isYesNo ? "是。" : ""}发现多于闭环的是 ${days}。`, used }
-        }
-        return { ok: true, text: `${isYesNo ? "不是。" : "窗口内没有发现多于闭环的天。"}`, used }
-      }
-      // 发现事件现在办到哪一步（信号句式）
-      const m = q.match(/^(\d+\/\d+)\s*发现的?\s*(\d+)\s*件.*办到/)
-      if (m) {
-        return { ok: true, text: `这批事件现在分散在各环节，详见这项的切片。`, used }
-      }
-      break
-    }
-    case "rate": {
-      const m = (desc.usedNumbers[0] ?? "").match(/^([0-9.]+)%/)
-      if (m) {
-        return { ok: true, text: `${isYesNo ? "是的，" : ""}率是 ${m[1]}%。`, used }
-      }
-      break
-    }
-    case "rank":
-    case "composition": {
-      // 问"是不是最多" → 先答是或否
-      if (/是不是.*最|是.*多/.test(q) && desc.topItem) {
-        const target = q.match(/^(.+?)\s*是不是/)?.[1] || ""
-        const topName = (desc.topItem || "").replace(/\s+\d+\s*件.*$/, "").trim()
-        const yes = target && desc.items?.some((i) => i.name === target) && topName === target
-        if (yes) return { ok: true, text: "是。", used }
-        return { ok: true, text: `不是，最多的是 ${topName}。`, used }
-      }
-      // 问并列
-      if (/前\s*\d+\s*项.*(一样|相同|并列)/.test(q)) {
-        return { ok: true, text: "前几项各有并列，它们的件数相同。", used }
-      }
-      // 集中 / 急 / 缺口 这类信号句式，答能答的
-      break
-    }
-    case "durationRank": {
-      if (/是不是.*最久/.test(q) && desc.topItem) {
-        const target = q.match(/^(.+?)\s*是不是/)?.[1] || ""
-        const topName = (desc.topItem || "").replace(/\s+\d+.*$/, "").trim()
-        const yes = target && desc.items?.some((i) => i.name === target) && topName === target
-        if (yes) return { ok: true, text: "是。", used }
-        return { ok: true, text: `不是，最慢的是 ${topName}。`, used }
-      }
-      break
-    }
-  }
-
-  // 默认答不出原因类
-  if (isYesNo) return { ok: false, text: "这批事件里找不到能直接回答「是或否」的依据。" }
-  return { ok: false, text: "这里只有这批事件的记录，看不出原因，也不能预测。" }
+  const own = new Set<string>([desc.title, desc.spec.setLabel])
+  for (const e of desc.spec.events) for (const val of Object.values(e)) if (typeof val === "string") own.add(val)
+  for (const i of desc.spec.items ?? []) own.add(i.name)
+  const other = ASK_OTHER_TITLES.find((t) => !own.has(t) && t !== desc.title && q.includes(t))
+  if (other) return { ok: false, text: `这里只看${desc.title}。要看那一项，请打开那一项的问 AI。` }
+  return answerFromEvents(desc.spec, q)
 }
 
 const ASK_STORAGE_KEY = "stats-ask-ai-v1.3"
@@ -627,32 +502,33 @@ function persistAsk(desc: AskDesc, q: string, ans: AskAnswer) {
 
 interface AskMsg { role: "q" | "a" | "divider"; text: string; used?: string[]; ok?: boolean }
 
-/** §4 建议问题：按信号生成。信号在 buildAsk 时就算好，这里只转成 string[]。 */
-function getSuggestionTexts(desc: AskDesc): string[] {
-  if (desc.empty) return []
-  return desc.suggestions.slice(0, 3).map((s) => s.text).filter((t) => t.length > 0 && t.length <= 25)
-}
-
 function AskAiDrawer({ desc, onClose }: { desc: AskDesc; onClose: () => void }) {
   const [msgs, setMsgs] = useState<AskMsg[]>([])
   const [input, setInput] = useState("")
   const lastScope = useRef(desc.sig ?? desc.scope)
 
+  useEffect(() => {
+    const sig = desc.sig ?? desc.scope
+    if (sig === lastScope.current) return
+    lastScope.current = sig
+    setMsgs((m) => (m.length > 0 && m[m.length - 1].role !== "divider"
+      ? [...m, { role: "divider", text: `已切换为 ${desc.filterText ?? desc.scope}` }]
+      : m.length > 0
+        ? [...m.slice(0, -1), { role: "divider", text: `已切换为 ${desc.filterText ?? desc.scope}` }]
+        : m))
+  }, [desc.sig, desc.scope, desc.filterText])
+
   const send = (raw: string) => {
     const q = raw.trim()
     if (!q) return
     const ans = answerAsk(desc, q)
-    const sig = desc.sig ?? desc.scope
-    const needDivider = msgs.length > 0 && sig !== lastScope.current
-    if (needDivider) lastScope.current = sig
-    const divider: AskMsg[] = needDivider ? [{ role: "divider", text: `已切换为 ${desc.filterText ?? desc.scope}` }] : []
-    setMsgs((m) => [...m, ...divider, { role: "q", text: q }, { role: "a", text: ans.text, used: ans.used, ok: ans.ok }])
+    setMsgs((m) => [...m, { role: "q", text: q }, { role: "a", text: ans.text, used: ans.used, ok: ans.ok }])
     persistAsk(desc, q, ans)
     setInput("")
   }
 
-  const suggestions = getSuggestionTexts(desc)
-  const fieldLine = desc.askFields.length > 0 ? `可以按 ${desc.askFields.join("、")} 来问。` : "可以就这批事件提问。"
+  const suggestions = desc.suggestions
+  const fieldLine = `可以按${desc.askFields.join("、")}来问。`
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "stretch", justifyContent: "flex-end", pointerEvents: "none" }}>
@@ -686,7 +562,7 @@ function AskAiDrawer({ desc, onClose }: { desc: AskDesc; onClose: () => void }) 
               padding: "10px 12px", background: "var(--card-2, rgba(50,109,255,0.04))", borderRadius: 8,
             }}
           >
-            <div>我能帮你看：{desc.eventPhrase}，共 {desc.eventCount} 件。</div>
+            <div>我能帮你看：{desc.scopeLine}</div>
             <div>{fieldLine}</div>
             <div style={{ color: C.muted, fontSize: 11 }}>原因判断、预测、改筛选和去办理，这里帮不上。</div>
           </div>
@@ -1252,7 +1128,162 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       spaceFail,
     }
 
+    // ── 问 AI 背后的示例事件：每批件数与对应的图一致，字段从同一批里出 ──
+    const rf = seeded(`flow|${win}|${street ?? ""}|${type ?? ""}|${effectiveGran}`)
+    const rb = seeded(`backlog|${street ?? ""}|${type ?? ""}|${effectiveGran}`)
+    const typeNames = type ? [type] : TYPE_DEFS.map((t) => t.label)
+    const typeWeights = type ? [1] : TYPE_DEFS.map((t) => t.weight)
+    const byWeight = (n: number, names: string[], weights: number[], rnd: () => number) => {
+      const a = alloc(n, weights)
+      return fill(names.map((name, i) => ({ name, value: a[i] })), n, rnd)
+    }
+    const spaceOf = (n: number, rnd: () => number, chart?: { name: string; value: number }[]) => {
+      const out: Record<SpaceGran, string[]> = { street: [], grid: [], lane: [] }
+      for (const g of ["street", "grid", "lane"] as SpaceGran[]) {
+        if (g === "street" && street) out[g] = Array.from({ length: n }, () => street)
+        else if (g === effectiveGran && chart) out[g] = fill(chart, n, rnd)
+        else {
+          const b = spaceBuckets(street, g)
+          out[g] = byWeight(n, b.map((x) => x.name), b.map((x) => x.weight), rnd)
+        }
+      }
+      return out
+    }
+    const camRows = camDefs.map((c) => ({ point: c.point, weight: c.weight }))
+    const camOf = (n: number, rnd: () => number) =>
+      byWeight(n, camRows.map((c) => c.point), camRows.map((c) => c.weight), rnd)
+    const r1 = (x: number) => Math.round(x * 10) / 10
+
+    // 窗口内发现的事件：发现日、类型、空间、发现小时、相机、走到哪一阶
+    const fDays = fill(days.map((d, i) => ({ name: d.label, value: foundDaily[i] })), total, rf, true)
+    const fTypes = fill(typeStruct.map((t) => ({ name: t.label, value: t.value })), total, rf)
+    const fSpace = spaceOf(total, rf, spaceDist)
+    const fHours = fill(hourly.map((n, i) => ({ name: `${String(i).padStart(2, "0")}时`, value: n })), total, rf)
+    const fCams = fill([...cameras.map((c) => ({ name: c.point, value: c.value })), { name: "", value: camerasWithoutId }], total, rf)
+    const rvN = Math.min(total, funnel.reviewed)
+    const flN = Math.min(rvN, funnel.filed)
+    const dpN = Math.min(flN, funnel.disposed)
+    const inN = Math.min(dpN, funnel.inspected)
+    const fReach = fill([
+      { name: "核查", value: inN }, { name: "处置", value: dpN - inN }, { name: "立案", value: flN - dpN },
+      { name: "审核", value: rvN - flN }, { name: "识别", value: total - rvN },
+    ], total, rf)
+    const REACH_STAGE: Record<string, string> = { 核查: "已结案", 处置: "待核查", 立案: "待处置", 审核: "无效", 识别: "待立案" }
+    const foundEv: AskEv[] = Array.from({ length: total }, (_, i) => {
+      const stage = REACH_STAGE[fReach[i]]
+      return {
+        kind: "found", foundDay: fDays[i], type: fTypes[i],
+        street: fSpace.street[i], grid: fSpace.grid[i], lane: fSpace.lane[i],
+        hour: fHours[i], camPoint: fCams[i] || undefined, reach: fReach[i], stage,
+        respGrid: ["已结案", "待核查", "待处置"].includes(stage) ? fSpace.grid[i] : undefined,
+        conclusion: stage === "已结案" ? "结案" : stage === "无效" ? "无效" : undefined,
+      }
+    })
+    const cDays = fill(days.map((d, i) => ({ name: d.label, value: closedDaily[i] })), closedAll, rf, true)
+    const cConc = fill([{ name: "结案", value: closedCase }, { name: "作废或无效", value: closedNonCase }], closedAll, rf)
+    const cTypes = byWeight(closedAll, typeNames, typeWeights, rf)
+    const cSpace = spaceOf(closedAll, rf)
+    const closedEv: AskEv[] = Array.from({ length: closedAll }, (_, i) => ({
+      kind: "closed", closedDay: cDays[i], conclusion: cConc[i], type: cTypes[i],
+      street: cSpace.street[i], grid: cSpace.grid[i], stage: cConc[i] === "结案" ? "已结案" : "已作废或无效",
+    }))
+
+    // 截止此刻的存续事件：环节、类型、等级、空间、责任网格、已等待
+    const bStages = fill(stages.map((s) => ({ name: s.label, value: s.value })), sustained, rb, true)
+    const bTypes = fill(sustainedTypes.map((t) => ({ name: t.label, value: t.value })), sustained, rb)
+    const severeIdx = new Set(shuffleIdx(sustained, rb).slice(0, severe))
+    const bSpace = spaceOf(sustained, rb)
+    const sevGran = fill(severeSpace, severe, rb)
+    const nonGranBuckets = buckets
+    const nonGran = byWeight(sustained - severe, nonGranBuckets.map((b) => b.name), nonGranBuckets.map((b) => b.weight), rb)
+    const respDispose = fill(gridOnDutyAll, stages[1].value, rb)
+    let si = 0
+    let ni = 0
+    let di = 0
+    const backlogEv: AskEv[] = Array.from({ length: sustained }, (_, i) => {
+      const stage = bStages[i]
+      const sev = severeIdx.has(i)
+      const sp = { street: bSpace.street[i], grid: bSpace.grid[i], lane: bSpace.lane[i] }
+      sp[effectiveGran] = sev ? sevGran[si++] : nonGran[ni++]
+      const u = rb()
+      const waitH = stage === "待立案" ? r1(0.5 + u * 18)
+        : stage === "待处置" ? r1(2 + u * u * 96)
+          : stage === "待核查" ? r1(1 + u * 30)
+            : r1(4 + u * 44)
+      const respGrid = stage === "待处置" ? respDispose[di++]
+        : stage === "待立案" ? undefined
+          : gridNames[Math.floor(rb() * gridNames.length)]
+      return { stage, type: bTypes[i], severe: sev, ...sp, respGrid, waitH }
+    })
+
+    // 这段时间办完的事件：三步用时
+    const doneEv: AskEv[] = doneRows.map((e) => ({
+      grid: e.grid, street: `${e.grid.split("-")[0]}街道`, type: e.type,
+      durWait: e.wait, durDo: e.doIt, durCheck: e.check,
+    }))
+
+    // 治理质量与 AI 成效
+    const compN = valid + invalid + dissipated
+    const compConc = fill([
+      { name: "立案有效", value: valid }, { name: "无效", value: invalid }, { name: "自然消散", value: dissipated },
+    ], compN, rf, true)
+    const INVALID_NOTES = ["不属于事件范围", "识别错误，正常停放被当成占道", "重复发现，已并入前一件"]
+    const compTypes = byWeight(compN, typeNames, typeWeights, rf)
+    const compSpace = spaceOf(compN, rf)
+    const compCams = camOf(compN, rf)
+    const compEv: AskEv[] = Array.from({ length: compN }, (_, i) => ({
+      conclusion: compConc[i], type: compTypes[i], street: compSpace.street[i], camPoint: compCams[i],
+      note: compConc[i] === "立案有效" ? "现场核实属实" : compConc[i] === "自然消散" ? "复看时现场已不存在" : INVALID_NOTES[i % INVALID_NOTES.length],
+    }))
+
+    const retGridsAll = street ? spaceBuckets(street, "grid") : ALL_GRIDS.map((name, i) => ({ name, weight: ALL_GRID_WEIGHTS[i] }))
+    const retGrids = byWeight(inspected, retGridsAll.map((g) => g.name), retGridsAll.map((g) => g.weight), rf)
+    const retTypes = byWeight(inspected, typeNames, typeWeights, rf)
+    const retIdx = new Set(shuffleIdx(inspected, rf).slice(0, returned))
+    let rk = 0
+    const retEv: AskEv[] = Array.from({ length: inspected }, (_, i) => ({
+      grid: retGrids[i], type: retTypes[i], returns: retIdx.has(i) ? (rk++ % 3 === 2 ? 2 : 1) : 0,
+    }))
+
+    const discFinal = fill([{ name: "要办", value: discoveryValid }, { name: "不用办", value: discoveryCandidates - discoveryValid }], discoveryCandidates, rf)
+    const discTypes = byWeight(discoveryCandidates, typeNames, typeWeights, rf)
+    const discCams = camOf(discoveryCandidates, rf)
+    const discEv: AskEv[] = Array.from({ length: discoveryCandidates }, (_, i) => ({
+      final: discFinal[i], type: discTypes[i], camPoint: discCams[i],
+    }))
+
+    const ALL_TYPES = TYPE_DEFS.map((t) => t.label)
+    const prefAi = byWeight(prefillTotal, ALL_TYPES, TYPE_DEFS.map((t) => t.weight), rf)
+    const prefChanged = new Set(shuffleIdx(prefillTotal, rf).slice(0, prefillTotal - prefillMatch))
+    const prefGrids = byWeight(prefillTotal, retGridsAll.map((g) => g.name), retGridsAll.map((g) => g.weight), rf)
+    const NEAR_TYPE: Record<string, string> = {
+      共享单车占道: "占道经营", 施工占道: "疑似堆物", 占道经营: "共享单车占道", 暴露垃圾: "疑似堆物", 疑似堆物: "暴露垃圾",
+    }
+    const prefEv: AskEv[] = Array.from({ length: prefillTotal }, (_, i) => {
+      const human = type ?? prefAi[i]
+      const ai = prefChanged.has(i) ? NEAR_TYPE[human] : human
+      return { aiType: ai, humanType: human, grid: prefGrids[i], type: human }
+    })
+
+    const sugSys = byWeight(suggestTotal, ["有效", "无效", "作废"], [0.7, 0.2, 0.1], rf)
+    const sugMiss = new Set(shuffleIdx(suggestTotal, rf).slice(0, suggestTotal - suggestMatch))
+    const FLIP: Record<string, string> = { 有效: "无效", 无效: "有效", 作废: "有效" }
+    const sugTypes = byWeight(suggestTotal, typeNames, typeWeights, rf)
+    const sugEv: AskEv[] = Array.from({ length: suggestTotal }, (_, i) => ({
+      sysSuggest: sugSys[i], humanJudge: sugMiss.has(i) ? FLIP[sugSys[i]] : sugSys[i], type: sugTypes[i],
+    }))
+
+    const sfSpace = spaceOf(spaceFail, rf)
+    const sfCams = camOf(spaceFail, rf)
+    const sfTypes = byWeight(spaceFail, typeNames, typeWeights, rf)
+    const sfEv: AskEv[] = Array.from({ length: spaceFail }, (_, i) => ({
+      camPoint: sfCams[i], street: sfSpace.street[i], type: sfTypes[i], stage: i % 3 === 2 ? "待处置" : "待立案",
+    }))
+
+    const askEv = { foundEv, closedEv, backlogEv, doneEv, compEv, retEv, discEv, prefEv, sugEv, sfEv }
+
     return {
+      askEv,
       total, typeStruct, hourly, peakHour, spaceDist, spaceTop, effectiveGran,
       cameras, camerasWithoutId, closedCase, closedNonCase, closedAll, funnel,
       days, foundDaily, closedDaily, dayMode,
@@ -1319,20 +1350,26 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
 
     if (cat === "events") {
       if (v.total === 0) return `${filterMeta}：当前范围没有可展示的事件。`
-      const topType = v.typeStruct.reduce<{ label: string; value: number } | null>(
-        (a, b) => (!a || b.value > a.value ? b : a),
-        null,
-      )
-      const topSpace = v.spaceTop.visible[0]
-      const peakHasValue = v.hourly.some((n) => n > 0)
-      const topCam = v.cameras[0]
+      const lead = (rows: { name: string; value: number }[], word: string) => {
+        const pos = rows.filter((r) => r.value > 0)
+        if (pos.length < 2) return ""
+        const max = Math.max(...pos.map((r) => r.value))
+        const ties = pos.filter((r) => r.value === max)
+        if (ties.length === pos.length) return ""
+        return ties.length === 1
+          ? `${ties[0].name} ${max} 件${word}；`
+          : `${ties.map((t) => t.name).join("、")} 各 ${max} 件，并列${word}；`
+      }
+      const peak = Math.max(0, ...v.hourly)
+      const peakHours = v.hourly.filter((n) => n === peak).length
+      const topCams = v.cameras.filter((c) => c.value === v.cameras[0]?.value)
       return [
         `${filterMeta}：新发现 ${v.total} 件。`,
-        topType ? `「${topType.label}」${topType.value} 件最多；` : "",
-        topSpace ? `${topSpace.name} ${topSpace.value} 件最集中；` : "",
-        peakHasValue ? `${String(v.peakHour).padStart(2, "0")} 时前后为高发时段；` : "",
-        topCam ? `高发点位 ${topCam.point}（${topCam.id}）${topCam.value} 件。` : "",
-      ].join("")
+        lead(v.typeStruct.map((t) => ({ name: `「${t.label}」`, value: t.value })), "最多"),
+        lead(v.spaceDist, "最集中"),
+        peak > 0 && peakHours === 1 && v.total > 1 ? `${String(v.peakHour).padStart(2, "0")} 时前后为高发时段；` : "",
+        topCams.length === 1 && v.cameras.length > 1 ? `高发点位 ${topCams[0].point}（${topCams[0].id}）${topCams[0].value} 件。` : "",
+      ].join("").replace(/；$/, "。")
     }
 
     if (cat === "process") {
@@ -1379,431 +1416,318 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
     openSlice(label, value, "flow", filterPool({ street, type: label, stages: EVENT_POOL.map((e) => e.stage) }))
   }
 
-  // ── 问 AI：每条已展示统计的只读描述，随筛选实时重算 ──
+  // ── 问 AI：每项统计 = 背后那批事件 + 可问字段 + 信号，随筛选实时重算 ──
   function buildAsk(id: string): AskDesc | null {
-    // §4 信号辅助
-    const itemsOf = (rows: { name: string; value: number | string }[] | undefined) =>
-      (rows ?? []).filter((r) => typeof r.value === "number").map((r) => ({ name: r.name, value: r.value as number }))
-
-    // 取并列最大项
-    const topN = (items: { name: string; value: number }[], n = 1) => {
-      if (items.length === 0) return []
-      const max = items[0].value
-      const ties = items.filter((i) => i.value === max)
-      return ties.slice(0, Math.max(n, ties.length))
-    }
-    const isAllEqualTop = (items: { name: string; value: number }[]) => {
-      if (items.length < 2) return false
-      const v0 = items[0].value
-      return items.every((i) => i.value === v0)
-    }
-
-    // 生成集中信号句式。§4 禁止拿并列之外的假设。
-    const signalConcentrate = (items: { name: string; value: number }[], total: number, fieldWord: string): Suggestion[] => {
-      if (items.length < 2 || total <= 0) return []
-      const top = topN(items, 1)[0]
-      if (!top) return []
-      // 并列：不提"最大"，改成"前 k 项各 n 件"
-      const ties = items.filter((i) => i.value === top.value)
-      if (ties.length >= 2) {
-        return [{ text: `前 ${ties.length} 项各 ${top.value} 件，分别集中在哪？`.slice(0, 25) }]
-      }
-      // 最大项是否在另一字段上占一半以上 → 前端模拟简化：直接按最大项出题
-      // 真实产品要查另一维度分布；这里只能基于单维度数据。出"集中在哪"句式即可
-      return [{ text: `${top.name} 这 ${top.value} 件，集中在哪个${fieldWord}？`.slice(0, 25) }]
-    }
-
-    // 缺口信号：链路吞吐专用
-    const signalGap = (items: { name: string; value: number }[], stageNameToLabel: string[]): Suggestion[] => {
-      const out: Suggestion[] = []
-      for (let i = 0; i < items.length - 1; i++) {
-        const a = items[i]
-        const b = items[i + 1]
-        const gap = a.value - b.value
-        if (gap > 0) {
-          out.push({ text: `${a.name} ${a.value} 件、${b.name} ${b.value} 件，差的 ${gap} 件在哪？`.slice(0, 25) })
-          if (out.length >= 1) break // 只取第一个缺口
-        }
-      }
-      return out
-    }
-
-    // §4 急信号：有严重的、或用时明显长于平均
-    const signalUrgent = (hasSevere: boolean, longWait: boolean, setLabel: string, fieldWord: string, timeKind: "最久" | "最慢"): Suggestion[] => {
-      const out: Suggestion[] = []
-      if (hasSevere) out.push({ text: `${setLabel}里有几件是严重的？`.slice(0, 25) })
-      if (longWait) out.push({ text: `${setLabel}里等得${timeKind}的是哪几件？`.slice(0, 25) })
-      return out
-    }
-
-    // 发现与闭环信号
-    const signalDaily = (moreDays: string[], foundMap: Record<string, number>): Suggestion[] => {
-      if (moreDays.length === 0) return []
-      const d = moreDays[0]
-      const n = foundMap[d] ?? 0
-      return [{ text: `${d} 发现的 ${n} 件，现在办到哪一步了？`.slice(0, 25) }]
-    }
-
-    // 预填少改 / 建议一致率专用
-    const signalPrefillSuggest = (changedCount: number, title: string, kind: "prefill" | "suggest"): Suggestion[] => {
-      if (changedCount <= 0) return []
-      const w = kind === "prefill" ? "预填类型" : "系统建议"
-      const j = kind === "prefill" ? "从什么改成了什么" : "人工最后怎么判的"
-      return [{ text: `被改掉的 ${changedCount} 件，${j}？`.slice(0, 25) }]
-    }
-
-    const rl = (rid: string) => (STATS2_USER_RULES[rid]?.lines ?? []).join("")
-    const scopeG = (base: string) => `${base} · 按${GRAN_LABEL[v.effectiveGran]}`
-    const empty = (reason: string[] | number | boolean) => false // 真实 empty 由各 case 填
-    const titleForOther = (t: string) => t
+    const E = v.askEv
+    const granField = v.effectiveGran as FieldKey
+    const spaceConc: FieldKey[] = street ? ["grid", "lane"] : ["street", "grid"]
+    const stageItems = v.stages.map((s) => ({ name: s.label, value: s.value }))
+    const mk = (o: {
+      title: string
+      scope: string
+      empty: boolean
+      phrase: string
+      count: number
+      spec: AskSpec
+      hint: string
+      rest?: { count: number; sum: number } | null
+      extraFields?: string[]
+    }): AskDesc => ({
+      id, title: o.title, scope: o.scope, empty: o.empty,
+      scopeLine: `${o.scope} 里，${o.phrase}共 ${o.count} 件。`,
+      askFields: [
+        ...fieldsPhrase(o.spec.fields, o.spec.timeKey, o.spec.events.some((e) => e.severe) && !o.spec.events.every((e) => e.severe)),
+        ...(o.extraFields ?? []),
+      ],
+      suggestions: o.empty ? [] : buildSuggestions(o.spec),
+      sampleHint: o.hint,
+      rest: o.rest ?? null,
+      spec: o.spec,
+    })
+    const backlogSpec = (events: AskEv[], over: Partial<AskSpec>): AskSpec => ({
+      events, setLabel: "存续事件",
+      fields: ["stage", "type", "street", "grid", "lane", "respGrid"],
+      timeKey: "waitH", severeSignal: true, defaultField: "respGrid",
+      ...over,
+    })
+    const foundFields: FieldKey[] = ["type", "street", "grid", "lane", "hour", "camPoint", "stage", "conclusion"]
+    const doneSpec = (over: Partial<AskSpec>): AskSpec => ({
+      events: E.doneEv, setLabel: "办完的事件", fields: ["grid", "type", "street"],
+      timeKey: "durDo", itemUnit: "小时",
+      timeByWord: [[/到派给网格|派单/, "durWait"], [/到核查完|核查/, "durCheck"], [/到处置完|处置/, "durDo"]],
+      ...over,
+    })
 
     switch (id) {
       // ═══ 综合态势 ═══
       case "ov_daily": {
-        const more = v.days.filter((_, i) => v.foundDaily[i] > v.closedDaily[i]).map((d) => d.label)
-        const foundMap = Object.fromEntries(v.days.map((d, i) => [d.label, v.foundDaily[i]]))
-        const phrases = (() => {
-          if (v.dayMode === "bar") return `今天新发现 ${v.total} 件、办结 ${v.closedAll} 件`
-          return `${WIN_LABEL[win]}窗口里，发现 ${v.total} 件、办结 ${v.closedAll} 件`
-        })()
-        const itemsN: { name: string; value: number }[] = v.days.map((d, i) => ({ name: d.label, value: v.foundDaily[i] }))
-        return {
-          id, title: "发现与闭环", kind: "daily",
-          scope: filterMeta, empty: v.total === 0 && v.closedAll === 0,
-          timeVaries: true, caliber: rl("ov_daily"),
-          eventPhrase: phrases, eventCount: v.total + v.closedAll,
-          askFields: ["发现日", "闭环日", "当前环节", "结论", "类型", "街道", "网格"],
-          usedNumbers: [`窗口发现 ${v.total} 件`, `窗口闭环 ${v.closedAll} 件`],
-          topItem: undefined, daysMoreFound: more,
-          itemsNumeric: itemsN,
-          titleForOther: "发现与闭环",
-          suggestions: signalDaily(more, foundMap).slice(0, 3),
-        }
+        const gaps = v.days.map((d, i) => ({ day: d.label, found: v.foundDaily[i], gap: v.foundDaily[i] - v.closedDaily[i] }))
+        const worst = gaps.filter((g) => g.gap > 0).sort((a, b) => b.gap - a.gap)[0]
+        const days = v.days.length > 1
+        return mk({
+          title: "发现与闭环", scope: filterMeta, empty: v.total === 0 && v.closedAll === 0,
+          phrase: `新发现的 ${v.total} 件和办结的 ${v.closedAll} 件，`, count: v.total + v.closedAll,
+          hint: days ? `例如：${v.days[v.days.length - 1].label}办结的是哪些类型？` : "例如：今天办结的是哪些类型？",
+          spec: {
+            events: [...E.foundEv, ...E.closedEv], setLabel: "发现和办结的事件",
+            fields: ["foundDay", "closedDay", "stage", "conclusion", "type", "street", "grid"],
+            defaultField: "stage",
+            extraSuggestions: worst ? [`${worst.day}发现的${worst.found}件，现在办到哪一步了？`] : [],
+          },
+        })
       }
       case "funnel": {
-        const itemsN = FUNNEL_STAGES.map((s) => ({ name: s.label, value: v.funnel[s.key] }))
-        return {
-          id, title: "链路吞吐", kind: "count", scope: filterMeta,
-          empty: v.total === 0, timeVaries: true, caliber: rl("funnel"),
-          eventPhrase: `${WIN_LABEL[win]}窗口内走到了各阶的事件`, eventCount: v.total,
-          askFields: ["走到哪一阶", "当前环节", "类型", "街道", "网格", "审核结论"],
-          usedNumbers: FUNNEL_STAGES.map((s) => `${s.label} ${v.funnel[s.key]} 件`),
-          itemsNumeric: itemsN,
-          titleForOther: "链路吞吐",
-          suggestions: signalGap(itemsN, FUNNEL_STAGES.map((s) => s.label)).slice(0, 2),
+        const st = FUNNEL_STAGES.map((s) => ({ name: s.label, value: v.funnel[s.key] }))
+        let gapAt = -1
+        for (let i = 0; i < st.length - 1; i += 1) {
+          if (st[i].value - st[i + 1].value > 0 && (gapAt < 0 || st[i].value - st[i + 1].value > st[gapAt].value - st[gapAt + 1].value)) gapAt = i
         }
+        const gap = gapAt >= 0 ? { a: st[gapAt], b: st[gapAt + 1] } : null
+        const gapEvents = gap ? E.foundEv.filter((e) => e.reach === gap.a.name) : []
+        return mk({
+          title: "链路吞吐", scope: filterMeta, empty: v.total === 0,
+          phrase: "新发现的事件，", count: v.total,
+          hint: "例如：立案了还没处置完的在哪个网格？",
+          spec: {
+            events: E.foundEv, setLabel: "新发现的事件",
+            fields: ["reach", "stage", "type", "street", "grid", "conclusion"],
+            defaultField: "stage",
+            subsets: [
+              ...(gap ? [{ re: /差的\s*\d+\s*件/, label: `走到${gap.a.name}、没到${gap.b.name}`, events: gapEvents, field: "stage" as FieldKey }] : []),
+              { re: /立案了?还?没处置|没处置完/, label: "立案了还没处置完", events: E.foundEv.filter((e) => e.reach === "立案") },
+            ],
+            extraSuggestions: gap ? [`${gap.a.name}${gap.a.value}件、${gap.b.name}${gap.b.value}件，差的${gap.a.value - gap.b.value}件在哪？`] : [],
+          },
+        })
       }
-      case "ov_stages": {
-        const itemsN = v.stages.map((s) => ({ name: s.label, value: s.value }))
-        const severeExists = v.severe > 0
-        return {
-          id, title: "各阶段待处理", kind: "rank", scope: backlogMeta,
-          empty: v.sustained === 0, timeVaries: false, caliber: rl("ov_stages"),
-          eventPhrase: "截止此刻还压在各环节的事件", eventCount: v.sustained,
-          askFields: ["当前环节", "类型", "街道", "网格", "街巷", "责任网格", "是否严重", "已等待时长"],
-          usedNumbers: v.stages.map((s) => `${s.label} ${s.value} 件`),
-          topItem: v.stages.reduce((a, b) => (b.value > a.value ? b : a)).value > 0
-            ? `${v.stages.reduce((a, b) => (b.value > a.value ? b : a)).label} ${v.stages.reduce((a, b) => (b.value > a.value ? b : a)).value} 件` : undefined,
-          items: v.stages.map((s) => ({ name: s.label, value: s.value })),
-          itemsNumeric: itemsN,
-          titleForOther: "各阶段待处理",
-          suggestions: [
-            ...signalConcentrate(itemsN, v.sustained, "环节"),
-            ...signalUrgent(severeExists, v.stages[0]?.value >= 3, "截至此刻这批事件", "环节", "最久"),
-          ].slice(0, 2),
-        }
-      }
-      case "ov_severe_space": {
-        const rest = { count: v.severeTop.restCount, sum: v.severeTop.restSum }
-        const itemsN = v.severeTop.visible.map((r) => ({ name: r.name, value: r.value }))
-        return {
-          id, title: "严重问题空间", kind: "rank", scope: scopeG(backlogMeta),
-          empty: v.severe === 0, timeVaries: false, caliber: rl("ov_severe_space"),
-          eventPhrase: "截止此刻存续中的严重事件", eventCount: v.severe,
-          askFields: ["当前环节", "类型", "街道", "网格", "街巷", "责任网格", "已等待时长"],
-          usedNumbers: [...v.severeTop.visible.map((r) => `${r.name} ${r.value} 件`), ...(rest.count > 0 ? [`其余 ${rest.count} 个合计 ${rest.sum} 件`] : [])],
-          topItem: v.severeTop.visible[0] ? `${v.severeTop.visible[0].name} ${v.severeTop.visible[0].value} 件` : undefined,
-          rest,
-          items: v.severeTop.visible.map((r) => ({ name: r.name, value: r.value })),
-          itemsNumeric: itemsN,
-          titleForOther: "严重问题空间",
-          suggestions: signalConcentrate(itemsN, v.severe, "街道").slice(0, 2),
-        }
-      }
-      case "ov_sustained_types": {
-        const itemsN = v.sustainedTypes.map((t) => ({ name: t.label, value: t.value }))
-        return {
-          id, title: "当前存续类型", kind: "composition", scope: backlogMeta,
-          empty: v.sustained === 0, timeVaries: false, caliber: rl("ov_sustained_types"),
-          eventPhrase: "截止此刻还没办完的事件", eventCount: v.sustained,
-          askFields: ["当前环节", "类型", "街道", "网格", "街巷", "责任网格", "是否严重", "已等待时长"],
-          usedNumbers: v.sustainedTypes.map((t) => `${t.label} ${t.value} 件`),
-          topItem: itemsN[0] ? `${itemsN[0].name} ${itemsN[0].value} 件` : undefined,
-          items: v.sustainedTypes.map((t) => ({ name: t.label, value: t.value })),
-          itemsNumeric: itemsN,
-          titleForOther: "当前存续类型",
-          suggestions: signalConcentrate(itemsN, v.sustained, "环节").slice(0, 2),
-        }
-      }
+      case "ov_stages":
+      case "pr_stages":
+        return mk({
+          title: id === "ov_stages" ? "各阶段待处理" : "环节存量", scope: backlogMeta, empty: v.sustained === 0,
+          phrase: "还压在各环节的事件", count: v.sustained,
+          hint: "例如：待核查的几件分别在哪个网格？",
+          spec: backlogSpec(E.backlogEv, { itemField: "stage", items: stageItems, concFields: ["respGrid", "type", "grid"] }),
+        })
+      case "ov_severe_space":
+        return mk({
+          title: "严重问题空间", scope: `${backlogMeta} · 按${GRAN_LABEL[v.effectiveGran]}`, empty: v.severe === 0,
+          phrase: "还没办完的严重事件", count: v.severe,
+          rest: { count: v.severeTop.restCount, sum: v.severeTop.restSum },
+          hint: "例如：严重的这几件卡在哪个环节？",
+          spec: backlogSpec(E.backlogEv.filter((e) => e.severe), {
+            setLabel: "严重事件", severeSignal: false, defaultField: "stage",
+            itemField: granField, items: v.severeSpace, concFields: ["stage", "type"],
+          }),
+        })
+      case "ov_sustained_types":
+        return mk({
+          title: "当前存续类型", scope: backlogMeta, empty: v.sustained === 0,
+          phrase: "还没办完的事件", count: v.sustained,
+          hint: "例如：施工占道的几件卡在哪个环节？",
+          spec: backlogSpec(E.backlogEv, {
+            defaultField: "stage", itemField: "type",
+            items: v.sustainedTypes.map((t) => ({ name: t.label, value: t.value })), concFields: ["stage", ...spaceConc],
+          }),
+        })
       // ═══ 事件发生 ═══
-      case "ev_type_struct": {
-        const itemsN = v.typeStruct.map((t) => ({ name: t.label, value: t.value }))
-        return {
-          id, title: "类型结构", kind: "composition", scope: filterMeta,
-          empty: v.total === 0, timeVaries: true, caliber: rl("ev_type_struct"),
-          eventPhrase: `${WIN_LABEL[win]}窗口内相机新发现的事件`, eventCount: v.total,
-          askFields: ["类型", "街道", "网格", "街巷", "发现小时", "相机点位", "当前环节", "结论"],
-          usedNumbers: v.typeStruct.map((t) => `${t.label} ${t.value} 件`),
-          topItem: itemsN[0] ? `${itemsN[0].name} ${itemsN[0].value} 件` : undefined,
-          items: v.typeStruct.map((t) => ({ name: t.label, value: t.value })),
-          itemsNumeric: itemsN,
-          titleForOther: "类型结构",
-          suggestions: signalConcentrate(itemsN, v.total, "网格").slice(0, 2),
-        }
-      }
-      case "ev_space_dist": {
-        const rest = { count: v.spaceTop.restCount, sum: v.spaceTop.restSum }
-        const itemsN = v.spaceTop.visible.map((r) => ({ name: r.name, value: r.value }))
-        return {
-          id, title: "空间分布", kind: "rank", scope: scopeG(filterMeta),
-          empty: v.total === 0, timeVaries: true, caliber: rl("ev_space_dist"),
-          eventPhrase: `${WIN_LABEL[win]}窗口内相机新发现的事件`, eventCount: v.total,
-          askFields: ["类型", "街道", "网格", "街巷", "发现小时", "相机点位", "当前环节", "结论"],
-          usedNumbers: [...v.spaceTop.visible.map((r) => `${r.name} ${r.value} 件`), ...(rest.count > 0 ? [`其余 ${rest.count} 个合计 ${rest.sum} 件`] : [])],
-          topItem: v.spaceTop.visible[0] ? `${v.spaceTop.visible[0].name} ${v.spaceTop.visible[0].value} 件` : undefined,
-          rest,
-          items: v.spaceTop.visible.map((r) => ({ name: r.name, value: r.value })),
-          itemsNumeric: itemsN,
-          titleForOther: "空间分布",
-          suggestions: signalConcentrate(itemsN, v.total, "类型").slice(0, 2),
-        }
-      }
-      case "ev_hourly": {
-        const label = String(v.peakHour).padStart(2, "0")
-        const val = v.hourly[v.peakHour] ?? 0
-        // 找相邻两时段有没有缺口
-        const items24 = v.hourly.map((v, i) => ({ name: `${String(i).padStart(2, "0")}时`, value: v }))
-        return {
-          id, title: "发生时段", kind: "rank", scope: filterMeta,
-          empty: v.total === 0, timeVaries: true, caliber: rl("ev_hourly"),
-          eventPhrase: `${WIN_LABEL[win]}窗口内相机新发现的事件`, eventCount: v.total,
-          askFields: ["类型", "街道", "网格", "街巷", "发现小时", "相机点位", "当前环节", "结论"],
-          usedNumbers: [`高峰 ${label} 时 ${val} 件`, `合计 ${v.total} 件`],
-          topItem: `${label} 时 ${val} 件`,
-          items: [{ name: `${label} 时`, value: val }],
-          itemsNumeric: items24,
-          titleForOther: "发生时段",
-          suggestions: signalConcentrate([{ name: `${label}时`, value: val }], v.total, "类型").slice(0, 2),
-        }
-      }
+      case "ev_type_struct":
+        return mk({
+          title: "类型结构", scope: filterMeta, empty: v.total === 0,
+          phrase: "新发现的事件", count: v.total,
+          hint: "例如：占道经营多在几点发现？",
+          spec: {
+            events: E.foundEv, setLabel: "新发现的事件", fields: foundFields, progressSignal: true, defaultField: street ? "grid" : "street",
+            itemField: "type", items: v.typeStruct.map((t) => ({ name: t.label, value: t.value })),
+            concFields: [...spaceConc, "camPoint", "hour"],
+          },
+        })
+      case "ev_space_dist":
+        return mk({
+          title: "空间分布", scope: `${filterMeta} · 按${GRAN_LABEL[v.effectiveGran]}`, empty: v.total === 0,
+          phrase: "新发现的事件", count: v.total,
+          rest: { count: v.spaceTop.restCount, sum: v.spaceTop.restSum },
+          hint: "例如：排第一的地方主要是什么类型？",
+          spec: {
+            events: E.foundEv, setLabel: "新发现的事件", fields: foundFields, progressSignal: true, defaultField: "type",
+            itemField: granField, items: v.spaceDist, concFields: ["type", "camPoint", "hour"],
+          },
+        })
+      case "ev_hourly":
+        return mk({
+          title: "发生时段", scope: filterMeta, empty: v.total === 0,
+          phrase: "新发现的事件", count: v.total,
+          hint: "例如：08时发现的都是什么类型？",
+          spec: {
+            events: E.foundEv, setLabel: "新发现的事件", fields: foundFields, progressSignal: true, defaultField: "type",
+            itemField: "hour",
+            items: v.hourly.map((n, i) => ({ name: `${String(i).padStart(2, "0")}时`, value: n })).filter((h) => h.value > 0),
+            concFields: ["type", "camPoint", ...spaceConc],
+          },
+        })
       case "ev_top_cameras": {
-        const visible = v.cameras.slice(0, 8)
         const restRows = v.cameras.slice(8)
-        const rest = { count: restRows.length, sum: sum(restRows.map((c) => c.value)) }
-        const itemsN = visible.map((c) => ({ name: c.point, value: c.value }))
-        return {
-          id, title: "高发相机", kind: "rank", scope: filterMeta,
-          empty: v.cameras.length === 0, timeVaries: true, caliber: rl("ev_top_cameras"),
-          eventPhrase: `${WIN_LABEL[win]}窗口内相机识别出的事件`, eventCount: v.total,
-          askFields: ["相机点位", "类型", "发现小时", "结论"],
-          usedNumbers: [...visible.map((c) => `${c.point} ${c.value} 件`), ...(rest.count > 0 ? [`其余 ${rest.count} 个合计 ${rest.sum} 件`] : [])],
-          topItem: visible[0] ? `${visible[0].point} ${visible[0].value} 件` : undefined,
-          rest,
-          items: visible.map((c) => ({ name: c.point, value: c.value })),
-          itemsNumeric: itemsN,
-          titleForOther: "高发相机",
-          suggestions: signalConcentrate(itemsN, v.total, "类型").slice(0, 2),
-        }
+        return mk({
+          title: "高发相机", scope: filterMeta, empty: v.cameras.length === 0,
+          phrase: "有相机编号的新发现事件", count: sum(v.cameras.map((c) => c.value)),
+          rest: { count: restRows.length, sum: sum(restRows.map((c) => c.value)) },
+          hint: "例如：排第一的点位报的多是什么类型？",
+          spec: {
+            events: E.foundEv.filter((e) => e.camPoint), setLabel: "有相机编号的事件",
+            fields: ["camPoint", "type", "hour", "conclusion", "stage"], defaultField: "type", progressSignal: true,
+            itemField: "camPoint", items: v.cameras.map((c) => ({ name: c.point, value: c.value })),
+            concFields: ["type", "hour"],
+          },
+        })
       }
       // ═══ 流程运行上半段 ═══
       case "pr_dwell": {
-        const names = ["发现 → 派给网格", "派给网格 → 处置完", "处置完 → 核查完"]
-        const itemsN = names.map((n, i) => ({ name: n, value: v.dwellVals[i] ?? 0 }))
-        const max = itemsN.reduce((a, b) => (b.value > a.value ? b : a))
-        return {
-          id, title: "各环节停了多久", kind: "rank", scope: filterMeta,
-          empty: v.doneN === 0, timeVaries: true, caliber: rl("pr_dwell"),
-          eventPhrase: `${WIN_LABEL[win]}窗口内走完各一步的事件`, eventCount: v.doneN,
-          askFields: ["三步各自用时", "类型", "网格"],
-          usedNumbers: itemsN.map((r) => `${r.name} ${r.value === 0 ? "—" : `${r.value} 小时`}`),
-          topItem: `${max.name} ${max.value} 小时`,
-          dwellNames: names, dwellMaxName: max.name,
-          dwellVals: v.dwellVals,
-          items: names.map((n, i) => ({ name: n, value: v.dwellVals[i] ?? 0 })),
-          itemsNumeric: itemsN,
-          titleForOther: "各环节停了多久",
-          suggestions: [{ text: `${max.name} 是不是停得最久`.slice(0, 25) }],
-        }
+        const steps = ["发现 → 派给网格", "派给网格 → 处置完", "处置完 → 核查完"]
+        const keys = ["durWait", "durDo", "durCheck"] as const
+        const items = steps.map((n, i) => ({ name: n, value: v.dwellVals[i] ?? 0 }))
+        const maxI = v.dwellMaxIdx
+        const key = keys[maxI]
+        const avg = v.dwellVals[maxI] ?? 0
+        const slow = E.doneEv.filter((e) => (e[key] ?? 0) > avg)
+        const stepWord = steps[maxI].replace(" → ", "到")
+        const slowConc = (() => {
+          if (slow.length < 2) return null
+          for (const f of ["grid", "type"] as FieldKey[]) {
+            const m = new Map<string, number>()
+            for (const e of slow) { const k = e[f] as string; m.set(k, (m.get(k) ?? 0) + 1) }
+            const top = [...m.values()].sort((a, b) => b - a)
+            if (top[0] * 2 >= slow.length && (top.length === 1 || top[0] > top[1])) return f
+          }
+          return null
+        })()
+        return mk({
+          title: "各环节停了多久", scope: filterMeta, empty: v.doneN === 0,
+          phrase: "办完的事件", count: v.doneN,
+          hint: "例如：处置完到核查完最慢的是哪几件？",
+          extraFields: ["三步各自用时"],
+          spec: doneSpec({
+            setLabel: stepWord, timeKey: key, items, itemUnit: "小时",
+            subsets: [{ re: /比平均慢/, label: `${stepWord}比平均慢`, events: slow }],
+            extraSuggestions: slowConc ? [`比平均慢的${slow.length}件，集中在哪个${slowConc === "grid" ? "网格" : "类型"}？`] : [],
+          }),
+        })
       }
       case "pr_grid_dur":
       case "pr_type_dur": {
-        const d = id === "pr_grid_dur" ? v.gridDur : v.typeDur
-        const title = id === "pr_grid_dur" ? "哪个网格办完更久" : "哪类事件办完更久"
-        const rest = { count: d.restCount, sum: d.restSum }
-        const itemsN = d.visible.map((r) => ({ name: r.name, value: r.value }))
-        const above = d.visible.filter((r) => r.color === "var(--primary)").map((r) => r.name)
-        const avg = v.doneAvg ?? 0
-        // 有长于平均的 → 急信号
-        const longThanAvg = itemsN.some((i) => i.value > avg)
-        const fieldWord = id === "pr_grid_dur" ? "类型" : "网格"
-        return {
-          id, title, kind: "durationRank", scope: filterMeta,
-          empty: v.doneN === 0, timeVaries: true, caliber: rl(id),
-          eventPhrase: `${WIN_LABEL[win]}窗口内处置完成的事件`, eventCount: v.doneN,
-          askFields: ["派给网格到处置完的用时", "网格", "类型", "街道"],
-          usedNumbers: [...d.visible.map((r) => `${r.name} ${r.value} 小时（办完 ${r.n} 件）`), ...(rest.count > 0 ? [`其余 ${rest.count} 个合计 ${rest.sum} 件`] : [])],
-          topItem: itemsN[0] ? `${itemsN[0].name} ${itemsN[0].value} 小时` : undefined,
-          aboveAvg: above, rest, isDuration: true,
-          items: d.visible.map((r) => ({ name: r.name, value: r.value })),
-          itemsNumeric: itemsN,
-          titleForOther: title,
-          suggestions: [
-            ...signalConcentrate(itemsN, v.doneN, fieldWord),
-            ...(longThanAvg ? [{ text: `办完用时最长的，是哪类${fieldWord}？`.slice(0, 25) }] : []),
-          ].slice(0, 2),
-        }
+        const isGrid = id === "pr_grid_dur"
+        const d = isGrid ? v.gridDur : v.typeDur
+        return mk({
+          title: isGrid ? "哪个网格办完更久" : "哪类事件办完更久", scope: filterMeta, empty: v.doneN === 0,
+          phrase: "从派给网格到处置完的事件", count: v.doneN,
+          rest: { count: d.restCount, sum: d.restSum },
+          hint: isGrid ? "例如：最慢的网格办的是什么类型？" : "例如：最慢的那类事件在哪个网格？",
+          spec: doneSpec({
+            setLabel: "办完的事件", itemField: isGrid ? "grid" : "type",
+            items: d.visible.map((r) => ({ name: r.name, value: r.value })),
+            concFields: isGrid ? ["type"] : ["grid"], defaultField: isGrid ? "type" : "grid",
+          }),
+        })
       }
       // ═══ 流程运行下半段 ═══
-      case "pr_stages": {
-        const itemsN = v.stages.map((s) => ({ name: s.label, value: s.value }))
-        return {
-          id, title: "环节存量", kind: "rank", scope: backlogMeta,
-          empty: v.sustained === 0, timeVaries: false, caliber: rl("pr_stages"),
-          eventPhrase: "截止此刻还压在各环节的事件", eventCount: v.sustained,
-          askFields: ["当前环节", "类型", "街道", "网格", "街巷", "责任网格", "是否严重", "已等待时长"],
-          usedNumbers: v.stages.map((s) => `${s.label} ${s.value} 件`),
-          topItem: v.stages.reduce((a, b) => (b.value > a.value ? b : a)).value > 0
-            ? `${v.stages.reduce((a, b) => (b.value > a.value ? b : a)).label} ${v.stages.reduce((a, b) => (b.value > a.value ? b : a)).value} 件` : undefined,
-          items: v.stages.map((s) => ({ name: s.label, value: s.value })),
-          itemsNumeric: itemsN,
-          titleForOther: "环节存量",
-          suggestions: signalConcentrate(itemsN, v.sustained, "网格").slice(0, 2),
-        }
-      }
-      case "pr_grid": {
-        const rest = { count: v.gridOnDutyTop.restCount, sum: v.gridOnDutyTop.restSum }
-        const itemsN = v.gridOnDutyTop.visible.map((r) => ({ name: r.name, value: r.value }))
-        return {
-          id, title: "责任网格在办", kind: "rank", scope: backlogMeta,
-          empty: v.gridOnDutyTop.visible.length === 0, timeVaries: false, caliber: rl("pr_grid"),
-          eventPhrase: "截止此刻还没处置完的事件", eventCount: v.stages[1].value,
-          askFields: ["责任网格", "派过去多久", "类型", "是否严重"],
-          usedNumbers: [...v.gridOnDutyTop.visible.map((r) => `${r.name} ${r.value} 件`), ...(rest.count > 0 ? [`其余 ${rest.count} 个合计 ${rest.sum} 件`] : [])],
-          topItem: v.gridOnDutyTop.visible[0] ? `${v.gridOnDutyTop.visible[0].name} ${v.gridOnDutyTop.visible[0].value} 件` : undefined,
-          rest,
-          items: v.gridOnDutyTop.visible.map((r) => ({ name: r.name, value: r.value })),
-          itemsNumeric: itemsN,
-          titleForOther: "责任网格在办",
-          suggestions: [
-            ...signalConcentrate(itemsN, v.stages[1].value, "类型"),
-            ...(v.stages[0].value > 0 && v.stages[0].value > v.stages[1].value / 2 ? [{ text: `现在 ${v.stages[0].label} ${v.stages[0].value} 件，都派给网格了吗？`.slice(0, 25) }] : []),
-          ].slice(0, 2),
-        }
-      }
+      case "pr_grid":
+        return mk({
+          title: "责任网格在办", scope: backlogMeta, empty: v.gridOnDutyTop.visible.length === 0,
+          phrase: "派给网格、还没处置完的事件", count: v.stages[1].value,
+          rest: { count: v.gridOnDutyTop.restCount, sum: v.gridOnDutyTop.restSum },
+          hint: "例如：派过去最久的是哪几件？",
+          spec: backlogSpec(E.backlogEv.filter((e) => e.stage === "待处置"), {
+            setLabel: "待处置事件", fields: ["respGrid", "type", "street", "grid"], defaultField: "type",
+            itemField: "respGrid", items: v.gridOnDuty, concFields: ["type"],
+          }),
+        })
       // ═══ 治理质量与 AI 成效 ═══
-      case "ql_composition": {
-        const rows = [
-          { label: "立案有效", value: v.quality.valid },
-          { label: "无效", value: v.quality.invalid },
-          { label: "自然消散", value: v.quality.dissipated },
-        ]
-        const itemsN = rows.map((r) => ({ name: r.label, value: r.value }))
-        return {
-          id, title: "有效 / 无效 / 消散", kind: "composition", scope: filterMeta,
-          empty: v.quality.composition === 0, timeVaries: true, caliber: rl("ql_composition"),
-          eventPhrase: `${WIN_LABEL[win]}窗口内已有结论的候选事件`, eventCount: v.quality.composition,
-          askFields: ["结论", "说明", "类型", "街道", "相机点位"],
-          usedNumbers: rows.map((r) => `${r.label} ${r.value} 件`),
-          topItem: itemsN[0] ? `${itemsN[0].name} ${itemsN[0].value} 件` : undefined,
-          items: rows.map((r) => ({ name: r.label, value: r.value })),
-          itemsNumeric: itemsN,
-          titleForOther: "有效 / 无效 / 消散",
-          suggestions: signalConcentrate(itemsN, v.quality.composition, "类型").slice(0, 2),
-        }
-      }
+      case "ql_composition":
+        return mk({
+          title: "有效 / 无效 / 消散", scope: filterMeta, empty: v.quality.composition === 0,
+          phrase: "已有结论的候选事件", count: v.quality.composition,
+          hint: "例如：无效的几件是什么类型？",
+          spec: {
+            events: E.compEv, setLabel: "已有结论的候选", fields: ["conclusion", "note", "type", "street", "camPoint"],
+            defaultField: "type", itemField: "conclusion",
+            items: [
+              { name: "立案有效", value: v.quality.valid }, { name: "无效", value: v.quality.invalid },
+              { name: "自然消散", value: v.quality.dissipated },
+            ],
+            concFields: ["type", "camPoint", "street"],
+            extraSuggestions: v.quality.invalid > 0 ? [`判无效的${v.quality.invalid}件，说明是什么？`] : [],
+          },
+        })
       case "ql_return_rate": {
-        const denom = v.quality.inspected
-        return {
-          id, title: "退回率", kind: "rate", scope: filterMeta,
-          empty: denom === 0, timeVaries: true, caliber: rl("ql_return_rate"),
-          eventPhrase: `${WIN_LABEL[win]}窗口内有核查决定的事件`, eventCount: denom,
-          askFields: ["退回次数", "网格", "类型"],
-          usedNumbers: [`有核查决定 ${denom} 件，被退回 ${v.quality.returned} 件`],
-          titleForOther: "退回率",
-          suggestions: v.quality.returned > 0 ? [{ text: `被退回的 ${v.quality.returned} 件，退回了几次？`.slice(0, 25) }] : [],
-        }
+        const r = v.quality.returned
+        const returnedEv = E.retEv.filter((e) => (e.returns ?? 0) > 0)
+        return mk({
+          title: "退回率", scope: filterMeta, empty: v.quality.inspected === 0,
+          phrase: "有核查决定的事件", count: v.quality.inspected,
+          hint: "例如：被退回的在哪个网格？",
+          spec: {
+            events: E.retEv, setLabel: "有核查决定的事件", fields: ["returns", "grid", "type"], defaultField: "grid",
+            subsets: [{ re: /退回的|被退回/, label: "被退回", events: returnedEv, field: "grid" }],
+            extraSuggestions: r > 0 ? [`被退回的${r}件，退回了几次？`, `被退回的${r}件，在哪个网格？`] : [],
+          },
+        })
       }
       case "ai_discovery_rate": {
-        const denom = v.aiRates.discoveryCandidates
-        const valid = v.aiRates.discoveryValid
-        return {
-          id, title: "发现有效率", kind: "rate", scope: filterMeta,
-          empty: denom === 0, timeVaries: true, caliber: rl("ai_discovery_rate"),
-          eventPhrase: `${WIN_LABEL[win]}窗口内相机识别出的候选事件`, eventCount: denom,
-          askFields: ["最终是否要办", "类型", "相机点位"],
-          usedNumbers: [`相机发现 ${denom} 件，最后要办 ${valid} 件`],
-          titleForOther: "发现有效率",
-          suggestions: valid > 0 && valid < denom ? signalConcentrate([{ name: "最终要办", value: valid }, { name: "最终没办", value: denom - valid }], denom, "类型").slice(0, 2) : [],
-        }
+        const no = v.aiRates.discoveryCandidates - v.aiRates.discoveryValid
+        return mk({
+          title: "发现有效率", scope: filterMeta, empty: v.aiRates.discoveryCandidates === 0,
+          phrase: "相机识别出的候选", count: v.aiRates.discoveryCandidates,
+          hint: "例如：最后不用办的是什么类型？",
+          spec: {
+            events: E.discEv, setLabel: "相机识别出的候选", fields: ["final", "type", "camPoint"], defaultField: "type",
+            subsets: [{ re: /没办|不用办/, label: "最后不用办", events: E.discEv.filter((e) => e.final === "不用办"), field: "camPoint" }],
+            extraSuggestions: no > 0 ? [`最后不用办的${no}件，是哪些点位报的？`] : [],
+          },
+        })
       }
       case "ai_prefill_type": {
-        const total = v.aiRates.prefillTotal
-        const match = v.aiRates.prefillMatch
-        const changed = total - match
-        return {
-          id, title: "预填少改", kind: "rate", scope: filterMeta,
-          empty: total === 0, timeVaries: true, caliber: rl("ai_prefill_type"),
-          eventPhrase: `${WIN_LABEL[win]}窗口内有 AI 预填类型的事件`, eventCount: total,
-          askFields: ["AI 预填类型", "人工最终类型", "网格"],
-          usedNumbers: [`AI 预填 ${total} 件，类型没被人工改 ${match} 件`],
-          titleForOther: "预填少改",
-          suggestions: signalPrefillSuggest(changed, "预填少改", "prefill").slice(0, 1),
-        }
+        const k = v.aiRates.prefillTotal - v.aiRates.prefillMatch
+        return mk({
+          title: "预填少改", scope: filterMeta, empty: v.aiRates.prefillTotal === 0,
+          phrase: "有 AI 预填类型的事件", count: v.aiRates.prefillTotal,
+          hint: "例如：被改掉的在哪个网格？",
+          spec: {
+            events: E.prefEv, setLabel: "有 AI 预填类型的事件", fields: ["aiType", "humanType", "grid"], defaultField: "grid",
+            subsets: [{ re: /被改|改掉|改过/, label: "类型被改掉", events: E.prefEv.filter((e) => e.aiType !== e.humanType) }],
+            extraSuggestions: k > 0 ? [`被改掉的${k}件，从什么改成了什么？`] : [],
+          },
+        })
       }
       case "ai_suggest_match": {
-        const total = v.aiRates.suggestTotal
-        const match = v.aiRates.suggestMatchCount
-        const changed = total - match
-        return {
-          id, title: "建议一致率", kind: "rate", scope: filterMeta,
-          empty: total === 0, timeVaries: true, caliber: rl("ai_suggest_match"),
-          eventPhrase: `${WIN_LABEL[win]}窗口内有系统建议的事件`, eventCount: total,
-          askFields: ["系统建议", "人工最终判断", "类型"],
-          usedNumbers: [`系统给建议 ${total} 件，人工判断一致 ${match} 件`],
-          titleForOther: "建议一致率",
-          suggestions: signalPrefillSuggest(changed, "建议一致率", "suggest").slice(0, 1),
-        }
+        const k = v.aiRates.suggestTotal - v.aiRates.suggestMatchCount
+        return mk({
+          title: "建议一致率", scope: filterMeta, empty: v.aiRates.suggestTotal === 0,
+          phrase: "系统给了建议的事件", count: v.aiRates.suggestTotal,
+          hint: "例如：不一致的是什么类型？",
+          spec: {
+            events: E.sugEv, setLabel: "系统给了建议的事件", fields: ["sysSuggest", "humanJudge", "type"], defaultField: "humanJudge",
+            subsets: [{ re: /不一致/, label: "和系统建议不一致", events: E.sugEv.filter((e) => e.sysSuggest !== e.humanJudge), field: "humanJudge" }],
+            extraSuggestions: k > 0 ? [`不一致的${k}件，人工最后怎么判的？`] : [],
+          },
+        })
       }
       case "ai_space_fail": {
-        return {
-          id, title: "空间匹配失败", kind: "count", scope: filterMeta,
-          empty: v.aiRates.spaceFail === 0, timeVaries: true, caliber: rl("ai_space_fail"),
-          eventPhrase: `${WIN_LABEL[win]}窗口内落不到网格的事件`, eventCount: v.aiRates.spaceFail,
-          askFields: ["相机点位", "街道", "类型", "当前环节"],
-          usedNumbers: [`落不到网格的 ${v.aiRates.spaceFail} 件`],
-          titleForOther: "空间匹配失败",
-          suggestions: v.aiRates.spaceFail > 0 ? [{ text: `落不到网格的 ${v.aiRates.spaceFail} 件，都在哪个街道？`.slice(0, 25) }] : [],
-        }
+        const n = v.aiRates.spaceFail
+        return mk({
+          title: "空间匹配失败", scope: filterMeta, empty: n === 0,
+          phrase: "落不到网格的事件", count: n,
+          hint: "例如：落不到网格的是哪些点位报的？",
+          spec: {
+            events: E.sfEv, setLabel: "落不到网格的事件", fields: ["camPoint", "street", "type", "stage"], defaultField: "camPoint",
+            extraSuggestions: n >= 2 ? [`落不到网格的${n}件，是哪些点位报的？`, `这${n}件现在卡在哪个环节？`] : [],
+          },
+        })
       }
-      // 下面这些旧 case 入口已白名单去掉，但保留 buildAsk 返回 null 安全
-      case "ov_total":
-      case "ov_closed":
-      case "ov_sustained":
-      case "ov_severe":
-      case "ev_total":
-      case "pr_avg":
-      case "pr_pending":
-      case "pr_dispose":
-      case "pr_inspect":
-      case "pr_void":
-      case "ql_effective_rate":
-      case "ql_first_pass":
       default:
         return null
     }
   }
 
-  const askDesc = askId ? buildAsk(askId) : null
+  const askBuilt = askId ? buildAsk(askId) : null
+  const askDesc = askBuilt && !askBuilt.empty ? askBuilt : null
   if (askDesc) {
     // 切换签名跟「筛选器状态 + tab」走：积压类统计的范围行写「截止此刻」，
     // 但改时间仍是筛选变化，也要插「已切换为 …」。
@@ -2460,7 +2384,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       )}
 
       <SliceDrawer slice={slice} onClose={() => setSlice(null)} />
-      {askDesc && <AskAiDrawer desc={askDesc} onClose={() => setAskId(null)} />}
+      {askDesc && <AskAiDrawer key={askDesc.id} desc={askDesc} onClose={() => setAskId(null)} />}
     </div>
   )
 }
