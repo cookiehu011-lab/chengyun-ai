@@ -8,7 +8,7 @@ import { RuleChips } from "../data/dashboardRules"
 import { STATS2_ALGO_RULES, STATS2_USER_RULES } from "../data/statsV2Rules"
 import {
   answerFromEvents, buildSuggestions, fieldsPhrase, fill, seeded, shuffleIdx,
-  type AskEv, type AskReply, type AskSpec, type FieldKey,
+  type AskEv, type AskReply, type AskSpec, type AskViz, type FieldKey, type VizEvent, type VizRow,
 } from "./statsAskEngine"
 
 // AI 统计 · V1.3 四类收敛版
@@ -472,9 +472,6 @@ function answerAsk(desc: AskDesc, q: string): AskAnswer {
   if (desc.rest && desc.rest.count > 0 && /其余|没画出|没显示|后面那些/.test(q)) {
     return { ok: false, text: `只知道其余 ${desc.rest.count} 个合计 ${desc.rest.sum} 件，没有名单。` }
   }
-  if (/名单|事件编号|明细|列出来/.test(q)) {
-    return { ok: false, text: "名单在这项统计的切片里。" }
-  }
   const own = new Set<string>([desc.title, desc.spec.setLabel])
   for (const e of desc.spec.events) for (const val of Object.values(e)) if (typeof val === "string") own.add(val)
   for (const i of desc.spec.items ?? []) own.add(i.name)
@@ -500,7 +497,169 @@ function persistAsk(desc: AskDesc, q: string, ans: AskAnswer) {
   } catch { /* 存储不可用时静默 */ }
 }
 
-interface AskMsg { role: "q" | "a" | "divider"; text: string; used?: string[]; ok?: boolean }
+interface AskMsg { role: "q" | "a" | "divider"; text: string; used?: string[]; ok?: boolean; viz?: AskViz }
+
+const VIZ_COLORS = ["var(--primary)", "var(--accent)", "var(--amber)", "var(--green)", "var(--purple)", "var(--red)"]
+
+function VizBars({ rows, unit, rest }: { rows: VizRow[]; unit: string; rest?: { count: number; sum: number } }) {
+  const max = Math.max(1, ...rows.map((r) => r.value), rest?.sum ?? 0)
+  const anyHi = rows.some((r) => r.highlight)
+  const line = (name: string, value: number, color: string, bold: boolean, key: string) => (
+    <div key={key} style={{ display: "grid", gridTemplateColumns: "112px 1fr auto", alignItems: "center", gap: 8 }}>
+      <span title={name} style={{ fontSize: 11.5, color: C.text, fontWeight: bold ? 700 : 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+      <div style={{ height: 8, borderRadius: 999, background: "var(--card-2)", overflow: "hidden" }}>
+        <div style={{ width: `${(value / max) * 100}%`, height: "100%", borderRadius: 999, background: color }} />
+      </div>
+      <span style={{ fontSize: 11.5, fontWeight: 700, color: bold ? C.primary : C.muted, fontFamily: "JetBrains Mono, monospace", minWidth: 44, textAlign: "right" }}>{value} {unit}</span>
+    </div>
+  )
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+      {rows.map((r, i) => line(r.name, r.value, !anyHi || r.highlight ? `linear-gradient(90deg, ${C.primary}, ${C.cyan})` : "#C3CAD5", !anyHi ? i === 0 : !!r.highlight, r.name))}
+      {rest && line(`其余 ${rest.count} 个`, rest.sum, "#C3CAD5", false, "__rest")}
+    </div>
+  )
+}
+
+function VizPie({ rows, unit }: { rows: VizRow[]; unit: string }) {
+  const total = sum(rows.map((r) => r.value)) || 1
+  const R = 30
+  const L = 2 * Math.PI * R
+  let acc = 0
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+      <svg width={84} height={84} viewBox="0 0 84 84" style={{ flexShrink: 0 }}>
+        <circle cx={42} cy={42} r={R} fill="none" stroke="var(--card-2)" strokeWidth={12} />
+        {rows.map((r, i) => {
+          const len = (r.value / total) * L
+          const el = (
+            <circle key={r.name} cx={42} cy={42} r={R} fill="none" stroke={VIZ_COLORS[i % VIZ_COLORS.length]} strokeWidth={12}
+              strokeDasharray={`${len} ${L - len}`} strokeDashoffset={-acc} transform="rotate(-90 42 42)" />
+          )
+          acc += len
+          return el
+        })}
+        <text x={42} y={46} textAnchor="middle" style={{ fontSize: 14, fontWeight: 800, fill: "var(--foreground)" }}>{total}</text>
+      </svg>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0 }}>
+        {rows.map((r, i) => (
+          <div key={r.name} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: VIZ_COLORS[i % VIZ_COLORS.length], flexShrink: 0 }} />
+            <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: C.text }}>{r.name}</span>
+            <span style={{ fontWeight: 700, color: C.text, fontFamily: "JetBrains Mono, monospace" }}>{r.value} {unit}</span>
+            <span style={{ color: C.muted, width: 34, textAlign: "right" }}>{Math.round((r.value / total) * 100)}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function VizLine({ labels, series }: { labels: string[]; series: { name: string; values: number[] }[] }) {
+  const W = 380
+  const H = 120
+  const padL = 22
+  const padB = 18
+  const peak = Math.max(1, ...series.flatMap((s) => s.values))
+  const max = peak <= 1 ? 2 : Math.ceil(peak / 2) * 2
+  const n = labels.length
+  const x = (i: number) => padL + (n <= 1 ? (W - padL) / 2 : (i / (n - 1)) * (W - padL - 16))
+  const y = (val: number) => 6 + (1 - val / max) * (H - padB - 10)
+  const step = Math.max(1, Math.ceil(n / 7))
+  const colors = ["var(--primary)", "var(--green)"]
+  return (
+    <div>
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block" }}>
+        {[0, 0.5, 1].map((t) => (
+          <g key={t}>
+            <line x1={padL} x2={W} y1={y(max * t)} y2={y(max * t)} stroke="var(--border)" strokeDasharray="3 3" />
+            <text x={padL - 4} y={y(max * t) + 3} textAnchor="end" style={{ fontSize: 9, fill: "var(--muted-foreground)" }}>{Math.round(max * t)}</text>
+          </g>
+        ))}
+        {series.map((s, si) => (
+          <g key={s.name}>
+            <polyline fill="none" stroke={colors[si % 2]} strokeWidth={2} points={s.values.map((val, i) => `${x(i)},${y(val)}`).join(" ")} />
+            {n <= 31 && s.values.map((val, i) => <circle key={i} cx={x(i)} cy={y(val)} r={2.4} fill={colors[si % 2]} />)}
+          </g>
+        ))}
+        {labels.map((l, i) => (i % step === 0 || i === n - 1) && (
+          <text key={l + i} x={x(i)} y={H - 4} textAnchor={i === n - 1 && n > 1 ? "end" : "middle"} style={{ fontSize: 9, fill: "var(--muted-foreground)" }}>{l}</text>
+        ))}
+      </svg>
+      {series.length > 1 && (
+        <div style={{ display: "flex", gap: 14, fontSize: 11, color: C.muted, marginTop: 2 }}>
+          {series.map((s, si) => (
+            <span key={s.name} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <span style={{ width: 10, height: 2, background: colors[si % 2] }} />{s.name}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function VizEvents({ rows, total }: { rows: VizEvent[]; total: number }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {rows.map((r, i) => (
+        <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "8px 10px", background: "var(--card)", display: "flex", gap: 10, alignItems: "center" }}>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{r.title}</span>
+              {r.tag && (
+                <span style={{ fontSize: 10, fontWeight: 700, padding: "0 6px", borderRadius: 999, background: r.tag === "严重" ? "rgba(229,72,77,0.12)" : "var(--card-2)", color: r.tag === "严重" ? "var(--red)" : C.muted }}>{r.tag}</span>
+              )}
+              {r.stage && (
+                <span style={{ fontSize: 10, fontWeight: 700, padding: "0 6px", borderRadius: 999, background: "rgba(50,109,255,0.10)", color: "var(--primary)" }}>{r.stage}</span>
+              )}
+            </div>
+            <div style={{ fontSize: 11, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.place}</div>
+          </div>
+          {r.metric && <span style={{ fontSize: 12.5, fontWeight: 800, color: C.primary, fontFamily: "JetBrains Mono, monospace", flexShrink: 0 }}>{r.metric}</span>}
+        </div>
+      ))}
+      {total > rows.length && <div style={{ fontSize: 11, color: C.muted }}>共 {total} 件，这里列 {rows.length} 件；全部在这项统计的切片里。</div>}
+    </div>
+  )
+}
+
+function AskVizBlock({ viz }: { viz: AskViz }) {
+  switch (viz.kind) {
+    case "value":
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ fontSize: 11.5, color: C.muted }}>{viz.caption}</span>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+            <span className="gradient-text" style={{ fontSize: 30, fontWeight: 800, lineHeight: 1, fontFamily: "JetBrains Mono, monospace" }}>{viz.value}</span>
+            <span style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>{viz.unit}</span>
+          </div>
+          {viz.note && <span style={{ fontSize: 11.5, color: C.muted }}>{viz.note}</span>}
+        </div>
+      )
+    case "pie":
+      return <VizPie rows={viz.rows} unit={viz.unit} />
+    case "bars":
+      return <VizBars rows={viz.rows} unit={viz.unit} rest={viz.rest} />
+    case "line":
+      return <VizLine labels={viz.labels} series={viz.series} />
+    case "events":
+      return <VizEvents rows={viz.rows} total={viz.total} />
+    case "pairs":
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {viz.rows.map((r) => (
+            <div key={`${r.from}-${r.to}`} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+              <span style={{ padding: "2px 8px", borderRadius: 6, background: "var(--card-2)", color: C.muted, textDecoration: "line-through" }}>{r.from}</span>
+              <span style={{ color: C.muted }}>→</span>
+              <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(50,109,255,0.10)", color: "var(--primary)", fontWeight: 700 }}>{r.to}</span>
+              <span style={{ marginLeft: "auto", fontWeight: 700, fontFamily: "JetBrains Mono, monospace", color: C.text }}>{r.value} 件</span>
+            </div>
+          ))}
+        </div>
+      )
+  }
+}
 
 function AskAiDrawer({ desc, onClose }: { desc: AskDesc; onClose: () => void }) {
   const [msgs, setMsgs] = useState<AskMsg[]>([])
@@ -522,7 +681,7 @@ function AskAiDrawer({ desc, onClose }: { desc: AskDesc; onClose: () => void }) 
     const q = raw.trim()
     if (!q) return
     const ans = answerAsk(desc, q)
-    setMsgs((m) => [...m, { role: "q", text: q }, { role: "a", text: ans.text, used: ans.used, ok: ans.ok }])
+    setMsgs((m) => [...m, { role: "q", text: q }, { role: "a", text: ans.text, used: ans.used, ok: ans.ok, viz: ans.viz }])
     persistAsk(desc, q, ans)
     setInput("")
   }
@@ -602,8 +761,13 @@ function AskAiDrawer({ desc, onClose }: { desc: AskDesc; onClose: () => void }) 
               )
             }
             return (
-              <div key={i} style={{ alignSelf: "flex-start", maxWidth: "92%", background: "var(--card-2, rgba(50,109,255,0.05))", borderRadius: "12px 12px 12px 4px", padding: "10px 12px", fontSize: 12.5, lineHeight: 1.7, color: C.text }}>
-                <div>{m.text}</div>
+              <div key={i} style={{ alignSelf: "flex-start", maxWidth: "92%", width: m.ok && m.viz ? "92%" : undefined, background: "var(--card-2, rgba(50,109,255,0.05))", borderRadius: "12px 12px 12px 4px", padding: "10px 12px", fontSize: 12.5, lineHeight: 1.7, color: C.text }}>
+                {!(m.ok && m.viz?.kind === "value") && <div style={{ fontWeight: m.ok && m.viz ? 600 : undefined }}>{m.text}</div>}
+                {m.ok && m.viz && (
+                  <div style={{ marginTop: 8, padding: "10px 12px", background: "var(--panel-solid, #fff)", borderRadius: 10, border: "1px solid var(--border)" }}>
+                    <AskVizBlock viz={m.viz} />
+                  </div>
+                )}
                 {m.ok && m.used && m.used.length > 0 && (
                   <div style={{ marginTop: 6, fontSize: 10.5, color: C.muted, lineHeight: 1.6 }}>
                     依据：{m.used.join("、")}
@@ -1442,7 +1606,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       suggestions: o.empty ? [] : buildSuggestions(o.spec),
       sampleHint: o.hint,
       rest: o.rest ?? null,
-      spec: o.spec,
+      spec: { days: v.days.map((d) => d.label), ...o.spec },
     })
     const backlogSpec = (events: AskEv[], over: Partial<AskSpec>): AskSpec => ({
       events, setLabel: "存续事件",

@@ -86,10 +86,38 @@ export interface AskSpec {
   defaultField?: FieldKey
   severeSignal?: boolean
   progressSignal?: boolean
+  days?: string[]
   extraSuggestions?: string[]
 }
 
-export interface AskReply { ok: boolean; text: string; used?: string[] }
+export interface VizRow { name: string; value: number; highlight?: boolean }
+export interface VizEvent { title: string; place: string; stage?: string; metric?: string; tag?: string }
+export type AskViz =
+  | { kind: "value"; value: number; unit: string; caption: string; note?: string }
+  | { kind: "pie"; rows: VizRow[]; unit: string }
+  | { kind: "bars"; rows: VizRow[]; unit: string; rest?: { count: number; sum: number } }
+  | { kind: "events"; rows: VizEvent[]; total: number }
+  | { kind: "line"; labels: string[]; series: { name: string; values: number[] }[] }
+  | { kind: "pairs"; rows: { from: string; to: string; value: number }[] }
+
+export interface AskReply { ok: boolean; text: string; used?: string[]; viz?: AskViz }
+
+function groupViz(g: { name: string; value: number }[], unit = "件"): AskViz | undefined {
+  if (g.length < 2) return undefined
+  if (g.length <= 4) return { kind: "pie", rows: g, unit }
+  const shown = g.slice(0, 8)
+  const rest = g.slice(8)
+  return { kind: "bars", rows: shown, unit, rest: rest.length > 0 ? { count: rest.length, sum: rest.reduce((a, b) => a + b.value, 0) } : undefined }
+}
+
+function eventCard(e: AskEv, timeKey?: TimeKey, showStage = true): VizEvent {
+  const place = [e.respGrid ?? e.grid, e.street && !(e.respGrid ?? e.grid)?.startsWith(e.street.slice(0, 2)) ? e.street : undefined, e.camPoint]
+    .filter(Boolean).join(" · ")
+  const t = timeKey && typeof e[timeKey] === "number" ? (e[timeKey] as number) : undefined
+  const metric = t !== undefined ? `${timeKey === "waitH" ? "已等 " : ""}${fmtH(t)}` : undefined
+  const tag = e.severe ? "严重" : e.conclusion ?? e.final ?? (e.aiType && e.humanType && e.aiType !== e.humanType ? `${e.aiType} → ${e.humanType}` : undefined)
+  return { title: e.type ?? "事件", place: place || "—", stage: showStage ? e.stage : undefined, metric, tag }
+}
 
 // ─── 示例事件生成工具 ────────────────────────────────────────────────────────
 export function seeded(key: string): () => number {
@@ -255,14 +283,20 @@ export function answerFromEvents(spec: AskSpec, q: string): AskReply {
     const { top, ties } = trueTop(spec.items)
     const unit = spec.itemUnit === "小时" ? " 小时" : " 件"
     if (target && top) {
+      const viz: AskViz = {
+        kind: "bars", unit: unit.trim(),
+        rows: [...spec.items].sort((a, b) => b.value - a.value).slice(0, 8)
+          .map((i) => ({ ...i, highlight: i.name === target.name || i.value === top.value })),
+      }
+      const used = [`图上 ${spec.items.length} 项${spec.itemUnit === "小时" ? "平均用时" : "件数"}`]
       if (target.value === top.value && ties.length >= 2) {
-        return { ok: true, text: `并列。${ties.map((t) => t.name).join("、")} 都是 ${top.value}${unit}。`, used: spec.items.map((i) => `${i.name} ${i.value}${unit}`) }
+        return { ok: true, text: `并列。${ties.map((t) => t.name).join("、")} 都是 ${top.value}${unit}。`, used, viz }
       }
       if (target.value === top.value) {
         const second = [...spec.items].sort((a, b) => b.value - a.value)[1]
-        return { ok: true, text: `是。${target.name} ${target.value}${unit}${second ? `，第二是 ${second.name} ${second.value}${unit}` : ""}。`, used: spec.items.map((i) => `${i.name} ${i.value}${unit}`) }
+        return { ok: true, text: `是。${target.name} ${target.value}${unit}${second ? `，第二是 ${second.name} ${second.value}${unit}` : ""}。`, used, viz }
       }
-      return { ok: true, text: `不是。${top.name} ${top.value}${unit} 更${spec.itemUnit === "小时" ? "久" : "多"}，${target.name} 是 ${target.value}${unit}。`, used: spec.items.map((i) => `${i.name} ${i.value}${unit}`) }
+      return { ok: true, text: `不是。${top.name} ${top.value}${unit} 更${spec.itemUnit === "小时" ? "久" : "多"}，${target.name} 是 ${target.value}${unit}。`, used, viz }
     }
   }
 
@@ -272,11 +306,50 @@ export function answerFromEvents(spec: AskSpec, q: string): AskReply {
     if (!spec.events.some((e) => e.severe !== undefined)) return { ok: false, text: "这批事件没有记录等级。" }
     const byStage = groupBy(events.filter((e) => e.severe), "stage")
     const tail = k > 0 && byStage.length > 1 ? `，${byStage.map((g) => `${g.name} ${g.value} 件`).join("、")}` : ""
-    return { ok: true, text: `${k} 件是严重的${tail}。`, used: basis("按等级统计") }
+    return {
+      ok: true, text: `${k} 件是严重的${tail}。`, used: basis("按等级统计"),
+      viz: {
+        kind: "value", value: k, unit: "件",
+        caption: `${labels.join("、") || spec.setLabel} ${events.length} 件里严重的`,
+        note: `占 ${Math.round((k / Math.max(1, events.length)) * 100)}%${tail ? `；${tail.slice(1)}` : ""}`,
+      },
+    }
+  }
+
+  // 4.5) 趋势：每天 / 每小时
+  if (/趋势|每天|每日|走势|变化|按天|哪天|哪一天|每小时|几点/.test(qRest) && !FIELD_PATTERNS.slice(0, 11).some(([re]) => re.test(qRest))) {
+    const hourly = /每小时|几点/.test(qRest) || (spec.days?.length ?? 0) <= 1
+    const hasDay = events.some((e) => e.foundDay || e.closedDay)
+    if (!hasDay && !events.some((e) => e.hour)) {
+      return { ok: false, text: spec.timeKey === "waitH" ? "这批是截止此刻的积压，没有按天的记录。" : "这批事件没有按天的记录。" }
+    }
+    if (hourly && events.some((e) => e.hour)) {
+      const labelsH = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, "0")}时`)
+      const values = labelsH.map((h) => events.filter((e) => e.hour === h).length)
+      const peak = Math.max(...values)
+      const peaks = labelsH.filter((_, i) => values[i] === peak)
+      return {
+        ok: true, text: peaks.length === 1 ? `${peaks[0]}最多，${peak} 件。` : `${peaks.join("、")} 各 ${peak} 件，并列最多。`,
+        used: basis("按发现小时统计"),
+        viz: { kind: "line", labels: labelsH.map((h) => h.replace("时", "")), series: [{ name: "发现", values }] },
+      }
+    }
+    const days = spec.days ?? []
+    const found = days.map((d) => events.filter((e) => e.kind !== "closed" && e.foundDay === d).length)
+    const closed = days.map((d) => events.filter((e) => e.closedDay === d).length)
+    const series = [{ name: "发现", values: found }, ...(closed.some((n) => n > 0) ? [{ name: "办结", values: closed }] : [])]
+    const peak = Math.max(...found)
+    const peakDays = days.filter((_, i) => found[i] === peak)
+    return {
+      ok: true,
+      text: peak === 0 ? "这几天没有发现。" : peakDays.length === 1 ? `${peakDays[0]}发现最多，${peak} 件。` : `${peakDays.length} 天并列最多，各 ${peak} 件。`,
+      used: basis("按发现日统计"),
+      viz: { kind: "line", labels: days, series },
+    }
   }
 
   // 5) 从什么改成了什么 / 人工怎么判
-  if (/改成|从什么/.test(q) && events.some((e) => e.aiType)) {
+  if (/改成|从什么|改得|被改|改了|哪几对/.test(q) && events.some((e) => e.aiType)) {
     const pairs = new Map<string, number>()
     for (const e of events) if (e.aiType && e.humanType && e.aiType !== e.humanType) {
       const k = `${e.aiType} 改成 ${e.humanType}`
@@ -284,7 +357,14 @@ export function answerFromEvents(spec: AskSpec, q: string): AskReply {
     }
     const list = [...pairs.entries()].sort((a, b) => b[1] - a[1])
     if (list.length === 0) return { ok: true, text: "这批事件里没有被改掉类型的。", used: basis() }
-    return { ok: true, text: `${list.map(([k, n]) => `${k} ${n} 件`).join("；")}。`, used: basis("按 AI 预填类型和人工最终类型对比") }
+    return {
+      ok: true,
+      text: list.length === 1 ? `只有一种改法：${list[0][0]}，${list[0][1]} 件。`
+        : list[1][1] === list[0][1] ? `${list.filter((p) => p[1] === list[0][1]).length} 种改法并列，各 ${list[0][1]} 件。`
+          : `最多的是${list[0][0]}，${list[0][1]} 件。`,
+      used: basis("按 AI 预填类型和人工最终类型对比"),
+      viz: { kind: "pairs", rows: list.map(([k, n]) => { const [from, to] = k.split(" 改成 "); return { from, to, value: n } }) },
+    }
   }
 
   // 6) 最久 / 最慢
@@ -293,12 +373,27 @@ export function answerFromEvents(spec: AskSpec, q: string): AskReply {
     const rows = events.filter((e) => typeof e[timeKey] === "number").sort((a, b) => (b[timeKey] as number) - (a[timeKey] as number)).slice(0, 3)
     if (rows.length === 0) return { ok: true, text: "这批事件没有可算的用时。", used: basis() }
     const showStage = new Set(events.map((e) => e.stage)).size > 1
-    const desc = rows.map((e) => {
-      const where = e.respGrid ?? e.grid ?? e.street ?? ""
-      const bits = [where, showStage ? e.stage : ""].filter(Boolean).join(" · ")
-      return `${e.type ?? "事件"}${bits ? `（${bits}）` : ""} ${fmtH(e[timeKey] as number)}`
-    })
-    return { ok: true, text: `${TIME_WORD[timeKey]}最长的 ${rows.length} 件：${desc.join("；")}。名单在这项统计的切片里。`, used: basis(`按${TIME_WORD[timeKey]}排序`) }
+    const first = rows[0]
+    return {
+      ok: true,
+      text: `${TIME_WORD[timeKey]}最长的是${first.type ?? "事件"}（${first.respGrid ?? first.grid ?? first.street ?? "—"}），${fmtH(first[timeKey] as number)}。`,
+      used: basis(`按${TIME_WORD[timeKey]}排序`),
+      viz: { kind: "events", rows: rows.map((e) => eventCard(e, timeKey, showStage)), total: events.length },
+    }
+  }
+
+  // 6.5) 哪几件 / 列一下：事件列表（不含编号）
+  const listAsk = /哪几件|哪些事件|是哪些|有哪些|列一下|列出|名单|明细/.test(qRest) && !FIELD_PATTERNS.some(([re]) => re.test(qRest))
+  if (listAsk) {
+    if (/编号/.test(q)) return { ok: false, text: `全部 ${events.length} 件在这项统计的切片里。` }
+    const tk = spec.timeKey
+    const sorted = tk ? [...events].sort((a, b) => ((b[tk] as number) ?? 0) - ((a[tk] as number) ?? 0)) : events
+    const showStage = new Set(events.map((e) => e.stage)).size > 1
+    return {
+      ok: true, text: `${labels.join("、") || spec.setLabel}共 ${events.length} 件${events.length > 5 ? "，先列 5 件" : ""}。`,
+      used: basis(tk ? `按${TIME_WORD[tk]}排序` : undefined),
+      viz: { kind: "events", rows: sorted.slice(0, 5).map((e) => eventCard(e, tk, showStage)), total: events.length },
+    }
   }
 
   // 7) 分别集中在哪（并列）
@@ -313,7 +408,9 @@ export function answerFromEvents(spec: AskSpec, q: string): AskReply {
       })()
       return c ? `${t.name}：${c.name} ${c.value} 件` : `${t.name}：比较分散`
     })
-    return { ok: true, text: `${parts.join("；")}。`, used: ties.map((t) => `${t.name} ${t.value} 件`) }
+    return {
+      ok: true, text: `${parts.join("；")}。`, used: ties.map((t) => `${t.name} ${t.value} 件`),
+    }
   }
 
   // 8) 按字段分组
@@ -323,24 +420,27 @@ export function answerFromEvents(spec: AskSpec, q: string): AskReply {
     if (!spec.fields.includes(gf)) return { ok: false, text: `这批事件没有记录${FIELD_WORD[gf]}。` }
     const g = groupBy(events, gf)
     if (g.length === 0) return { ok: true, text: `这批事件还没有${FIELD_WORD[gf]}。`, used: basis() }
-    const list = (rows: { name: string; value: number }[]) => rows.map((x) => `${x.name} ${x.value} 件`).join("、")
     let text: string
     if (g.length === 1) {
       text = gf === "returns" ? `${events.length} 件都退回了 ${g[0].name}。` : `${events.length} 件都是 ${g[0].name}。`
     } else if (g[0].value === g[1].value) {
       const tied = g.filter((x) => x.value === g[0].value)
-      const rest = g.filter((x) => x.value !== g[0].value)
-      text = `${tied.map((x) => x.name).join("、")} 各 ${g[0].value} 件，并列最多${rest.length > 0 ? `；其余 ${list(rest)}` : ""}。`
+      text = tied.length === g.length
+        ? `${g.length} 个${FIELD_WORD[gf]}各 ${g[0].value} 件，没有集中。`
+        : `${tied.map((x) => x.name).join("、")} 各 ${g[0].value} 件，并列最多。`
     } else {
       const half = g[0].value * 2 >= events.length ? "，占一半以上" : ""
-      text = `${g[0].name} ${g[0].value} 件最多${half}；其余 ${list(g.slice(1))}。`
+      text = `${g[0].name} 最多，${g[0].value} 件${half}。`
     }
-    return { ok: true, text, used: basis(`按${FIELD_WORD[gf]}统计`) }
+    return { ok: true, text, used: basis(`按${FIELD_WORD[gf]}统计`), viz: groupViz(g) }
   }
 
   // 9) 几件
   if (/几件|多少件|多少|有几/.test(q)) {
-    return { ok: true, text: `${labels.length > 0 ? labels.join("、") : spec.setLabel}共 ${events.length} 件。`, used: basis() }
+    return {
+      ok: true, text: `${labels.length > 0 ? labels.join("、") : spec.setLabel}共 ${events.length} 件。`, used: basis(),
+      viz: { kind: "value", value: events.length, unit: "件", caption: `${labels.join("、") || spec.setLabel}共` },
+    }
   }
 
   return { ok: false, text: "这里只有这批事件的记录，看不出原因，也不能预测。" }
