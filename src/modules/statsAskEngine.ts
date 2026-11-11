@@ -370,7 +370,8 @@ export function answerFromEvents(spec: AskSpec, q: string): AskReply {
   // 6) 最久 / 最慢
   const timeKey = (spec.timeByWord ?? []).find(([re]) => re.test(q))?.[1] ?? spec.timeKey
   if (timeKey && /最久|最慢|最长|等得最|拖得最/.test(q)) {
-    const rows = events.filter((e) => typeof e[timeKey] === "number").sort((a, b) => (b[timeKey] as number) - (a[timeKey] as number)).slice(0, 3)
+    const timed = events.filter((e) => typeof e[timeKey] === "number")
+    const rows = [...timed].sort((a, b) => (b[timeKey] as number) - (a[timeKey] as number)).slice(0, 3)
     if (rows.length === 0) return { ok: true, text: "这批事件没有可算的用时。", used: basis() }
     const showStage = new Set(events.map((e) => e.stage)).size > 1
     const first = rows[0]
@@ -378,7 +379,7 @@ export function answerFromEvents(spec: AskSpec, q: string): AskReply {
       ok: true,
       text: `${TIME_WORD[timeKey]}最长的是${first.type ?? "事件"}（${first.respGrid ?? first.grid ?? first.street ?? "—"}），${fmtH(first[timeKey] as number)}。`,
       used: basis(`按${TIME_WORD[timeKey]}排序`),
-      viz: { kind: "events", rows: rows.map((e) => eventCard(e, timeKey, showStage)), total: events.length },
+      viz: { kind: "events", rows: rows.map((e) => eventCard(e, timeKey, showStage)), total: timed.length },
     }
   }
 

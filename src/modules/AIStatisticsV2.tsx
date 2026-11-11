@@ -125,18 +125,14 @@ const CAMERA_DEFS = [
   { id: "C-D04-01", point: "和平里中街·街心公园东门", place: "和平里街道 · 和平里-01网格", weight: 0.05 },
 ]
 
-// 区间流水：闭环（按时间窗变）
-const WIN_CLOSED: Record<TimeWin, { closedCase: number; closedNonCase: number }> = {
-  today: { closedCase: 2, closedNonCase: 1 },
-  "7d": { closedCase: 13, closedNonCase: 4 },
-  "30d": { closedCase: 44, closedNonCase: 12 },
-}
+// 区间流水：闭环里的「作废或判无效」（按时间窗变）；结案件数 = 链路「核查」阶
+const WIN_CLOSED_NON_CASE: Record<TimeWin, number> = { today: 1, "7d": 4, "30d": 12 }
 
-// 链路吞吐：各阶按本环节完成时间计，件数不必逐阶变少
-const WIN_FUNNEL: Record<TimeWin, { reviewed: number; filed: number; disposed: number; inspected: number }> = {
-  today: { reviewed: 3, filed: 2, disposed: 2, inspected: 2 },
-  "7d": { reviewed: 17, filed: 15, disposed: 9, inspected: 6 },
-  "30d": { reviewed: 59, filed: 55, disposed: 33, inspected: 22 },
+// 链路吞吐：各阶按本环节完成时间计，件数不必逐阶变少；审核 = 有效 + 无效，处置、核查两阶由办完样本得出
+const WIN_FUNNEL: Record<TimeWin, { filed: number }> = {
+  today: { filed: 2 },
+  "7d": { filed: 15 },
+  "30d": { filed: 55 },
 }
 
 const FUNNEL_STAGES: { key: "found" | "reviewed" | "filed" | "disposed" | "inspected"; label: string; sub: string; ruleId: string }[] = [
@@ -174,9 +170,6 @@ const WIN_QUALITY: Record<TimeWin, {
   invalid: number
   dissipated: number
   returned: number
-  inspected: number
-  discoveryValid: number
-  discoveryCandidates: number
   prefillMatch: number
   prefillTotal: number
   suggestMatch: number
@@ -184,45 +177,42 @@ const WIN_QUALITY: Record<TimeWin, {
   spaceFail: number
 }> = {
   today: {
-    valid: 2, invalid: 1, dissipated: 0, returned: 0, inspected: 3,
-    discoveryValid: 4, discoveryCandidates: 5,
+    valid: 2, invalid: 1, dissipated: 0, returned: 0,
     prefillMatch: 4, prefillTotal: 5, suggestMatch: 4, suggestTotal: 5,
     spaceFail: 1,
   },
   "7d": {
-    valid: 15, invalid: 2, dissipated: 1, returned: 2, inspected: 27,
-    discoveryValid: 14, discoveryCandidates: 18,
+    valid: 15, invalid: 2, dissipated: 1, returned: 1,
     prefillMatch: 15, prefillTotal: 18, suggestMatch: 13, suggestTotal: 16,
     spaceFail: 3,
   },
   "30d": {
-    valid: 52, invalid: 7, dissipated: 3, returned: 8, inspected: 96,
-    discoveryValid: 47, discoveryCandidates: 62,
+    valid: 52, invalid: 7, dissipated: 3, returned: 3,
     prefillMatch: 49, prefillTotal: 62, suggestMatch: 44, suggestTotal: 57,
     spaceFail: 9,
   },
 }
 
-// ─── 处置时长样本：所选时间内「处置完成」的事件，四时刻齐全（单位：小时） ────
-// 件数与链路「处置」阶一致；筛选变，样本变，所有时长由同一套样本算出
-interface DoneEv { grid: string; type: string; wait: number; doIt: number; check: number }
+// ─── 处置时长样本：所选时间内「处置完成」的事件（单位：小时） ────
+// 件数 = 链路「处置」阶；其中已核查结案的才有 check，件数 = 链路「核查」阶 = 区间闭环里的结案
+interface DoneEv { grid: string; type: string; wait: number; doIt: number; check?: number }
 const DONE_GRIDS = [
   "北新桥-04网格", "朝阳门-01网格", "东华门-02网格", "东四-01网格",
   "安定门-02网格", "东直门-01网格", "和平里-01网格",
 ]
-function genDone(n: number): DoneEv[] {
+function genDone(n: number, checked: number): DoneEv[] {
   return Array.from({ length: n }, (_, i) => ({
     grid: DONE_GRIDS[(i * 3 + 1) % DONE_GRIDS.length],
     type: TYPE_DEFS[(i * 2 + 1) % TYPE_DEFS.length].label,
     wait: Math.round((1.2 + ((i * 7) % 11) * 0.35) * 10) / 10,
     doIt: Math.round((2.5 + ((i * 5) % 13) * 0.55) * 10) / 10,
-    check: Math.round((1.0 + ((i * 3) % 9) * 0.4) * 10) / 10,
+    check: i < checked ? Math.round((1.0 + ((i * 3) % 9) * 0.4) * 10) / 10 : undefined,
   }))
 }
 const WIN_DONE: Record<TimeWin, DoneEv[]> = {
-  today: genDone(2),
-  "7d": genDone(9),
-  "30d": genDone(33),
+  today: genDone(2, 2),
+  "7d": genDone(9, 6),
+  "30d": genDone(33, 22),
 }
 
 // ─── 切片示例事件池 ──────────────────────────────────────────────────────────
@@ -309,7 +299,7 @@ interface Filter {
 // 空间分组：只用于「严重问题空间」与「空间分布」两张图
 function spaceBuckets(street: string | null, gran: SpaceGran): { name: string; weight: number }[] {
   if (street) {
-    const s = street.slice(0, 3)
+    const s = street.replace(/街道$/, "")
     if (gran === "lane") {
       return ["大街东段", "大街西段", "胡同片区"].map((t, i) => ({
         name: `${s}${t}`,
@@ -1163,9 +1153,15 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       .sort((a, b) => b.value - a.value)
     const camerasWithoutId = camAlloc[camDefs.length] ?? 0
 
+    // 处置时长样本（流程运行上半段，随时间、空间、类型变）：同一套办完样本算所有时长，也给出链路处置、核查两阶
+    const doneRows = WIN_DONE[win].filter((e) =>
+      (!street || e.grid.startsWith(`${street.replace(/街道$/, "")}-`)) && (!type || e.type === type))
+    const doneN = doneRows.length
+    const checkedN = doneRows.filter((e) => e.check !== undefined).length
+
     // 链路吞吐（流水）
-    const closedCase = Math.round(WIN_CLOSED[win].closedCase * ff)
-    const closedNonCase = Math.round(WIN_CLOSED[win].closedNonCase * ff)
+    const closedCase = checkedN
+    const closedNonCase = Math.round(WIN_CLOSED_NON_CASE[win] * ff)
     const closedAll = closedCase + closedNonCase
 
     // 发现与闭环：同一窗口按日汇总，日合计分别等于两张卡
@@ -1178,10 +1174,10 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
     const fb = WIN_FUNNEL[win]
     const funnel = {
       found: total,
-      reviewed: Math.round(fb.reviewed * ff),
+      reviewed: Math.round(WIN_QUALITY[win].valid * ff) + Math.round(WIN_QUALITY[win].invalid * ff),
       filed: Math.round(fb.filed * ff),
-      disposed: Math.round(fb.disposed * ff),
-      inspected: Math.round(fb.inspected * ff),
+      disposed: doneN,
+      inspected: checkedN,
     }
 
     // 当前积压：截止此刻，不随时间变；只随空间 / 类型变
@@ -1201,7 +1197,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
 
     const pendingDispose = stages[1].value
     const gridNames = street
-      ? [1, 2, 3].map((i) => `${street.slice(0, 3)}-0${i}网格`)
+      ? [1, 2, 3].map((i) => `${street.replace(/街道$/, "")}-0${i}网格`)
       : BACKLOG_GRID_NAMES
     const gridWeights = street ? STREET_GRID_WEIGHTS : BACKLOG_GRID_WEIGHTS
     const gridValues = alloc(pendingDispose, gridWeights)
@@ -1211,15 +1207,11 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       .sort((a, b) => b.value - a.value)
     const gridOnDutyTop = topWithRest(gridOnDutyAll, 8)
 
-    // 处置时长（流程运行上半段，随时间、空间、类型变）：同一套办完样本算所有时长
-    const doneRows = WIN_DONE[win].filter((e) =>
-      (!street || e.grid.startsWith(street.slice(0, 3))) && (!type || e.type === type))
-    const doneN = doneRows.length
     const doneAvg = mean1(doneRows.map((e) => e.doIt))
     const dwellVals = [
       mean1(doneRows.map((e) => e.wait)),
       mean1(doneRows.map((e) => e.doIt)),
-      mean1(doneRows.map((e) => e.check)),
+      mean1(doneRows.flatMap((e) => (e.check === undefined ? [] : [e.check]))),
     ]
     const dwellMaxIdx = dwellVals.reduce(
       (best, val, i) => (val !== null && (dwellVals[best] === null || val > (dwellVals[best] as number)) ? i : best),
@@ -1259,9 +1251,9 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
     const invalid = Math.round(q.invalid * ff)
     const dissipated = Math.round(q.dissipated * ff)
     const returned = Math.round(q.returned * ff)
-    const inspected = Math.round(q.inspected * ff)
-    const discoveryCandidates = Math.round(q.discoveryCandidates * ff)
-    const discoveryValid = Math.min(discoveryCandidates, Math.round(q.discoveryValid * ff))
+    const inspected = checkedN + returned
+    const discoveryCandidates = total
+    const discoveryValid = Math.min(discoveryCandidates, valid)
     const prefillTotal = Math.round(q.prefillTotal * ff)
     const prefillMatch = Math.min(prefillTotal, Math.round(q.prefillMatch * ff))
     const suggestTotal = Math.round(q.suggestTotal * ff)
@@ -1453,7 +1445,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       days, foundDaily, closedDaily, dayMode,
       stages, sustained, severe, severeSpace, severeTop, sustainedTypes,
       gridOnDuty: gridOnDutyAll, gridOnDutyTop,
-      doneN, doneAvg, dwellVals, dwellMaxIdx, gridDur, typeDur,
+      doneRows, doneN, checkedN, doneAvg, dwellVals, dwellMaxIdx, gridDur, typeDur,
       quality, aiRates,
     }
   }, [win, street, type, spaceGran])
@@ -1825,10 +1817,10 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
         const returnedEv = E.retEv.filter((e) => (e.returns ?? 0) > 0)
         return mk({
           title: "退回率", scope: filterMeta, empty: v.quality.inspected === 0,
-          phrase: "有核查决定的事件", count: v.quality.inspected,
+          phrase: "有核查结果的事件", count: v.quality.inspected,
           hint: "例如：被退回的在哪个网格？",
           spec: {
-            events: E.retEv, setLabel: "有核查决定的事件", fields: ["returns", "grid", "type"], defaultField: "grid",
+            events: E.retEv, setLabel: "有核查结果的事件", fields: ["returns", "grid", "type"], defaultField: "grid",
             subsets: [{ re: /退回的|被退回/, label: "被退回", events: returnedEv, field: "grid" }],
             extraSuggestions: r > 0 ? [`被退回的${r}件，退回了几次？`, `被退回的${r}件，在哪个网格？`] : [],
           },
@@ -2313,7 +2305,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               title="各环节停了多久" ruleId="pr_dwell"
               note={
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <div>只计算这段时间里走完这一步的事件，柱高是平均小时。最长的一步用深色。</div>
+                  <div>前两步按这段时间处置完的 {v.doneN} 件平均，最后一步只算其中已核查完的 {v.checkedN} 件；柱高是平均小时，最长的一步用深色。</div>
                 </div>
               }
               onAsk={showAsk("pr_dwell", v.doneN === 0) ? () => openAsk("pr_dwell") : undefined}
@@ -2350,7 +2342,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                   height={210}
                   valueSuffix=" 小时"
                   onItemClick={(name, value) => {
-                    const gridRows = WIN_DONE[win].filter((e) => e.grid === name)
+                    const gridRows = v.doneRows.filter((e) => e.grid === name)
                     if (gridRows.length > 0) {
                       openSlice(
                         `哪个网格办完更久 · ${name}`,
@@ -2359,9 +2351,9 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                         gridRows.map<EvRow>((r) => ({
                           type: r.type,
                           place: name,
-                          stage: "已结案",
-                          time: `${WIN_LABEL[win]}办完`,
-                          status: `派给网格 ${r.wait}h · 处置 ${r.doIt}h · 核查 ${r.check}h`,
+                          stage: r.check === undefined ? "待核查" : "已结案",
+                          time: `${WIN_LABEL[win]}处置完`,
+                          status: `派给网格 ${r.wait}h · 处置 ${r.doIt}h · ${r.check === undefined ? "还没核查完" : `核查 ${r.check}h`}`,
                         })),
                       )
                     }
@@ -2388,7 +2380,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                   height={210}
                   valueSuffix=" 小时"
                   onItemClick={(name, value) => {
-                    const typeRows = WIN_DONE[win].filter((e) => e.type === name)
+                    const typeRows = v.doneRows.filter((e) => e.type === name)
                     if (typeRows.length > 0) {
                       openSlice(
                         `哪类事件办完更久 · ${name}`,
@@ -2397,9 +2389,9 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                         typeRows.map<EvRow>((r) => ({
                           type: name,
                           place: r.grid,
-                          stage: "已结案",
-                          time: `${WIN_LABEL[win]}办完`,
-                          status: `派给网格 ${r.wait}h · 处置 ${r.doIt}h · 核查 ${r.check}h`,
+                          stage: r.check === undefined ? "待核查" : "已结案",
+                          time: `${WIN_LABEL[win]}处置完`,
+                          status: `派给网格 ${r.wait}h · 处置 ${r.doIt}h · ${r.check === undefined ? "还没核查完" : `核查 ${r.check}h`}`,
                         })),
                       )
                     }
@@ -2499,12 +2491,12 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14, alignContent: "start" }}>
               <KpiCard2
                 label="事件有效率" value={v.quality.effectiveRate} color={C.success} icon="target" ruleId="ql_effective_rate"
-                sub={v.quality.effectiveDenom === 0 ? "当前范围无可计算样本" : `送去立案 ${v.quality.effectiveDenom} 件，确认有效 ${v.quality.valid} 件`}
+                sub={v.quality.effectiveDenom === 0 ? "当前范围无可计算样本" : `审完 ${v.quality.effectiveDenom} 件，确认有效 ${v.quality.valid} 件`}
                 onClick={v.quality.valid >= 1 ? () => openSlice("事件有效率", v.quality.valid, "flow", sliceRows({ stages: ["已结案", "已作废", "待立案"] })) : undefined}
               />
               <KpiCard2
                 label="退回率" value={v.quality.returnRate} color={C.warning} icon="refreshCw" ruleId="ql_return_rate"
-                sub={v.quality.inspected === 0 ? "当前范围无可计算样本" : `有核查决定 ${v.quality.inspected} 件，被退回 ${v.quality.returned} 件`}
+                sub={v.quality.inspected === 0 ? "当前范围无可计算样本" : `有核查结果 ${v.quality.inspected} 件，被退回 ${v.quality.returned} 件`}
                 onClick={v.quality.inspected >= 1 ? () => openSlice("退回率", v.quality.inspected, "flow", sliceRows({ stages: ["待核查", "已结案"] })) : undefined}
                 onAsk={showAsk("ql_return_rate", v.quality.inspected === 0) ? () => openAsk("ql_return_rate") : undefined}
               />

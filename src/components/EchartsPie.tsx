@@ -148,7 +148,7 @@ export default function EchartsPie({
       <div ref={chartRef} style={{ flex: 1, height: "100%", minWidth: 0 }} />
       <div
         style={{
-          width: 130,
+          width: showValueInLegend ? 220 : 130,
           flexShrink: 0,
           display: "flex",
           flexDirection: "column",
