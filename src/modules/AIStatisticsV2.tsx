@@ -140,7 +140,7 @@ const FUNNEL_STAGES: { key: "found" | "reviewed" | "filed" | "disposed" | "inspe
   { key: "reviewed", label: "审核", sub: "区间审完（有效+无效）", ruleId: "funnel_reviewed" },
   { key: "filed", label: "立案", sub: "区间立案派发成功", ruleId: "funnel_filed" },
   { key: "disposed", label: "处置", sub: "区间处置完成", ruleId: "funnel_disposed" },
-  { key: "inspected", label: "核查", sub: "区间核查结案", ruleId: "funnel_inspected" },
+  { key: "inspected", label: "核查", sub: "核查通过并结案", ruleId: "funnel_inspected" },
 ]
 
 const FUNNEL_SLICE_STAGES: Record<string, string[]> = {
@@ -437,28 +437,42 @@ function SliceDrawer({ slice, onClose }: { slice: SliceState | null; onClose: ()
 // 每条已展示的统计都有「问 AI」。只根据这一条统计当前可见的数回答，不接外部模型。
 type AskKind = "count" | "rate" | "rank" | "durationRank" | "composition" | "daily"
 
+interface Suggestion { text: string }
+
 interface AskDesc {
   id: string
   title: string
   kind: AskKind
-  scope: string            // 范围一行：时间 · 空间 · 类型（空间图加粒度）
-  sig?: string             // 切换签名（tab + 筛选态）：变了就插一行「已切换为…」
-  filterText?: string      // 分隔行文案：时间 · 空间 · 类型（跟筛选器走，积压页也随时间变）
-  numbers: string[]        // 只读的数，与卡片/图上看见的一致
-  empty: boolean           // 0 / 「—」/ 空图：不给建议问题
-  caliber: string          // 这项自己的口径（流水随时间变 / 积压不随时间变）
+  scope: string
+  sig?: string
+  filterText?: string
+
+  // 旧字段保留（buildAsk 用）
+  empty: boolean
   timeVaries: boolean
-  topItem?: string         // 排行/构成/时段 最高的一项
+  caliber: string
+  topItem?: string
   rest?: { count: number; sum: number } | null
-  aboveAvg?: string[]      // 时长排行里长于当前平均的项
-  daysMoreFound?: string[] // 发现多于闭环的天
-  items?: { name: string; value: number | string }[] // 可见的排行/构成/柱状条目，用于生成动态建议
-  isDuration?: boolean     // 时长类排行建议问「最久」，否则问「最多」
-  dwellNames?: string[]    // 环节停留三段名称
-  dwellMaxName?: string   // 环节停留里最长的一段名
+  aboveAvg?: string[]
+  daysMoreFound?: string[]
+  items?: { name: string; value: number | string }[]
+  isDuration?: boolean
+  dwellNames?: string[]
+  dwellMaxName?: string
+  dwellVals?: (number | null)[]
+
+  // 新字段（§3/§4/§5）
+  eventPhrase: string        // "这批事件"的说法：窗口内发现的、截止此刻存续的……
+  eventCount: number         // 事件总数 N
+  askFields: string[]       // 可问字段（人话）
+  suggestions: Suggestion[] // §4 生成的建议问题（没有信号时为空）
+  usedNumbers: string[]     // 回答要引用的数（替代旧 numbers）
+  itemsNumeric: { name: string; value: number }[] // 数值型条目，用于信号计算
+  titleForOther: string     // §3 答不出时用来填 "这里只看 {title}。"
+  sampleHint?: string        // 输入框 placeholder 提示
+  fieldMissingSet?: string[] // 这批事件没记录的字段，answerAsk 用来答"没记录"
 }
 
-// 用于识别「问的是另一项统计」
 const ASK_OTHER_TITLES = [
   "事件总数", "区间闭环", "存续事件", "严重事件", "发现与闭环", "链路吞吐",
   "各阶段待处理", "严重问题空间", "当前存续类型", "类型结构", "空间分布",
@@ -470,96 +484,128 @@ const ASK_OTHER_TITLES = [
 
 interface AskAnswer { ok: boolean; text: string; used?: string[] }
 
-function answerAsk(desc: AskDesc, q: string): AskAnswer {
-  // 问没画出来的名字
-  if ((/没画出来|其余/.test(q) && /名字|名单|哪些|是谁/.test(q)) || (/名字|名单/.test(q) && desc.kind !== "daily" && !/切片/.test(q))) {
-    if (desc.rest && desc.rest.count > 0) {
-      return { ok: false, text: `只知道其余 ${desc.rest.count} 个合计 ${desc.rest.sum} 件，没有名单。` }
+/** 问这批事件没有记录的字段时返回哪些字段没记录。 */
+function findMissingField(q: string, desc: AskDesc): string | null {
+  // 简单映射：如果 query 里出现不在 askFields 里的关键词 → 返回那个字段
+  const knownFieldNames = new Set([
+    "发现日", "闭环日", "当前环节", "结论", "说明", "类型", "街道", "网格",
+    "街巷", "相机点位", "发现小时", "三步", "用时", "街道", "责任网格", "等级",
+    "等待时长", "派过去多久", "AI 预填", "人工最终类型", "系统建议", "人工最终判断",
+    "退回次数", "核查决定", "空间匹配", "是否严重", "卡点", "步骤", "现在在哪一步",
+    "派给网格", "处置完", "核查完", "现在办到", "走到",
+  ])
+  for (const w of q.split(/[\s，。？、]+/)) {
+    if (w.length >= 2 && !knownFieldNames.has(w) && !ASK_OTHER_TITLES.includes(w) && !desc.askFields.some((f) => f.includes(w))) {
+      // 粗略认为这是一个 askFields 没覆盖的字段
+      // 但要排除常见虚词
+      if (/^(是|不是|吗|的|了|在|有|没|还有|多久|几|件|最|前|合计|没画出来)$/.test(w)) continue
+      return w
     }
   }
-  // 问具体是哪些事件
-  if (/哪些事件|具体是哪些|事件明细|事件名单/.test(q)) {
-    return { ok: false, text: "名单在这项的切片里。" }
+  return null
+}
+
+function answerAsk(desc: AskDesc, q: string): AskAnswer {
+  // §3 答不出 1：问原因、预测、追责、派人办理、和其他城市比
+  if (/为什么|原因|怎么回事|背后|预测|以后会|将来|会不会变|派人|谁去办|安排谁|追责|其他城市|对比|比一比|和.*比/.test(q)) {
+    return { ok: false, text: "这里只有这批事件的记录，看不出原因，也不能预测。" }
   }
-  // 问另一项统计：本项自己的条目名（如「待立案」「待核查」）不算另一项
+
+  // §3 答不出 2：问没画出来的名字
+  if ((/没画出来/.test(q) || /其余/.test(q)) && (/名字|名单|哪些|是谁|分别/.test(q)) && desc.rest && desc.rest.count > 0) {
+    return { ok: false, text: `只知道其余 ${desc.rest.count} 个合计 ${desc.rest.sum} 件，没有名单。` }
+  }
+  if ((/名字|名单|哪些|是谁|事件明细|具体是哪些/.test(q)) && !/切片/.test(q)) {
+    return { ok: false, text: "名单在这项统计的切片里。" }
+  }
+
+  // §3 答不出 3：问另一项统计
   const ownNames = new Set<string>([
     desc.title,
     ...(desc.items?.map((i) => i.name) ?? []),
     ...(desc.dwellNames ?? []),
   ])
-  const other = ASK_OTHER_TITLES.find(
-    (t) => !ownNames.has(t) && !desc.title.includes(t) && q.includes(t),
-  )
+  const other = ASK_OTHER_TITLES.find((t) => !ownNames.has(t) && !desc.title.includes(t) && q.includes(t))
   if (other) {
-    return { ok: false, text: "这是当前这项的问答。要看那一项，请打开那一项的问 AI。" }
-  }
-  // 问原因、预测、派人、和其他城市比
-  if (/为什么|原因|预测|以后会|会不会变多|会不会变少|派人|谁去|安排谁|其他城市|相比|对比|比一比/.test(q)) {
-    const unit = desc.kind === "durationRank" ? "时长" : "件数"
-    return { ok: false, text: `这项统计只有${unit}，没有原因。` }
+    return { ok: false, text: `这里只看 ${desc.titleForOther}。要看那一项，请打开那一项的问 AI。` }
   }
 
-  const used = desc.numbers
-  switch (desc.kind) {
-    case "count":
-      if (/怎么读|是什么|什么意思|口径/.test(q)) {
-        return { ok: true, text: `${desc.caliber}当前是 ${desc.numbers[0] ?? "—"}。`, used }
-      }
-      if (/改时间|时间.*变|随时间/.test(q)) {
-        return {
-          ok: true,
-          text: desc.timeVaries
-            ? "会变。这项按所选时间统计，改时间、空间、类型都会变。"
-            : "不会。这项是截止此刻的积压，改时间不变，改空间、类型会变。",
-          used,
-        }
-      }
-      break
-    case "rate":
-      if (/分子|分母/.test(q)) {
-        return { ok: true, text: `${desc.caliber}${desc.numbers[0] ?? ""}`, used }
-      }
-      if (/—|算不出|什么时候/.test(q)) {
-        return { ok: true, text: "分母为 0，也就是当前范围没有可计算样本时，显示「—」。", used }
-      }
-      break
-    case "rank":
-      if (/最多|最高|第一|哪一项/.test(q) && desc.topItem) {
-        return { ok: true, text: `最多的是 ${desc.topItem}。`, used }
-      }
-      if (/没画出来|其余/.test(q)) {
-        return desc.rest && desc.rest.count > 0
-          ? { ok: true, text: `其余 ${desc.rest.count} 个合计 ${desc.rest.sum} 件，没有逐条画出来。`, used }
-          : { ok: true, text: "都画出来了，没有没画出来的。", used }
-      }
-      break
-    case "durationRank":
-      if (/长于|高于|超过.*平均/.test(q)) {
-        return desc.aboveAvg && desc.aboveAvg.length > 0
-          ? { ok: true, text: `长于当前平均的是：${desc.aboveAvg.join("、")}。`, used }
-          : { ok: true, text: "没有长于当前平均的项。", used }
-      }
-      if (/没画出来|其余/.test(q)) {
-        return desc.rest && desc.rest.count > 0
-          ? { ok: true, text: `其余 ${desc.rest.count} 个合计 ${desc.rest.sum} 件，没有逐条画出来。`, used }
-          : { ok: true, text: "都画出来了，没有没画出来的。", used }
-      }
-      break
-    case "composition":
-      if (/占比最高|最多|哪一项/.test(q) && desc.topItem) {
-        return { ok: true, text: `占比最高的是 ${desc.topItem}。`, used }
-      }
-      break
-    case "daily":
-      if (/发现多于闭环|哪一天|哪天/.test(q)) {
-        return desc.daysMoreFound && desc.daysMoreFound.length > 0
-          ? { ok: true, text: `发现多于闭环的是：${desc.daysMoreFound.join("、")}。`, used }
-          : { ok: true, text: "窗口内没有发现多于闭环的天。", used }
-      }
-      break
+  // §3 答不出 4：问这批事件没有记录的字段
+  const missing = findMissingField(q, desc)
+  if (missing) {
+    return { ok: false, text: `这批事件没有记录 ${missing}。` }
   }
-  // 默认：答得出 = 这项自己的口径
-  return { ok: true, text: desc.caliber, used }
+
+  const used = desc.usedNumbers
+  const isYesNo = /^是|^不是|吗\?|吗$/.test(q.trim()) || /是不是|对不对|有没有|能不能/.test(q)
+
+  // 自由回答：能从这批事件回答的，第一句直接答，第二行依据
+  switch (desc.kind) {
+    case "count": {
+      // 单总数：直接报数
+      const firstNum = desc.usedNumbers[0] ?? "—"
+      const first = isYesNo
+        ? "能看到这批事件。"
+        : desc.eventCount > 0
+          ? `${desc.eventPhrase}共 ${desc.eventCount} 件。`
+          : "当前范围没有这批事件。"
+      return { ok: true, text: first, used }
+    }
+    case "daily": {
+      // 发现与闭环
+      if (/发现多于闭环/.test(q) || /哪一天|哪天/.test(q)) {
+        if (desc.daysMoreFound && desc.daysMoreFound.length > 0) {
+          const days = desc.daysMoreFound.join("、")
+          return { ok: true, text: `${isYesNo ? "是。" : ""}发现多于闭环的是 ${days}。`, used }
+        }
+        return { ok: true, text: `${isYesNo ? "不是。" : "窗口内没有发现多于闭环的天。"}`, used }
+      }
+      // 发现事件现在办到哪一步（信号句式）
+      const m = q.match(/^(\d+\/\d+)\s*发现的?\s*(\d+)\s*件.*办到/)
+      if (m) {
+        return { ok: true, text: `这批事件现在分散在各环节，详见这项的切片。`, used }
+      }
+      break
+    }
+    case "rate": {
+      const m = (desc.usedNumbers[0] ?? "").match(/^([0-9.]+)%/)
+      if (m) {
+        return { ok: true, text: `${isYesNo ? "是的，" : ""}率是 ${m[1]}%。`, used }
+      }
+      break
+    }
+    case "rank":
+    case "composition": {
+      // 问"是不是最多" → 先答是或否
+      if (/是不是.*最|是.*多/.test(q) && desc.topItem) {
+        const target = q.match(/^(.+?)\s*是不是/)?.[1] || ""
+        const topName = (desc.topItem || "").replace(/\s+\d+\s*件.*$/, "").trim()
+        const yes = target && desc.items?.some((i) => i.name === target) && topName === target
+        if (yes) return { ok: true, text: "是。", used }
+        return { ok: true, text: `不是，最多的是 ${topName}。`, used }
+      }
+      // 问并列
+      if (/前\s*\d+\s*项.*(一样|相同|并列)/.test(q)) {
+        return { ok: true, text: "前几项各有并列，它们的件数相同。", used }
+      }
+      // 集中 / 急 / 缺口 这类信号句式，答能答的
+      break
+    }
+    case "durationRank": {
+      if (/是不是.*最久/.test(q) && desc.topItem) {
+        const target = q.match(/^(.+?)\s*是不是/)?.[1] || ""
+        const topName = (desc.topItem || "").replace(/\s+\d+.*$/, "").trim()
+        const yes = target && desc.items?.some((i) => i.name === target) && topName === target
+        if (yes) return { ok: true, text: "是。", used }
+        return { ok: true, text: `不是，最慢的是 ${topName}。`, used }
+      }
+      break
+    }
+  }
+
+  // 默认答不出原因类
+  if (isYesNo) return { ok: false, text: "这批事件里找不到能直接回答「是或否」的依据。" }
+  return { ok: false, text: "这里只有这批事件的记录，看不出原因，也不能预测。" }
 }
 
 const ASK_STORAGE_KEY = "stats-ask-ai-v1.3"
@@ -570,7 +616,6 @@ function persistAsk(desc: AskDesc, q: string, ans: AskAnswer) {
     arr.push({
       stat: desc.title,
       scope: desc.scope,
-      numbers: desc.numbers,
       question: q,
       answer: ans.text,
       answered: ans.ok,
@@ -582,58 +627,10 @@ function persistAsk(desc: AskDesc, q: string, ans: AskAnswer) {
 
 interface AskMsg { role: "q" | "a" | "divider"; text: string; used?: string[]; ok?: boolean }
 
-/** 动态生成建议问题。按第 4 节规则，最多 2 条，仅用图上看得见的数填。 */
-function buildAskSuggestions(desc: AskDesc): string[] {
+/** §4 建议问题：按信号生成。信号在 buildAsk 时就算好，这里只转成 string[]。 */
+function getSuggestionTexts(desc: AskDesc): string[] {
   if (desc.empty) return []
-  const out: string[] = []
-
-  // 单总数、没有对比项的 count 卡：不给建议
-  if (desc.kind === "count" && (!desc.items || desc.items.length === 0) && desc.numbers.length === 1) {
-    return []
-  }
-
-  if (desc.kind === "daily" && desc.daysMoreFound && desc.daysMoreFound.length > 0) {
-    const d = desc.daysMoreFound[0]
-    out.push(`${d} 的发现是不是多于闭环`)
-  }
-
-  if (desc.kind === "rate") {
-    // 从 numbers[0] 里用 regex 捞百分数和分子，例如 "87.0%（分子 15 / 分母 18）"
-    const s = desc.numbers[0] ?? ""
-    const m = s.match(/^([0-9.]+)%.*分子\s*(\d+)/)
-    if (m) out.push(`这 ${m[1]}% 对应 ${m[2]} 件吗`)
-  }
-
-  if (desc.kind === "rank" || desc.kind === "durationRank" || desc.kind === "composition") {
-    const items = desc.items ?? []
-    if (items.length >= 1) {
-      // 前 k 名是否相同：看前两个数值型是否相等
-      const v0 = items[0].value
-      const v1 = items[1]?.value
-      if (typeof v0 === "number" && typeof v1 === "number" && v0 === v1) {
-        let k = 1
-        while (k < items.length && typeof items[k].value === "number" && items[k].value === v0) k++
-        out.push(`前 ${k} 名是不是一样`)
-      } else {
-        const unit = desc.isDuration ? "最久" : "最多"
-        const valStr = typeof v0 === "number" ? `${v0}${desc.isDuration ? " 小时" : " 件"}` : v0
-        out.push(`${items[0].name} 的 ${valStr} 是不是${unit}`)
-      }
-    }
-    // 有「其余」行 → 第二条
-    if (desc.rest && desc.rest.count > 0) {
-      out.push(`还有 ${desc.rest.count} 个没画出来，一共 ${desc.rest.sum} 件`)
-    }
-  }
-
-  // 环节停留特判：问最长的一段
-  if (desc.kind === "rank" && desc.dwellNames && desc.dwellMaxName) {
-    out.length = 0
-    out.push(`${desc.dwellMaxName} 是不是停得最久`)
-    if (desc.rest && desc.rest.count > 0) out.push(`还有 ${desc.rest.count} 个没画出来，一共 ${desc.rest.sum} 件`)
-  }
-
-  return out.slice(0, 2)
+  return desc.suggestions.slice(0, 3).map((s) => s.text).filter((t) => t.length > 0 && t.length <= 25)
 }
 
 function AskAiDrawer({ desc, onClose }: { desc: AskDesc; onClose: () => void }) {
@@ -645,8 +642,6 @@ function AskAiDrawer({ desc, onClose }: { desc: AskDesc; onClose: () => void }) 
     const q = raw.trim()
     if (!q) return
     const ans = answerAsk(desc, q)
-    // 筛选或 tab 变了：旧回答留着，中间插一行「已切换为…」，这一问用新的数
-    // 注意：不能在 setMsgs 的 updater 里改 ref（StrictMode 会双调 updater，把分隔行吃掉）
     const sig = desc.sig ?? desc.scope
     const needDivider = msgs.length > 0 && sig !== lastScope.current
     if (needDivider) lastScope.current = sig
@@ -656,7 +651,8 @@ function AskAiDrawer({ desc, onClose }: { desc: AskDesc; onClose: () => void }) 
     setInput("")
   }
 
-  const suggestions = desc.empty ? [] : buildAskSuggestions(desc)
+  const suggestions = getSuggestionTexts(desc)
+  const fieldLine = desc.askFields.length > 0 ? `可以按 ${desc.askFields.join("、")} 来问。` : "可以就这批事件提问。"
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "stretch", justifyContent: "flex-end", pointerEvents: "none" }}>
@@ -683,16 +679,19 @@ function AskAiDrawer({ desc, onClose }: { desc: AskDesc; onClose: () => void }) 
           </button>
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "14px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ fontSize: 11.5, color: C.muted, fontWeight: 600 }}>{desc.scope}</div>
+          {/* §3 可问范围提示卡，三行 */}
           <div
             style={{
-              fontSize: 12.5, color: C.text, lineHeight: 1.8,
+              fontSize: 12, color: C.text, lineHeight: 1.8,
               padding: "10px 12px", background: "var(--card-2, rgba(50,109,255,0.04))", borderRadius: 8,
             }}
           >
-            {desc.numbers.map((n, i) => <div key={i}>{n}</div>)}
-            <div style={{ marginTop: 6, fontSize: 11, color: C.muted, fontWeight: 600 }}>只根据上面这些数回答。</div>
+            <div>我能帮你看：{desc.eventPhrase}，共 {desc.eventCount} 件。</div>
+            <div>{fieldLine}</div>
+            <div style={{ color: C.muted, fontSize: 11 }}>原因判断、预测、改筛选和去办理，这里帮不上。</div>
           </div>
+
+          {/* 建议问题（§4） */}
           {suggestions.length > 0 && (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {suggestions.map((s) => (
@@ -709,6 +708,8 @@ function AskAiDrawer({ desc, onClose }: { desc: AskDesc; onClose: () => void }) 
               ))}
             </div>
           )}
+
+          {/* 对话区 */}
           {msgs.map((m, i) => {
             if (m.role === "divider") {
               return (
@@ -729,7 +730,7 @@ function AskAiDrawer({ desc, onClose }: { desc: AskDesc; onClose: () => void }) 
                 <div>{m.text}</div>
                 {m.ok && m.used && m.used.length > 0 && (
                   <div style={{ marginTop: 6, fontSize: 10.5, color: C.muted, lineHeight: 1.6 }}>
-                    用到的数：{m.used.join("；")}
+                    依据：{m.used.join("、")}
                   </div>
                 )}
               </div>
@@ -741,7 +742,7 @@ function AskAiDrawer({ desc, onClose }: { desc: AskDesc; onClose: () => void }) 
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") send(input) }}
-            placeholder="就这项统计提问…"
+            placeholder={desc.sampleHint ?? "就这项统计提问…"}
             style={{
               flex: 1, border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px",
               fontSize: 12.5, color: C.text, background: "var(--card)", outline: "none",
@@ -1057,21 +1058,34 @@ function CameraRank({
 }
 
 // ─── 主组件 ──────────────────────────────────────────────────────────────────
+// §1 问 AI 入口白名单：只有这些 id 在 §1 表格里标了「给入口」
+// 未进名单的（事件总数、区间闭环、存续事件、严重事件、平均处置时长、
+// 四张环节卡、事件有效率、一次核查通过率）一律不给入口。
+const ASK_ALLOWED_IDS = new Set<string>([
+  "ov_daily", "funnel", "ov_stages", "ov_severe_space", "ov_sustained_types",
+  "ev_type_struct", "ev_space_dist", "ev_hourly", "ev_top_cameras",
+  "pr_dwell", "pr_grid_dur", "pr_type_dur", "pr_stages", "pr_grid",
+  "ql_composition", "ql_return_rate", "ai_discovery_rate", "ai_prefill_type",
+  "ai_suggest_match", "ai_space_fail",
+])
+
 export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
   const [cat, setCat] = useState<Cat>("overview")
-  // 切 tab 不重置筛选；进入流程运行只置灰时间，不改写这里的选择
   const [win, setWin] = useState<TimeWin>("today")
   const [street, setStreet] = useState<string | null>(null)
   const [type, setType] = useState<string | null>(null)
   const [spaceGran, setSpaceGran] = useState<SpaceGran>("street")
   const [slice, setSlice] = useState<SliceState | null>(null)
   const [askId, setAskId] = useState<string | null>(null)
+  const scrollRef = useRef<HTMLDivElement | null>(null)
 
   const filterMeta = `${WIN_LABEL[win]} · ${street ?? "东城全区"} · ${type ?? "全部类型"}`
   const backlogMeta = `截止此刻 · ${street ?? "东城全区"} · ${type ?? "全部类型"}`
 
   // 切片与问 AI 都在右侧，后打开的换掉先打开的
   const openAsk = (id: string) => { setSlice(null); setAskId(id) }
+  // §1 入口可见性：必须在白名单里，且当前范围下不是 0/—/空图
+  const showAsk = (id: string, empty: boolean) => ASK_ALLOWED_IDS.has(id) && !empty
 
   const v = useMemo(() => {
     const typeIdx = type ? TYPE_DEFS.findIndex((t) => t.label === type) : -1
@@ -1367,119 +1381,423 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
 
   // ── 问 AI：每条已展示统计的只读描述，随筛选实时重算 ──
   function buildAsk(id: string): AskDesc | null {
+    // §4 信号辅助
+    const itemsOf = (rows: { name: string; value: number | string }[] | undefined) =>
+      (rows ?? []).filter((r) => typeof r.value === "number").map((r) => ({ name: r.name, value: r.value as number }))
+
+    // 取并列最大项
+    const topN = (items: { name: string; value: number }[], n = 1) => {
+      if (items.length === 0) return []
+      const max = items[0].value
+      const ties = items.filter((i) => i.value === max)
+      return ties.slice(0, Math.max(n, ties.length))
+    }
+    const isAllEqualTop = (items: { name: string; value: number }[]) => {
+      if (items.length < 2) return false
+      const v0 = items[0].value
+      return items.every((i) => i.value === v0)
+    }
+
+    // 生成集中信号句式。§4 禁止拿并列之外的假设。
+    const signalConcentrate = (items: { name: string; value: number }[], total: number, fieldWord: string): Suggestion[] => {
+      if (items.length < 2 || total <= 0) return []
+      const top = topN(items, 1)[0]
+      if (!top) return []
+      // 并列：不提"最大"，改成"前 k 项各 n 件"
+      const ties = items.filter((i) => i.value === top.value)
+      if (ties.length >= 2) {
+        return [{ text: `前 ${ties.length} 项各 ${top.value} 件，分别集中在哪？`.slice(0, 25) }]
+      }
+      // 最大项是否在另一字段上占一半以上 → 前端模拟简化：直接按最大项出题
+      // 真实产品要查另一维度分布；这里只能基于单维度数据。出"集中在哪"句式即可
+      return [{ text: `${top.name} 这 ${top.value} 件，集中在哪个${fieldWord}？`.slice(0, 25) }]
+    }
+
+    // 缺口信号：链路吞吐专用
+    const signalGap = (items: { name: string; value: number }[], stageNameToLabel: string[]): Suggestion[] => {
+      const out: Suggestion[] = []
+      for (let i = 0; i < items.length - 1; i++) {
+        const a = items[i]
+        const b = items[i + 1]
+        const gap = a.value - b.value
+        if (gap > 0) {
+          out.push({ text: `${a.name} ${a.value} 件、${b.name} ${b.value} 件，差的 ${gap} 件在哪？`.slice(0, 25) })
+          if (out.length >= 1) break // 只取第一个缺口
+        }
+      }
+      return out
+    }
+
+    // §4 急信号：有严重的、或用时明显长于平均
+    const signalUrgent = (hasSevere: boolean, longWait: boolean, setLabel: string, fieldWord: string, timeKind: "最久" | "最慢"): Suggestion[] => {
+      const out: Suggestion[] = []
+      if (hasSevere) out.push({ text: `${setLabel}里有几件是严重的？`.slice(0, 25) })
+      if (longWait) out.push({ text: `${setLabel}里等得${timeKind}的是哪几件？`.slice(0, 25) })
+      return out
+    }
+
+    // 发现与闭环信号
+    const signalDaily = (moreDays: string[], foundMap: Record<string, number>): Suggestion[] => {
+      if (moreDays.length === 0) return []
+      const d = moreDays[0]
+      const n = foundMap[d] ?? 0
+      return [{ text: `${d} 发现的 ${n} 件，现在办到哪一步了？`.slice(0, 25) }]
+    }
+
+    // 预填少改 / 建议一致率专用
+    const signalPrefillSuggest = (changedCount: number, title: string, kind: "prefill" | "suggest"): Suggestion[] => {
+      if (changedCount <= 0) return []
+      const w = kind === "prefill" ? "预填类型" : "系统建议"
+      const j = kind === "prefill" ? "从什么改成了什么" : "人工最后怎么判的"
+      return [{ text: `被改掉的 ${changedCount} 件，${j}？`.slice(0, 25) }]
+    }
+
     const rl = (rid: string) => (STATS2_USER_RULES[rid]?.lines ?? []).join("")
     const scopeG = (base: string) => `${base} · 按${GRAN_LABEL[v.effectiveGran]}`
-    const rankLines = (rows: { name: string; value: number }[], unit = "件") =>
-      rows.map((r) => `${r.name} ${r.value} ${unit}`)
-    const restLine = (rest: { count: number; sum: number } | null | undefined) =>
-      rest && rest.count > 0 ? [`其余 ${rest.count} 个合计 ${rest.sum} 件`] : []
+    const empty = (reason: string[] | number | boolean) => false // 真实 empty 由各 case 填
+    const titleForOther = (t: string) => t
+
     switch (id) {
-      case "ov_total":
-        return { id, title: "事件总数", kind: "count", scope: filterMeta, numbers: [`${v.total} 件`], empty: v.total === 0, caliber: rl("ov_total"), timeVaries: true }
-      case "ov_closed":
-        return { id, title: "区间闭环", kind: "count", scope: filterMeta, numbers: [`${v.closedAll} 件（结案 ${v.closedCase} · 作废/无效 ${v.closedNonCase}）`], empty: v.closedAll === 0, caliber: rl("ov_closed"), timeVaries: true }
+      // ═══ 综合态势 ═══
       case "ov_daily": {
         const more = v.days.filter((_, i) => v.foundDaily[i] > v.closedDaily[i]).map((d) => d.label)
-        return { id, title: "发现与闭环", kind: "daily", scope: filterMeta, numbers: [`发现合计 ${v.total} 件`, `闭环合计 ${v.closedAll} 件`], empty: v.total === 0 && v.closedAll === 0, caliber: rl("ov_daily"), timeVaries: true, daysMoreFound: more }
+        const foundMap = Object.fromEntries(v.days.map((d, i) => [d.label, v.foundDaily[i]]))
+        const phrases = (() => {
+          if (v.dayMode === "bar") return `今天新发现 ${v.total} 件、办结 ${v.closedAll} 件`
+          return `${WIN_LABEL[win]}窗口里，发现 ${v.total} 件、办结 ${v.closedAll} 件`
+        })()
+        const itemsN: { name: string; value: number }[] = v.days.map((d, i) => ({ name: d.label, value: v.foundDaily[i] }))
+        return {
+          id, title: "发现与闭环", kind: "daily",
+          scope: filterMeta, empty: v.total === 0 && v.closedAll === 0,
+          timeVaries: true, caliber: rl("ov_daily"),
+          eventPhrase: phrases, eventCount: v.total + v.closedAll,
+          askFields: ["发现日", "闭环日", "当前环节", "结论", "类型", "街道", "网格"],
+          usedNumbers: [`窗口发现 ${v.total} 件`, `窗口闭环 ${v.closedAll} 件`],
+          topItem: undefined, daysMoreFound: more,
+          itemsNumeric: itemsN,
+          titleForOther: "发现与闭环",
+          suggestions: signalDaily(more, foundMap).slice(0, 3),
+        }
       }
-      case "funnel":
-        return { id, title: "链路吞吐", kind: "count", scope: filterMeta, numbers: FUNNEL_STAGES.map((s) => `${s.label} ${v.funnel[s.key]} 件`), empty: v.total === 0, caliber: rl("funnel"), timeVaries: true }
-      case "ov_sustained":
-        return { id, title: "存续事件", kind: "count", scope: backlogMeta, numbers: [`${v.sustained} 件`], empty: v.sustained === 0, caliber: rl("ov_sustained"), timeVaries: false }
-      case "ov_severe":
-        return { id, title: "严重事件", kind: "count", scope: backlogMeta, numbers: [`${v.severe} 件`], empty: v.severe === 0, caliber: rl("ov_severe"), timeVaries: false }
+      case "funnel": {
+        const itemsN = FUNNEL_STAGES.map((s) => ({ name: s.label, value: v.funnel[s.key] }))
+        return {
+          id, title: "链路吞吐", kind: "count", scope: filterMeta,
+          empty: v.total === 0, timeVaries: true, caliber: rl("funnel"),
+          eventPhrase: `${WIN_LABEL[win]}窗口内走到了各阶的事件`, eventCount: v.total,
+          askFields: ["走到哪一阶", "当前环节", "类型", "街道", "网格", "审核结论"],
+          usedNumbers: FUNNEL_STAGES.map((s) => `${s.label} ${v.funnel[s.key]} 件`),
+          itemsNumeric: itemsN,
+          titleForOther: "链路吞吐",
+          suggestions: signalGap(itemsN, FUNNEL_STAGES.map((s) => s.label)).slice(0, 2),
+        }
+      }
       case "ov_stages": {
-        const top = v.stages.reduce((a, b) => (b.value > a.value ? b : a))
-        return { id, title: "各阶段待处理", kind: "rank", scope: backlogMeta, numbers: v.stages.map((s) => `${s.label} ${s.value} 件`), empty: v.sustained === 0, caliber: rl("ov_stages"), timeVaries: false, topItem: `${top.label} ${top.value} 件`, items: v.stages.map((s) => ({ name: s.label, value: s.value })) }
+        const itemsN = v.stages.map((s) => ({ name: s.label, value: s.value }))
+        const severeExists = v.severe > 0
+        return {
+          id, title: "各阶段待处理", kind: "rank", scope: backlogMeta,
+          empty: v.sustained === 0, timeVaries: false, caliber: rl("ov_stages"),
+          eventPhrase: "截止此刻还压在各环节的事件", eventCount: v.sustained,
+          askFields: ["当前环节", "类型", "街道", "网格", "街巷", "责任网格", "是否严重", "已等待时长"],
+          usedNumbers: v.stages.map((s) => `${s.label} ${s.value} 件`),
+          topItem: v.stages.reduce((a, b) => (b.value > a.value ? b : a)).value > 0
+            ? `${v.stages.reduce((a, b) => (b.value > a.value ? b : a)).label} ${v.stages.reduce((a, b) => (b.value > a.value ? b : a)).value} 件` : undefined,
+          items: v.stages.map((s) => ({ name: s.label, value: s.value })),
+          itemsNumeric: itemsN,
+          titleForOther: "各阶段待处理",
+          suggestions: [
+            ...signalConcentrate(itemsN, v.sustained, "环节"),
+            ...signalUrgent(severeExists, v.stages[0]?.value >= 3, "截至此刻这批事件", "环节", "最久"),
+          ].slice(0, 2),
+        }
       }
       case "ov_severe_space": {
         const rest = { count: v.severeTop.restCount, sum: v.severeTop.restSum }
-        const top = v.severeTop.visible[0]
-        return { id, title: "严重问题空间", kind: "rank", scope: scopeG(backlogMeta), numbers: [...rankLines(v.severeTop.visible), ...restLine(rest)], empty: v.severe === 0, caliber: rl("ov_severe_space"), timeVaries: false, topItem: top ? `${top.name} ${top.value} 件` : undefined, rest, items: v.severeTop.visible.map((r) => ({ name: r.name, value: r.value })) }
+        const itemsN = v.severeTop.visible.map((r) => ({ name: r.name, value: r.value }))
+        return {
+          id, title: "严重问题空间", kind: "rank", scope: scopeG(backlogMeta),
+          empty: v.severe === 0, timeVaries: false, caliber: rl("ov_severe_space"),
+          eventPhrase: "截止此刻存续中的严重事件", eventCount: v.severe,
+          askFields: ["当前环节", "类型", "街道", "网格", "街巷", "责任网格", "已等待时长"],
+          usedNumbers: [...v.severeTop.visible.map((r) => `${r.name} ${r.value} 件`), ...(rest.count > 0 ? [`其余 ${rest.count} 个合计 ${rest.sum} 件`] : [])],
+          topItem: v.severeTop.visible[0] ? `${v.severeTop.visible[0].name} ${v.severeTop.visible[0].value} 件` : undefined,
+          rest,
+          items: v.severeTop.visible.map((r) => ({ name: r.name, value: r.value })),
+          itemsNumeric: itemsN,
+          titleForOther: "严重问题空间",
+          suggestions: signalConcentrate(itemsN, v.severe, "街道").slice(0, 2),
+        }
       }
       case "ov_sustained_types": {
-        const top = v.sustainedTypes.reduce<{ label: string; value: number } | null>((a, b) => (!a || b.value > a.value ? b : a), null)
-        return { id, title: "当前存续类型", kind: "composition", scope: backlogMeta, numbers: v.sustainedTypes.map((t) => `${t.label} ${t.value} 件（${pct(t.value, v.sustained)}）`), empty: v.sustained === 0, caliber: rl("ov_sustained_types"), timeVaries: false, topItem: top ? `${top.label}（${pct(top.value, v.sustained)}）` : undefined, items: v.sustainedTypes.map((t) => ({ name: t.label, value: t.value })) }
+        const itemsN = v.sustainedTypes.map((t) => ({ name: t.label, value: t.value }))
+        return {
+          id, title: "当前存续类型", kind: "composition", scope: backlogMeta,
+          empty: v.sustained === 0, timeVaries: false, caliber: rl("ov_sustained_types"),
+          eventPhrase: "截止此刻还没办完的事件", eventCount: v.sustained,
+          askFields: ["当前环节", "类型", "街道", "网格", "街巷", "责任网格", "是否严重", "已等待时长"],
+          usedNumbers: v.sustainedTypes.map((t) => `${t.label} ${t.value} 件`),
+          topItem: itemsN[0] ? `${itemsN[0].name} ${itemsN[0].value} 件` : undefined,
+          items: v.sustainedTypes.map((t) => ({ name: t.label, value: t.value })),
+          itemsNumeric: itemsN,
+          titleForOther: "当前存续类型",
+          suggestions: signalConcentrate(itemsN, v.sustained, "环节").slice(0, 2),
+        }
       }
-      case "ev_total":
-        return { id, title: "事件总数", kind: "count", scope: filterMeta, numbers: [`${v.total} 件`], empty: v.total === 0, caliber: rl("ev_total"), timeVaries: true }
+      // ═══ 事件发生 ═══
       case "ev_type_struct": {
-        const top = v.typeStruct.reduce<{ label: string; value: number } | null>((a, b) => (!a || b.value > a.value ? b : a), null)
-        return { id, title: "类型结构", kind: "composition", scope: filterMeta, numbers: v.typeStruct.map((t) => `${t.label} ${t.value} 件（${pct(t.value, v.total)}）`), empty: v.total === 0, caliber: rl("ev_type_struct"), timeVaries: true, topItem: top ? `${top.label}（${pct(top.value, v.total)}）` : undefined }
+        const itemsN = v.typeStruct.map((t) => ({ name: t.label, value: t.value }))
+        return {
+          id, title: "类型结构", kind: "composition", scope: filterMeta,
+          empty: v.total === 0, timeVaries: true, caliber: rl("ev_type_struct"),
+          eventPhrase: `${WIN_LABEL[win]}窗口内相机新发现的事件`, eventCount: v.total,
+          askFields: ["类型", "街道", "网格", "街巷", "发现小时", "相机点位", "当前环节", "结论"],
+          usedNumbers: v.typeStruct.map((t) => `${t.label} ${t.value} 件`),
+          topItem: itemsN[0] ? `${itemsN[0].name} ${itemsN[0].value} 件` : undefined,
+          items: v.typeStruct.map((t) => ({ name: t.label, value: t.value })),
+          itemsNumeric: itemsN,
+          titleForOther: "类型结构",
+          suggestions: signalConcentrate(itemsN, v.total, "网格").slice(0, 2),
+        }
       }
       case "ev_space_dist": {
         const rest = { count: v.spaceTop.restCount, sum: v.spaceTop.restSum }
-        const top = v.spaceTop.visible[0]
-        return { id, title: "空间分布", kind: "rank", scope: scopeG(filterMeta), numbers: [...rankLines(v.spaceTop.visible), ...restLine(rest)], empty: v.total === 0, caliber: rl("ev_space_dist"), timeVaries: true, topItem: top ? `${top.name} ${top.value} 件` : undefined, rest, items: v.spaceTop.visible.map((r) => ({ name: r.name, value: r.value })) }
+        const itemsN = v.spaceTop.visible.map((r) => ({ name: r.name, value: r.value }))
+        return {
+          id, title: "空间分布", kind: "rank", scope: scopeG(filterMeta),
+          empty: v.total === 0, timeVaries: true, caliber: rl("ev_space_dist"),
+          eventPhrase: `${WIN_LABEL[win]}窗口内相机新发现的事件`, eventCount: v.total,
+          askFields: ["类型", "街道", "网格", "街巷", "发现小时", "相机点位", "当前环节", "结论"],
+          usedNumbers: [...v.spaceTop.visible.map((r) => `${r.name} ${r.value} 件`), ...(rest.count > 0 ? [`其余 ${rest.count} 个合计 ${rest.sum} 件`] : [])],
+          topItem: v.spaceTop.visible[0] ? `${v.spaceTop.visible[0].name} ${v.spaceTop.visible[0].value} 件` : undefined,
+          rest,
+          items: v.spaceTop.visible.map((r) => ({ name: r.name, value: r.value })),
+          itemsNumeric: itemsN,
+          titleForOther: "空间分布",
+          suggestions: signalConcentrate(itemsN, v.total, "类型").slice(0, 2),
+        }
       }
       case "ev_hourly": {
         const label = String(v.peakHour).padStart(2, "0")
         const val = v.hourly[v.peakHour] ?? 0
-        return { id, title: "发生时段", kind: "rank", scope: filterMeta, numbers: [`合计 ${v.total} 件`, `高峰 ${label} 时 ${val} 件`], empty: v.total === 0, caliber: rl("ev_hourly"), timeVaries: true, topItem: `${label} 时 ${val} 件`, items: [{ name: `${label} 时`, value: val }] }
+        // 找相邻两时段有没有缺口
+        const items24 = v.hourly.map((v, i) => ({ name: `${String(i).padStart(2, "0")}时`, value: v }))
+        return {
+          id, title: "发生时段", kind: "rank", scope: filterMeta,
+          empty: v.total === 0, timeVaries: true, caliber: rl("ev_hourly"),
+          eventPhrase: `${WIN_LABEL[win]}窗口内相机新发现的事件`, eventCount: v.total,
+          askFields: ["类型", "街道", "网格", "街巷", "发现小时", "相机点位", "当前环节", "结论"],
+          usedNumbers: [`高峰 ${label} 时 ${val} 件`, `合计 ${v.total} 件`],
+          topItem: `${label} 时 ${val} 件`,
+          items: [{ name: `${label} 时`, value: val }],
+          itemsNumeric: items24,
+          titleForOther: "发生时段",
+          suggestions: signalConcentrate([{ name: `${label}时`, value: val }], v.total, "类型").slice(0, 2),
+        }
       }
       case "ev_top_cameras": {
         const visible = v.cameras.slice(0, 8)
         const restRows = v.cameras.slice(8)
         const rest = { count: restRows.length, sum: sum(restRows.map((c) => c.value)) }
-        const top = visible[0]
-        return { id, title: "高发相机", kind: "rank", scope: filterMeta, numbers: [...visible.map((c) => `${c.point}（${c.id}）${c.value} 件`), ...restLine(rest)], empty: v.cameras.length === 0, caliber: rl("ev_top_cameras"), timeVaries: true, topItem: top ? `${top.point} ${top.value} 件` : undefined, rest, items: visible.map((c) => ({ name: c.point, value: c.value })) }
+        const itemsN = visible.map((c) => ({ name: c.point, value: c.value }))
+        return {
+          id, title: "高发相机", kind: "rank", scope: filterMeta,
+          empty: v.cameras.length === 0, timeVaries: true, caliber: rl("ev_top_cameras"),
+          eventPhrase: `${WIN_LABEL[win]}窗口内相机识别出的事件`, eventCount: v.total,
+          askFields: ["相机点位", "类型", "发现小时", "结论"],
+          usedNumbers: [...visible.map((c) => `${c.point} ${c.value} 件`), ...(rest.count > 0 ? [`其余 ${rest.count} 个合计 ${rest.sum} 件`] : [])],
+          topItem: visible[0] ? `${visible[0].point} ${visible[0].value} 件` : undefined,
+          rest,
+          items: visible.map((c) => ({ name: c.point, value: c.value })),
+          itemsNumeric: itemsN,
+          titleForOther: "高发相机",
+          suggestions: signalConcentrate(itemsN, v.total, "类型").slice(0, 2),
+        }
       }
-      case "pr_avg":
-        return { id, title: "从派给网格到处置完，平均要多久", kind: "count", scope: filterMeta, numbers: [v.doneAvg === null ? "—（当前范围无可计算样本）" : `${v.doneAvg} 小时（办完 ${v.doneN} 件）`], empty: v.doneN === 0, caliber: rl("pr_avg"), timeVaries: true }
+      // ═══ 流程运行上半段 ═══
       case "pr_dwell": {
         const names = ["发现 → 派给网格", "派给网格 → 处置完", "处置完 → 核查完"]
-        const nums = v.dwellVals.map((val, i) => `${names[i]} ${val === null ? "—" : `${val} 小时`}`)
-        const top = v.dwellVals[v.dwellMaxIdx]
-        return { id, title: "各环节停了多久", kind: "rank", scope: filterMeta, numbers: nums, empty: v.doneN === 0, caliber: rl("pr_dwell"), timeVaries: true, topItem: top === null ? undefined : `${names[v.dwellMaxIdx]} ${top} 小时`, dwellNames: names, dwellMaxName: names[v.dwellMaxIdx], items: names.map((n, i) => ({ name: n, value: v.dwellVals[i] ?? 0 })) }
+        const itemsN = names.map((n, i) => ({ name: n, value: v.dwellVals[i] ?? 0 }))
+        const max = itemsN.reduce((a, b) => (b.value > a.value ? b : a))
+        return {
+          id, title: "各环节停了多久", kind: "rank", scope: filterMeta,
+          empty: v.doneN === 0, timeVaries: true, caliber: rl("pr_dwell"),
+          eventPhrase: `${WIN_LABEL[win]}窗口内走完各一步的事件`, eventCount: v.doneN,
+          askFields: ["三步各自用时", "类型", "网格"],
+          usedNumbers: itemsN.map((r) => `${r.name} ${r.value === 0 ? "—" : `${r.value} 小时`}`),
+          topItem: `${max.name} ${max.value} 小时`,
+          dwellNames: names, dwellMaxName: max.name,
+          dwellVals: v.dwellVals,
+          items: names.map((n, i) => ({ name: n, value: v.dwellVals[i] ?? 0 })),
+          itemsNumeric: itemsN,
+          titleForOther: "各环节停了多久",
+          suggestions: [{ text: `${max.name} 是不是停得最久`.slice(0, 25) }],
+        }
       }
       case "pr_grid_dur":
       case "pr_type_dur": {
         const d = id === "pr_grid_dur" ? v.gridDur : v.typeDur
         const title = id === "pr_grid_dur" ? "哪个网格办完更久" : "哪类事件办完更久"
         const rest = { count: d.restCount, sum: d.restSum }
-        const above = d.visible.filter((r) => r.color === "var(--primary)").map((r) => `${r.name} ${r.value} 小时`)
-        return { id, title, kind: "durationRank", scope: filterMeta, numbers: [...d.visible.map((r) => `${r.name} ${r.value} 小时（办完 ${r.n} 件）`), ...restLine(rest)], empty: v.doneN === 0, caliber: rl(id), timeVaries: true, aboveAvg: above, rest, isDuration: true, items: d.visible.map((r) => ({ name: r.name, value: r.value })) }
+        const itemsN = d.visible.map((r) => ({ name: r.name, value: r.value }))
+        const above = d.visible.filter((r) => r.color === "var(--primary)").map((r) => r.name)
+        const avg = v.doneAvg ?? 0
+        // 有长于平均的 → 急信号
+        const longThanAvg = itemsN.some((i) => i.value > avg)
+        const fieldWord = id === "pr_grid_dur" ? "类型" : "网格"
+        return {
+          id, title, kind: "durationRank", scope: filterMeta,
+          empty: v.doneN === 0, timeVaries: true, caliber: rl(id),
+          eventPhrase: `${WIN_LABEL[win]}窗口内处置完成的事件`, eventCount: v.doneN,
+          askFields: ["派给网格到处置完的用时", "网格", "类型", "街道"],
+          usedNumbers: [...d.visible.map((r) => `${r.name} ${r.value} 小时（办完 ${r.n} 件）`), ...(rest.count > 0 ? [`其余 ${rest.count} 个合计 ${rest.sum} 件`] : [])],
+          topItem: itemsN[0] ? `${itemsN[0].name} ${itemsN[0].value} 小时` : undefined,
+          aboveAvg: above, rest, isDuration: true,
+          items: d.visible.map((r) => ({ name: r.name, value: r.value })),
+          itemsNumeric: itemsN,
+          titleForOther: title,
+          suggestions: [
+            ...signalConcentrate(itemsN, v.doneN, fieldWord),
+            ...(longThanAvg ? [{ text: `办完用时最长的，是哪类${fieldWord}？`.slice(0, 25) }] : []),
+          ].slice(0, 2),
+        }
       }
-      case "pr_pending":
-      case "pr_dispose":
-      case "pr_inspect":
-      case "pr_void": {
-        const idx = ["pr_pending", "pr_dispose", "pr_inspect", "pr_void"].indexOf(id)
-        const s = v.stages[idx]
-        return { id, title: s.label, kind: "count", scope: backlogMeta, numbers: [`${s.value} 件`], empty: s.value === 0, caliber: rl(id), timeVaries: false }
-      }
+      // ═══ 流程运行下半段 ═══
       case "pr_stages": {
-        const top = v.stages.reduce((a, b) => (b.value > a.value ? b : a))
-        return { id, title: "环节存量", kind: "rank", scope: backlogMeta, numbers: v.stages.map((s) => `${s.label} ${s.value} 件`), empty: v.sustained === 0, caliber: rl("pr_stages"), timeVaries: false, topItem: `${top.label} ${top.value} 件`, items: v.stages.map((s) => ({ name: s.label, value: s.value })) }
+        const itemsN = v.stages.map((s) => ({ name: s.label, value: s.value }))
+        return {
+          id, title: "环节存量", kind: "rank", scope: backlogMeta,
+          empty: v.sustained === 0, timeVaries: false, caliber: rl("pr_stages"),
+          eventPhrase: "截止此刻还压在各环节的事件", eventCount: v.sustained,
+          askFields: ["当前环节", "类型", "街道", "网格", "街巷", "责任网格", "是否严重", "已等待时长"],
+          usedNumbers: v.stages.map((s) => `${s.label} ${s.value} 件`),
+          topItem: v.stages.reduce((a, b) => (b.value > a.value ? b : a)).value > 0
+            ? `${v.stages.reduce((a, b) => (b.value > a.value ? b : a)).label} ${v.stages.reduce((a, b) => (b.value > a.value ? b : a)).value} 件` : undefined,
+          items: v.stages.map((s) => ({ name: s.label, value: s.value })),
+          itemsNumeric: itemsN,
+          titleForOther: "环节存量",
+          suggestions: signalConcentrate(itemsN, v.sustained, "网格").slice(0, 2),
+        }
       }
       case "pr_grid": {
         const rest = { count: v.gridOnDutyTop.restCount, sum: v.gridOnDutyTop.restSum }
-        const top = v.gridOnDutyTop.visible[0]
-        return { id, title: "责任网格在办", kind: "rank", scope: backlogMeta, numbers: [...rankLines(v.gridOnDutyTop.visible), ...restLine(rest)], empty: v.gridOnDutyTop.visible.length === 0, caliber: rl("pr_grid"), timeVaries: false, topItem: top ? `${top.name} ${top.value} 件` : undefined, rest, items: v.gridOnDutyTop.visible.map((r) => ({ name: r.name, value: r.value })) }
+        const itemsN = v.gridOnDutyTop.visible.map((r) => ({ name: r.name, value: r.value }))
+        return {
+          id, title: "责任网格在办", kind: "rank", scope: backlogMeta,
+          empty: v.gridOnDutyTop.visible.length === 0, timeVaries: false, caliber: rl("pr_grid"),
+          eventPhrase: "截止此刻还没处置完的事件", eventCount: v.stages[1].value,
+          askFields: ["责任网格", "派过去多久", "类型", "是否严重"],
+          usedNumbers: [...v.gridOnDutyTop.visible.map((r) => `${r.name} ${r.value} 件`), ...(rest.count > 0 ? [`其余 ${rest.count} 个合计 ${rest.sum} 件`] : [])],
+          topItem: v.gridOnDutyTop.visible[0] ? `${v.gridOnDutyTop.visible[0].name} ${v.gridOnDutyTop.visible[0].value} 件` : undefined,
+          rest,
+          items: v.gridOnDutyTop.visible.map((r) => ({ name: r.name, value: r.value })),
+          itemsNumeric: itemsN,
+          titleForOther: "责任网格在办",
+          suggestions: [
+            ...signalConcentrate(itemsN, v.stages[1].value, "类型"),
+            ...(v.stages[0].value > 0 && v.stages[0].value > v.stages[1].value / 2 ? [{ text: `现在 ${v.stages[0].label} ${v.stages[0].value} 件，都派给网格了吗？`.slice(0, 25) }] : []),
+          ].slice(0, 2),
+        }
       }
+      // ═══ 治理质量与 AI 成效 ═══
       case "ql_composition": {
         const rows = [
           { label: "立案有效", value: v.quality.valid },
           { label: "无效", value: v.quality.invalid },
           { label: "自然消散", value: v.quality.dissipated },
         ]
-        const top = rows.reduce((a, b) => (b.value > a.value ? b : a))
-        return { id, title: "有效 / 无效 / 消散", kind: "composition", scope: filterMeta, numbers: rows.map((r) => `${r.label} ${r.value} 件（${pct(r.value, v.quality.composition)}）`), empty: v.quality.composition === 0, caliber: rl("ql_composition"), timeVaries: true, topItem: `${top.label}（${pct(top.value, v.quality.composition)}）` }
+        const itemsN = rows.map((r) => ({ name: r.label, value: r.value }))
+        return {
+          id, title: "有效 / 无效 / 消散", kind: "composition", scope: filterMeta,
+          empty: v.quality.composition === 0, timeVaries: true, caliber: rl("ql_composition"),
+          eventPhrase: `${WIN_LABEL[win]}窗口内已有结论的候选事件`, eventCount: v.quality.composition,
+          askFields: ["结论", "说明", "类型", "街道", "相机点位"],
+          usedNumbers: rows.map((r) => `${r.label} ${r.value} 件`),
+          topItem: itemsN[0] ? `${itemsN[0].name} ${itemsN[0].value} 件` : undefined,
+          items: rows.map((r) => ({ name: r.label, value: r.value })),
+          itemsNumeric: itemsN,
+          titleForOther: "有效 / 无效 / 消散",
+          suggestions: signalConcentrate(itemsN, v.quality.composition, "类型").slice(0, 2),
+        }
       }
+      case "ql_return_rate": {
+        const denom = v.quality.inspected
+        return {
+          id, title: "退回率", kind: "rate", scope: filterMeta,
+          empty: denom === 0, timeVaries: true, caliber: rl("ql_return_rate"),
+          eventPhrase: `${WIN_LABEL[win]}窗口内有核查决定的事件`, eventCount: denom,
+          askFields: ["退回次数", "网格", "类型"],
+          usedNumbers: [`有核查决定 ${denom} 件，被退回 ${v.quality.returned} 件`],
+          titleForOther: "退回率",
+          suggestions: v.quality.returned > 0 ? [{ text: `被退回的 ${v.quality.returned} 件，退回了几次？`.slice(0, 25) }] : [],
+        }
+      }
+      case "ai_discovery_rate": {
+        const denom = v.aiRates.discoveryCandidates
+        const valid = v.aiRates.discoveryValid
+        return {
+          id, title: "发现有效率", kind: "rate", scope: filterMeta,
+          empty: denom === 0, timeVaries: true, caliber: rl("ai_discovery_rate"),
+          eventPhrase: `${WIN_LABEL[win]}窗口内相机识别出的候选事件`, eventCount: denom,
+          askFields: ["最终是否要办", "类型", "相机点位"],
+          usedNumbers: [`相机发现 ${denom} 件，最后要办 ${valid} 件`],
+          titleForOther: "发现有效率",
+          suggestions: valid > 0 && valid < denom ? signalConcentrate([{ name: "最终要办", value: valid }, { name: "最终没办", value: denom - valid }], denom, "类型").slice(0, 2) : [],
+        }
+      }
+      case "ai_prefill_type": {
+        const total = v.aiRates.prefillTotal
+        const match = v.aiRates.prefillMatch
+        const changed = total - match
+        return {
+          id, title: "预填少改", kind: "rate", scope: filterMeta,
+          empty: total === 0, timeVaries: true, caliber: rl("ai_prefill_type"),
+          eventPhrase: `${WIN_LABEL[win]}窗口内有 AI 预填类型的事件`, eventCount: total,
+          askFields: ["AI 预填类型", "人工最终类型", "网格"],
+          usedNumbers: [`AI 预填 ${total} 件，类型没被人工改 ${match} 件`],
+          titleForOther: "预填少改",
+          suggestions: signalPrefillSuggest(changed, "预填少改", "prefill").slice(0, 1),
+        }
+      }
+      case "ai_suggest_match": {
+        const total = v.aiRates.suggestTotal
+        const match = v.aiRates.suggestMatchCount
+        const changed = total - match
+        return {
+          id, title: "建议一致率", kind: "rate", scope: filterMeta,
+          empty: total === 0, timeVaries: true, caliber: rl("ai_suggest_match"),
+          eventPhrase: `${WIN_LABEL[win]}窗口内有系统建议的事件`, eventCount: total,
+          askFields: ["系统建议", "人工最终判断", "类型"],
+          usedNumbers: [`系统给建议 ${total} 件，人工判断一致 ${match} 件`],
+          titleForOther: "建议一致率",
+          suggestions: signalPrefillSuggest(changed, "建议一致率", "suggest").slice(0, 1),
+        }
+      }
+      case "ai_space_fail": {
+        return {
+          id, title: "空间匹配失败", kind: "count", scope: filterMeta,
+          empty: v.aiRates.spaceFail === 0, timeVaries: true, caliber: rl("ai_space_fail"),
+          eventPhrase: `${WIN_LABEL[win]}窗口内落不到网格的事件`, eventCount: v.aiRates.spaceFail,
+          askFields: ["相机点位", "街道", "类型", "当前环节"],
+          usedNumbers: [`落不到网格的 ${v.aiRates.spaceFail} 件`],
+          titleForOther: "空间匹配失败",
+          suggestions: v.aiRates.spaceFail > 0 ? [{ text: `落不到网格的 ${v.aiRates.spaceFail} 件，都在哪个街道？`.slice(0, 25) }] : [],
+        }
+      }
+      // 下面这些旧 case 入口已白名单去掉，但保留 buildAsk 返回 null 安全
+      case "ov_total":
+      case "ov_closed":
+      case "ov_sustained":
+      case "ov_severe":
+      case "ev_total":
+      case "pr_avg":
+      case "pr_pending":
+      case "pr_dispose":
+      case "pr_inspect":
+      case "pr_void":
       case "ql_effective_rate":
-        return { id, title: "事件有效率", kind: "rate", scope: filterMeta, numbers: [`${v.quality.effectiveRate}（分子 ${v.quality.valid} / 分母 ${v.quality.effectiveDenom}）`], empty: v.quality.effectiveDenom === 0, caliber: rl("ql_effective_rate"), timeVaries: true }
-      case "ql_return_rate":
-        return { id, title: "退回率", kind: "rate", scope: filterMeta, numbers: [`${v.quality.returnRate}（分子 ${v.quality.returned} / 分母 ${v.quality.inspected}）`], empty: v.quality.inspected === 0, caliber: rl("ql_return_rate"), timeVaries: true }
       case "ql_first_pass":
-        return { id, title: "一次核查通过率", kind: "rate", scope: filterMeta, numbers: ["—（本版暂不计算）"], empty: true, caliber: rl("ql_first_pass"), timeVaries: true }
-      case "ai_discovery_rate":
-        return { id, title: "发现有效率", kind: "rate", scope: filterMeta, numbers: [`${v.aiRates.discoveryRate}（分子 ${v.aiRates.discoveryValid} / 分母 ${v.aiRates.discoveryCandidates}）`], empty: v.aiRates.discoveryCandidates === 0, caliber: rl("ai_discovery_rate"), timeVaries: true }
-      case "ai_prefill_type":
-        return { id, title: "预填少改", kind: "rate", scope: filterMeta, numbers: [`${v.aiRates.prefillType}（分子 ${v.aiRates.prefillMatch} / 分母 ${v.aiRates.prefillTotal}）`], empty: v.aiRates.prefillTotal === 0, caliber: rl("ai_prefill_type"), timeVaries: true }
-      case "ai_suggest_match":
-        return { id, title: "建议一致率", kind: "rate", scope: filterMeta, numbers: [`${v.aiRates.suggestMatch}（分子 ${v.aiRates.suggestMatchCount} / 分母 ${v.aiRates.suggestTotal}）`], empty: v.aiRates.suggestTotal === 0, caliber: rl("ai_suggest_match"), timeVaries: true }
-      case "ai_space_fail":
-        return { id, title: "空间匹配失败", kind: "count", scope: filterMeta, numbers: [`${v.aiRates.spaceFail} 件`], empty: v.aiRates.spaceFail === 0, caliber: rl("ai_space_fail"), timeVaries: true }
       default:
         return null
     }
@@ -1494,83 +1812,92 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
   }
 
   return (
-    <div style={{ flex: 1, overflowY: "auto", padding: "18px 22px 28px" }}>
-      {/* 筛选条：本页第一屏，滚动时保持可见；只有时间 / 空间 / 类型三项 */}
+    <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "18px 22px 28px" }}>
+      {/* 筛选条 + 四类导航：两行一起粘在顶部；切 tab / 切筛选时保持可用 */}
       <div
         style={{
           position: "sticky", top: 0, zIndex: 20,
-          padding: "10px 14px", marginBottom: 10,
-          display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap",
           background: "var(--panel-solid, #fff)",
           border: `1px solid ${C.border}`, borderRadius: 12,
+          padding: "10px 14px", marginBottom: 12,
+          boxShadow: "0 1px 0 rgba(0,0,0,0.04)",
+          display: "flex", flexDirection: "column", gap: 6,
         }}
       >
-        <div style={{ display: "flex", gap: 4, background: "var(--card-2)", borderRadius: 10, padding: 3 }}>
-          {WINS.map((w) => (
+        {/* 第一行：时间 / 空间 / 类型三项 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 4, background: "var(--card-2)", borderRadius: 10, padding: 3 }}>
+            {WINS.map((w) => (
+              <button
+                key={w.id}
+                onClick={() => setWin(w.id)}
+                style={{
+                  border: "none", cursor: "pointer",
+                  padding: "5px 14px", borderRadius: 8,
+                  fontSize: 12, fontWeight: win === w.id ? 800 : 600,
+                  background: win === w.id ? "var(--primary)" : "transparent",
+                  color: win === w.id ? "#fff" : C.muted,
+                  transition: "all .15s ease",
+                }}
+              >
+                {w.label}
+              </button>
+            ))}
+          </div>
+          <select
+            value={street ?? ""}
+            onChange={(e) => {
+              const next = e.target.value || null
+              setStreet(next)
+              setSpaceGran(next ? "grid" : "street")
+            }}
+            className="tech-select"
+            style={{ padding: "6px 10px", fontSize: 12, borderRadius: 8, border: "1px solid var(--border)", background: "var(--card)", color: C.text, cursor: "pointer" }}
+            aria-label="空间筛选（到街道）"
+          >
+            <option value="">东城全区</option>
+            {STREETS.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select
+            value={type ?? ""}
+            onChange={(e) => setType(e.target.value || null)}
+            className="tech-select"
+            style={{ padding: "6px 10px", fontSize: 12, borderRadius: 8, border: "1px solid var(--border)", background: "var(--card)", color: C.text, cursor: "pointer" }}
+            aria-label="类型筛选"
+          >
+            <option value="">全部类型</option>
+            {TYPE_DEFS.map((t) => <option key={t.label} value={t.label}>{t.label}</option>)}
+          </select>
+          <span style={{ fontSize: 11, color: C.muted, fontWeight: 600, marginLeft: "auto" }}>
+            {filterMeta}
+          </span>
+        </div>
+
+        {/* 第二行：四类 tab，下划线标明当前类；切 tab 时关闭问 AI 抽屉并回到顶部 */}
+        <div style={{ display: "flex", gap: 22, borderBottom: `1px solid ${C.border}` }}>
+          {CATS.map((c) => (
             <button
-              key={w.id}
-              onClick={() => setWin(w.id)}
+              key={c.id}
+              onClick={() => {
+                setAskId(null)
+                setSlice(null)
+                setCat(c.id)
+                scrollRef.current?.scrollTo({ top: 0 })
+              }}
+              title={c.hint}
               style={{
-                border: "none", cursor: "pointer",
-                padding: "5px 14px", borderRadius: 8,
-                fontSize: 12, fontWeight: win === w.id ? 800 : 600,
-                background: win === w.id ? "var(--primary)" : "transparent",
-                color: win === w.id ? "#fff" : C.muted,
-                transition: "all .15s ease",
+                cursor: "pointer", padding: "8px 2px 10px", marginBottom: -1,
+                border: "none", background: "transparent",
+                borderBottom: `2px solid ${cat === c.id ? C.primary : "transparent"}`,
+                color: cat === c.id ? C.text : C.muted,
+                fontSize: 13, fontWeight: cat === c.id ? 800 : 600,
+                transition: "color .15s ease",
               }}
             >
-              {w.label}
+              {c.label}
             </button>
           ))}
         </div>
-        <select
-          value={street ?? ""}
-          onChange={(e) => {
-            const next = e.target.value || null
-            setStreet(next)
-            setSpaceGran(next ? "grid" : "street")
-          }}
-          className="tech-select"
-          style={{ padding: "6px 10px", fontSize: 12, borderRadius: 8, border: "1px solid var(--border)", background: "var(--card)", color: C.text, cursor: "pointer" }}
-          aria-label="空间筛选（到街道）"
-        >
-          <option value="">东城全区</option>
-          {STREETS.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <select
-          value={type ?? ""}
-          onChange={(e) => setType(e.target.value || null)}
-          className="tech-select"
-          style={{ padding: "6px 10px", fontSize: 12, borderRadius: 8, border: "1px solid var(--border)", background: "var(--card)", color: C.text, cursor: "pointer" }}
-          aria-label="类型筛选"
-        >
-          <option value="">全部类型</option>
-          {TYPE_DEFS.map((t) => <option key={t.label} value={t.label}>{t.label}</option>)}
-        </select>
-        <span style={{ fontSize: 11, color: C.muted, fontWeight: 600, marginLeft: "auto" }}>
-          {filterMeta}
-        </span>
-      </div>
-
-      {/* 四类导航：下划线标明当前类 */}
-      <div style={{ display: "flex", gap: 22, marginBottom: 10, borderBottom: `1px solid ${C.border}`, flexWrap: "wrap" }}>
-        {CATS.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => setCat(c.id)}
-            title={c.hint}
-            style={{
-              cursor: "pointer", padding: "8px 2px 10px", marginBottom: -1,
-              border: "none", background: "transparent",
-              borderBottom: `2px solid ${cat === c.id ? C.primary : "transparent"}`,
-              color: cat === c.id ? C.text : C.muted,
-              fontSize: 13, fontWeight: cat === c.id ? 800 : 600,
-              transition: "color .15s ease",
-            }}
-          >
-            {c.label}
-          </button>
-        ))}
       </div>
 
       {/* 当前类的一句话解读：普通正文，不做卡片 */}
@@ -1587,23 +1914,19 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               label="事件总数" value={v.total} unit="件" color={C.primary} icon="archive" ruleId="ov_total"
               sub={`${filterMeta} · 按发现时间归日`}
               onClick={v.total >= 1 ? () => openSlice("事件总数", v.total, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) : undefined}
-              onAsk={() => openAsk("ov_total")}
             />
             <KpiCard2
               label="区间闭环" value={v.closedAll} unit="件" color={C.success} icon="checkCircle" ruleId="ov_closed"
-              sub={`结案 ${v.closedCase} 件 · 作废/无效 ${v.closedNonCase} 件`}
+              sub={`结案 ${v.closedCase} 件 · 作废或判无效 ${v.closedNonCase} 件（不只核查结案）`}
               onClick={v.closedAll >= 1 ? () => openSlice("区间闭环", v.closedAll, "flow", sliceRows({ stages: ["已结案", "已作废", "无效"] })) : undefined}
-              onAsk={() => openAsk("ov_closed")}
             />
           </div>
 
           <ChartCard2
             title="发现与闭环"
             ruleId="ov_daily"
-            onAsk={() => openAsk("ov_daily")}
-            note={v.dayMode === "bar"
-              ? "按天看发现有没有被闭环跟上 · 今天只有一天，用两根柱 · 柱为 0 不可点"
-              : "每天发现之和 = 事件总数；每天闭环之和 = 区间闭环 · 0 的天保留、不可点"}
+            onAsk={showAsk("ov_daily", v.total === 0 && v.closedAll === 0) ? () => openAsk("ov_daily") : undefined}
+            note="每天新发现几件、办结几件"
           >
             <EchartsDiscoverClose
               labels={v.days.map((d) => d.label)}
@@ -1622,19 +1945,19 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
             <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
               <span style={{ fontSize: 13.5, fontWeight: 800, color: C.text, letterSpacing: "0.02em" }}>链路吞吐</span>
               <RuleChips id="funnel" userRules={STATS2_USER_RULES} algoRules={STATS2_ALGO_RULES} />
-              <span style={{ fontSize: 11.5, color: C.muted, fontWeight: 600 }}>
-                识别 → 审核 → 立案 → 处置 → 核查 · 各阶按本环节完成时间计
-              </span>
-              <button
-                onClick={() => openAsk("funnel")}
-                style={{
-                  border: "1px solid var(--border)", background: "transparent", borderRadius: 999,
-                  padding: "2px 10px", fontSize: 10.5, fontWeight: 700, cursor: "pointer", color: C.primary,
-                  marginLeft: "auto",
-                }}
-              >
-                问 AI
-              </button>
+              <span style={{ fontSize: 11.5, color: C.muted, fontWeight: 600 }}>识别 → 审核 → 立案 → 处置 → 核查</span>
+              {showAsk("funnel", v.total === 0) && (
+                <button
+                  onClick={() => openAsk("funnel")}
+                  style={{
+                    border: "1px solid var(--border)", background: "transparent", borderRadius: 999,
+                    padding: "2px 10px", fontSize: 10.5, fontWeight: 700, cursor: "pointer", color: C.primary,
+                    marginLeft: "auto",
+                  }}
+                >
+                  问 AI
+                </button>
+              )}
             </div>
             <div style={{ display: "flex", alignItems: "stretch", gap: 8, flexWrap: "wrap" }}>
               {FUNNEL_STAGES.map((s, i) => {
@@ -1687,7 +2010,6 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                 )
               })}
             </div>
-            <div style={{ fontSize: 11, color: C.muted, fontWeight: 600 }}>各阶按本环节完成时间计</div>
           </div>
 
           {/* 当前积压：浅底细边框整段包住 */}
@@ -1698,22 +2020,20 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                 label="存续事件" value={v.sustained} unit="件" color={C.warning} icon="layers" ruleId="ov_sustained"
                 sub="截止此刻 · 四环节之和"
                 onClick={v.sustained >= 1 ? () => openSlice("存续事件", v.sustained, "backlog", sliceRows({})) : undefined}
-                onAsk={() => openAsk("ov_sustained")}
               />
               <KpiCard2
                 label="严重事件" value={v.severe} unit="件" color={C.danger} icon="alertTriangle" ruleId="ov_severe"
                 sub="存续中等级为严重 · 截止此刻"
                 onClick={v.severe >= 1 ? () => openSlice("严重事件", v.severe, "backlog", sliceRows({ severe: true })) : undefined}
-                onAsk={() => openAsk("ov_severe")}
               />
             </div>
             <div className="stats-chart-grid stats-chart-grid-3">
               <ChartCard2
                 title="各阶段待处理" ruleId="ov_stages"
-                note="截止此刻 · 改时间不变，改空间/类型变 · 与流程运行「环节存量」同口径"
+                note="截止此刻，还压在各环节的件数"
                 sliceEnabled={v.sustained >= 1}
                 onSlice={() => openSlice("各阶段待处理", v.sustained, "backlog", sliceRows({}))}
-                onAsk={() => openAsk("ov_stages")}
+                onAsk={showAsk("ov_stages", v.sustained === 0) ? () => openAsk("ov_stages") : undefined}
               >
                 <StageBar values={v.stages.map((s) => s.value)} skin={skin} onItemClick={(name) => {
                   const idx = STAGE_META.findIndex((s) => s.label === name)
@@ -1731,7 +2051,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                 }
                 sliceEnabled={v.severe >= 1}
                 onSlice={() => openSlice("严重问题空间", v.severe, "backlog", sliceRows({ severe: true }))}
-                onAsk={() => openAsk("ov_severe_space")}
+                onAsk={showAsk("ov_severe_space", v.severe === 0) ? () => openAsk("ov_severe_space") : undefined}
               >
                 {v.severe === 0 || v.severeTop.visible.length === 0 ? (
                   <EmptyBox text="当前范围没有可计算该口径的样本" />
@@ -1750,7 +2070,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                 note="按存续计 · 截止此刻"
                 sliceEnabled={v.sustained >= 1}
                 onSlice={() => openSlice("当前存续类型", v.sustained, "backlog", sliceRows({}))}
-                onAsk={() => openAsk("ov_sustained_types")}
+                onAsk={showAsk("ov_sustained_types", v.sustained === 0) ? () => openAsk("ov_sustained_types") : undefined}
               >
                 {v.sustained === 0 ? (
                   <EmptyBox text="当前范围没有可计算该口径的样本" />
@@ -1779,7 +2099,6 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               label="事件总数" value={v.total} unit="件" color={C.primary} icon="archive" ruleId="ev_total"
               sub={`${filterMeta} · 按发现时间归日 · 本版发现均来自相机`}
               onClick={v.total >= 1 ? () => openSlice("事件总数", v.total, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) : undefined}
-              onAsk={() => openAsk("ev_total")}
             />
           </div>
           <div className="stats-chart-grid">
@@ -1787,7 +2106,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               title="类型结构" ruleId="ev_type_struct"
               sliceEnabled={v.total >= 1}
               onSlice={() => openSlice("类型结构", v.total, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) }))}
-              onAsk={() => openAsk("ev_type_struct")}
+              onAsk={showAsk("ev_type_struct", v.total === 0) ? () => openAsk("ev_type_struct") : undefined}
             >
               {v.total === 0 ? (
                 <EmptyBox text="当前范围没有可计算该口径的样本" />
@@ -1814,7 +2133,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               }
               sliceEnabled={v.total >= 1}
               onSlice={() => openSlice("空间分布", v.total, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) }))}
-              onAsk={() => openAsk("ev_space_dist")}
+              onAsk={showAsk("ev_space_dist", v.total === 0) ? () => openAsk("ev_space_dist") : undefined}
             >
               {v.spaceTop.visible.length === 0 ? (
                 <EmptyBox text="当前范围没有可计算该口径的样本" />
@@ -1832,10 +2151,10 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
 
           <ChartCard2
             title="发生时段" ruleId="ev_hourly"
-            note="按发现小时 0–23；没有发生的小时保留为 0；最高的一根用主色"
+            note="一天里各个小时发现了几件"
             sliceEnabled={v.total >= 1}
             onSlice={() => openSlice("发生时段", v.total, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) }))}
-            onAsk={() => openAsk("ev_hourly")}
+            onAsk={showAsk("ev_hourly", v.total === 0) ? () => openAsk("ev_hourly") : undefined}
           >
             <EchartsBar
               data={v.hourly}
@@ -1865,7 +2184,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
             }
             sliceEnabled={v.cameras.length >= 1}
             onSlice={() => openSlice("高发相机", sum(v.cameras.map((c) => c.value)), "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) }))}
-            onAsk={() => openAsk("ev_top_cameras")}
+            onAsk={showAsk("ev_top_cameras", v.cameras.length === 0) ? () => openAsk("ev_top_cameras") : undefined}
           >
             {v.cameras.length === 0 ? (
               <EmptyBox text="当前范围没有可计算该口径的样本" />
@@ -1898,8 +2217,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               value={v.doneAvg === null ? "—" : v.doneAvg}
               unit={v.doneAvg === null ? undefined : "小时"}
               color={C.primary} icon="clock" ruleId="pr_avg"
-              sub={v.doneN === 0 ? "当前范围无可计算样本" : `办完 ${v.doneN} 件 · 派发成功 → 处置完成`}
-              onAsk={() => openAsk("pr_avg")}
+              sub={v.doneN === 0 ? "当前范围无可计算样本" : `办完 ${v.doneN} 件 · 从派给网格到处置完`}
             />
           </div>
           <div className="stats-chart-grid stats-chart-grid-3">
@@ -1910,7 +2228,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                   <div>只计算这段时间里走完这一步的事件，柱高是平均小时。最长的一步用深色。</div>
                 </div>
               }
-              onAsk={() => openAsk("pr_dwell")}
+              onAsk={showAsk("pr_dwell", v.doneN === 0) ? () => openAsk("pr_dwell") : undefined}
             >
               {v.doneN === 0 ? (
                 <EmptyBox text="当前范围没有可计算该口径的样本" />
@@ -1933,7 +2251,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                   <RankNote by="时长" restCount={v.gridDur.restCount} restSum={v.gridDur.restSum} />
                 </div>
               }
-              onAsk={() => openAsk("pr_grid_dur")}
+              onAsk={showAsk("pr_grid_dur", v.doneN === 0) ? () => openAsk("pr_grid_dur") : undefined}
             >
               {v.doneN === 0 ? (
                 <EmptyBox text="当前范围没有可计算该口径的样本" />
@@ -1971,7 +2289,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                   <RankNote by="时长" restCount={v.typeDur.restCount} restSum={v.typeDur.restSum} />
                 </div>
               }
-              onAsk={() => openAsk("pr_type_dur")}
+              onAsk={showAsk("pr_type_dur", v.doneN === 0) ? () => openAsk("pr_type_dur") : undefined}
             >
               {v.doneN === 0 ? (
                 <EmptyBox text="当前范围没有可计算该口径的样本" />
@@ -2016,16 +2334,15 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                 icon={s.icon}
                 ruleId={s.ruleId}
                 onClick={s.value >= 1 ? () => stageTop(i) : undefined}
-                onAsk={() => openAsk(s.ruleId)}
               />
             ))}
           </div>
           <ChartCard2
             title="环节存量" ruleId="pr_stages"
-            note="截止此刻 · 四柱之和 = 存续事件；待立案不含自然消散；0 柱保留、不可点开切片"
+            note="截止此刻，还压在各环节的件数。现场已消失的不算待立案"
             sliceEnabled={v.sustained >= 1}
             onSlice={() => openSlice("环节存量", v.sustained, "backlog", sliceRows({}))}
-            onAsk={() => openAsk("pr_stages")}
+            onAsk={showAsk("pr_stages", v.sustained === 0) ? () => openAsk("pr_stages") : undefined}
           >
             <StageBar values={v.stages.map((s) => s.value)} skin={skin} onItemClick={(name) => {
               const idx = STAGE_META.findIndex((s) => s.label === name)
@@ -2036,13 +2353,13 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
             title="责任网格在办" ruleId="pr_grid"
             note={
               <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <div>截止此刻 · 各网格当前在办件数之和 = 待处置</div>
+                <div>截止此刻，各网格手里还没处置完的件数</div>
                 <RankNote by="件数" restCount={v.gridOnDutyTop.restCount} restSum={v.gridOnDutyTop.restSum} />
               </div>
             }
             sliceEnabled={v.gridOnDuty.some((d) => d.value >= 1)}
             onSlice={() => openSlice("责任网格在办", v.stages[1].value, "backlog", sliceRows({ stages: ["待处置"] }))}
-            onAsk={() => openAsk("pr_grid")}
+            onAsk={showAsk("pr_grid", v.gridOnDuty.length === 0) ? () => openAsk("pr_grid") : undefined}
           >
             {v.gridOnDuty.length === 0 ? (
               <EmptyBox text="当前范围没有可计算该口径的样本" />
@@ -2071,7 +2388,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               title="有效 / 无效 / 消散" ruleId="ql_composition"
               sliceEnabled={v.quality.composition >= 1}
               onSlice={() => openSlice("有效 / 无效 / 消散", v.quality.composition, "flow", sliceRows({ stages: ["已结案", "已作废", "无效", "待立案"] }))}
-              onAsk={() => openAsk("ql_composition")}
+              onAsk={showAsk("ql_composition", v.quality.composition === 0) ? () => openAsk("ql_composition") : undefined}
             >
               {v.quality.composition === 0 ? (
                 <EmptyBox text="当前范围没有可计算该口径的样本" />
@@ -2094,20 +2411,18 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14, alignContent: "start" }}>
               <KpiCard2
                 label="事件有效率" value={v.quality.effectiveRate} color={C.success} icon="target" ruleId="ql_effective_rate"
-                sub={v.quality.effectiveDenom === 0 ? "当前范围无可计算样本" : `分子 ${v.quality.valid} 件 · 分母 ${v.quality.effectiveDenom} 件`}
+                sub={v.quality.effectiveDenom === 0 ? "当前范围无可计算样本" : `送去立案 ${v.quality.effectiveDenom} 件，确认有效 ${v.quality.valid} 件`}
                 onClick={v.quality.valid >= 1 ? () => openSlice("事件有效率", v.quality.valid, "flow", sliceRows({ stages: ["已结案", "已作废", "待立案"] })) : undefined}
-                onAsk={() => openAsk("ql_effective_rate")}
               />
               <KpiCard2
                 label="退回率" value={v.quality.returnRate} color={C.warning} icon="refreshCw" ruleId="ql_return_rate"
-                sub={v.quality.inspected === 0 ? "当前范围无可计算样本" : `分子 ${v.quality.returned} 件 · 分母 ${v.quality.inspected} 件（一件多次计 1）`}
-                onClick={v.quality.returned >= 1 ? () => openSlice("退回率", v.quality.returned, "flow", sliceRows({ stages: ["待核查", "已结案"] })) : undefined}
-                onAsk={() => openAsk("ql_return_rate")}
+                sub={v.quality.inspected === 0 ? "当前范围无可计算样本" : `有核查决定 ${v.quality.inspected} 件，被退回 ${v.quality.returned} 件`}
+                onClick={v.quality.inspected >= 1 ? () => openSlice("退回率", v.quality.inspected, "flow", sliceRows({ stages: ["待核查", "已结案"] })) : undefined}
+                onAsk={showAsk("ql_return_rate", v.quality.inspected === 0) ? () => openAsk("ql_return_rate") : undefined}
               />
               <KpiCard2
                 label="一次核查通过率" value="—" color={C.purple} icon="checkSquare" ruleId="ql_first_pass"
                 sub="本版暂不计算"
-                onAsk={() => openAsk("ql_first_pass")}
               />
             </div>
           </div>
@@ -2118,36 +2433,28 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
           <div className="stats-kpi-grid cols-4">
             <KpiCard2
               label="发现有效率" value={v.aiRates.discoveryRate} color={C.primary} icon="target" ruleId="ai_discovery_rate"
-              sub={v.aiRates.discoveryCandidates === 0 ? "当前范围无可计算样本" : `分子 ${v.aiRates.discoveryValid} 件 · 分母 ${v.aiRates.discoveryCandidates} 件`}
+              sub={v.aiRates.discoveryCandidates === 0 ? "当前范围无可计算样本" : `相机发现 ${v.aiRates.discoveryCandidates} 件，最后要办 ${v.aiRates.discoveryValid} 件`}
               onClick={v.aiRates.discoveryValid >= 1 ? () => openSlice("发现有效率", v.aiRates.discoveryValid, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) : undefined}
-              onAsk={() => openAsk("ai_discovery_rate")}
+              onAsk={showAsk("ai_discovery_rate", v.aiRates.discoveryCandidates === 0) ? () => openAsk("ai_discovery_rate") : undefined}
             />
             <KpiCard2
               label="预填少改" value={v.aiRates.prefillType} color={C.cyan} icon="checkSquare" ruleId="ai_prefill_type"
-              sub={v.aiRates.prefillTotal === 0 ? "当前范围无可计算样本" : `分子 ${v.aiRates.prefillMatch} 件 · 分母 ${v.aiRates.prefillTotal} 件`}
+              sub={v.aiRates.prefillTotal === 0 ? "当前范围无可计算样本" : `AI 预填 ${v.aiRates.prefillTotal} 件，类型没被人工改 ${v.aiRates.prefillMatch} 件`}
               onClick={v.aiRates.prefillMatch >= 1 ? () => openSlice("预填少改", v.aiRates.prefillMatch, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) : undefined}
-              onAsk={() => openAsk("ai_prefill_type")}
+              onAsk={showAsk("ai_prefill_type", v.aiRates.prefillTotal === 0) ? () => openAsk("ai_prefill_type") : undefined}
             />
             <KpiCard2
               label="建议一致率" value={v.aiRates.suggestMatch} color={C.purple} icon="thumbsUp" ruleId="ai_suggest_match"
-              sub={v.aiRates.suggestTotal === 0 ? "当前范围无可计算样本" : `分子 ${v.aiRates.suggestMatchCount} 件 · 分母 ${v.aiRates.suggestTotal} 件`}
+              sub={v.aiRates.suggestTotal === 0 ? "当前范围无可计算样本" : `系统给建议 ${v.aiRates.suggestTotal} 件，人工判断一致 ${v.aiRates.suggestMatchCount} 件`}
               onClick={v.aiRates.suggestMatchCount >= 1 ? () => openSlice("建议一致率", v.aiRates.suggestMatchCount, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) : undefined}
-              onAsk={() => openAsk("ai_suggest_match")}
+              onAsk={showAsk("ai_suggest_match", v.aiRates.suggestTotal === 0) ? () => openAsk("ai_suggest_match") : undefined}
             />
             <KpiCard2
               label="空间匹配失败" value={v.aiRates.spaceFail} unit="件" color={C.warning} icon="mapPin" ruleId="ai_space_fail"
               sub="落不到网格、还要人定点"
               onClick={v.aiRates.spaceFail >= 1 ? () => openSlice("空间匹配失败", v.aiRates.spaceFail, "flow", sliceRows({ stages: ["待立案"] })) : undefined}
-              onAsk={() => openAsk("ai_space_fail")}
+              onAsk={showAsk("ai_space_fail", v.aiRates.spaceFail === 0) ? () => openAsk("ai_space_fail") : undefined}
             />
-          </div>
-          <div
-            style={{
-              fontSize: 12, color: C.muted, fontWeight: 600, lineHeight: 1.8,
-              paddingTop: 10, borderTop: `1px solid ${C.border}`,
-            }}
-          >
-            本版不展示 AI 整体覆盖率、减负省时、群众满意度、返工原因；分类 / 位置 / 网格准确率不并排。
           </div>
         </div>
       )}
