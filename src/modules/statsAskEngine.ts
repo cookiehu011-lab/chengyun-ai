@@ -386,7 +386,7 @@ export function answerFromEvents(spec: AskSpec, q: string): AskReply {
   // 6.5) 哪几件 / 列一下：事件列表（不含编号）
   const listAsk = /哪几件|哪些事件|是哪些|有哪些|列一下|列出|名单|明细/.test(qRest) && !FIELD_PATTERNS.some(([re]) => re.test(qRest))
   if (listAsk) {
-    if (/编号/.test(q)) return { ok: false, text: `全部 ${events.length} 件在这项统计的切片里。` }
+    if (/编号/.test(q)) return { ok: false, text: `全部 ${events.length} 件在这项统计的详情里。` }
     const tk = spec.timeKey
     const sorted = tk ? [...events].sort((a, b) => ((b[tk] as number) ?? 0) - ((a[tk] as number) ?? 0)) : events
     const showStage = new Set(events.map((e) => e.stage)).size > 1

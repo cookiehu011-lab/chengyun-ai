@@ -279,7 +279,7 @@ function filterPool(f: { stages?: string[]; type?: string | null; street?: strin
 function downloadCsv(name: string, rows: EvRow[]) {
   const head = "类型,位置,环节/终态,发生时间,当前情况"
   const body = rows
-    .map((r) => [r.type, r.place, r.stage, r.time, r.status].map((v) => `"${v}"`).join(","))
+    .map((r) => [r.type, r.place, r.stage, r.time, r.status].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
     .join("\n")
   const blob = new Blob(["\uFEFF" + head + "\n" + body], { type: "text/csv;charset=utf-8" })
   const url = URL.createObjectURL(blob)
@@ -288,6 +288,27 @@ function downloadCsv(name: string, rows: EvRow[]) {
   a.download = `${name}.csv`
   a.click()
   URL.revokeObjectURL(url)
+}
+
+const DETAIL_PAGE = 20
+
+function shiftMinute(time: string, add: number): string {
+  const m = time.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2})$/)
+  if (!m) return time
+  const total = Number(m[2]) * 60 + Number(m[3]) + add
+  const hh = String(Math.floor(total / 60) % 24).padStart(2, "0")
+  const mm = String(total % 60).padStart(2, "0")
+  return `${m[1]} ${hh}:${mm}`
+}
+
+/** 明细条数与统计件数对齐。示例池短于件数时，按原记录循环补足，时间错开。 */
+function fillDetail(rows: EvRow[], count: number): EvRow[] {
+  if (count < 1 || rows.length === 0) return []
+  if (rows.length >= count) return rows.slice(0, count)
+  return Array.from({ length: count }, (_, i) => {
+    const src = rows[i % rows.length]
+    return i < rows.length ? src : { ...src, time: shiftMinute(src.time, i) }
+  })
 }
 
 interface Filter {
@@ -321,8 +342,12 @@ interface SliceState {
 }
 
 function SliceDrawer({ slice, onClose }: { slice: SliceState | null; onClose: () => void }) {
+  const [shown, setShown] = useState(DETAIL_PAGE)
+  useEffect(() => { setShown(DETAIL_PAGE) }, [slice?.title, slice?.caliber])
   if (!slice) return null
   const rows = slice.rows
+  const visible = rows.slice(0, shown)
+  const rest = rows.length - visible.length
   return (
     <div
       style={{
@@ -337,7 +362,7 @@ function SliceDrawer({ slice, onClose }: { slice: SliceState | null; onClose: ()
       <aside
         role="dialog"
         aria-modal="true"
-        aria-label={`${slice.title}切片`}
+        aria-label={`${slice.title}详情`}
         style={{
           position: "relative", width: 480, maxWidth: "92vw",
           background: "var(--panel-solid, #fff)", borderLeft: "1px solid var(--border)",
@@ -352,7 +377,7 @@ function SliceDrawer({ slice, onClose }: { slice: SliceState | null; onClose: ()
           }}
         >
           <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>
-            切片 · {slice.title}
+            详情 · {slice.title}
             <span style={{ fontSize: 10, color: C.muted, fontWeight: 600, marginLeft: 8 }}>示例数据</span>
           </div>
           <button
@@ -361,7 +386,7 @@ function SliceDrawer({ slice, onClose }: { slice: SliceState | null; onClose: ()
               border: "1px solid var(--border)", background: "transparent", borderRadius: 8,
               width: 28, height: 28, cursor: "pointer", color: C.muted, fontSize: 13,
             }}
-            aria-label="关闭切片"
+            aria-label="关闭详情"
           >
             ✕
           </button>
@@ -381,7 +406,7 @@ function SliceDrawer({ slice, onClose }: { slice: SliceState | null; onClose: ()
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {rows.map((r, i) => {
+              {visible.map((r, i) => {
                 const terminal = r.stage === "已结案" || r.stage === "已作废" || r.stage === "无效"
                 return (
                   <div
@@ -408,18 +433,34 @@ function SliceDrawer({ slice, onClose }: { slice: SliceState | null; onClose: ()
                   </div>
                 )
               })}
+              {rest > 0 && (
+                <button
+                  onClick={() => setShown((n) => n + DETAIL_PAGE)}
+                  style={{
+                    border: "1px solid var(--border)", background: "transparent", borderRadius: 8,
+                    padding: "8px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", color: C.primary,
+                  }}
+                >
+                  继续看 {Math.min(DETAIL_PAGE, rest)} 件（还有 {rest} 件）
+                </button>
+              )}
             </div>
           )}
         </div>
-        <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)" }}>
+        <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.6 }}>
+            共 {rows.length} 件。列表每次 20 件。下载是全部 {rows.length} 件，不限于当前显示的。
+          </div>
           <button
-            onClick={() => downloadCsv(`${slice.title}切片`, rows)}
+            onClick={() => downloadCsv(`${slice.title}详情`, rows)}
+            disabled={rows.length === 0}
             style={{
               border: "1px solid var(--border)", background: "transparent", borderRadius: 8,
-              padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", color: C.text,
+              padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: rows.length === 0 ? "default" : "pointer", color: C.text,
+              alignSelf: "flex-start",
             }}
           >
-            ⬇ 下载本切片
+            下载全部 {rows.length} 件
           </button>
         </div>
       </aside>
@@ -445,29 +486,97 @@ interface AskDesc {
   spec: AskSpec
 }
 
-const ASK_OTHER_TITLES = [
-  "事件总数", "区间闭环", "存续事件", "严重事件", "发现与闭环", "链路吞吐",
-  "各阶段待处理", "严重问题空间", "当前存续类型", "类型结构", "空间分布",
-  "发生时段", "高发相机", "平均处置时长", "各环节停了多久", "哪个网格办完更久", "哪类事件办完更久",
-  "环节存量", "责任网格在办", "有效 / 无效 / 消散", "事件有效率", "退回率", "一次核查通过率",
-  "发现有效率", "预填少改", "建议一致率", "空间匹配失败",
-]
-
 type AskAnswer = AskReply
 
-function answerAsk(desc: AskDesc, q: string): AskAnswer {
+const ASK_GENERIC = "这里只有这批事件的记录，看不出原因，也不能预测。"
+
+const PAGE_LABEL: Record<Cat, string> = {
+  overview: "综合态势",
+  events: "事件发生",
+  process: "流程运行",
+  quality: "治理质量与 AI 成效",
+}
+
+const PAGE_ASK_IDS: Record<Cat, string[]> = {
+  overview: ["ov_daily", "funnel", "ov_stages", "ov_severe_space", "ov_sustained_types"],
+  events: ["ev_type_struct", "ev_space_dist", "ev_hourly", "ev_top_cameras"],
+  process: ["pr_dwell", "pr_grid_dur", "pr_type_dur", "pr_stages", "pr_grid"],
+  quality: ["ql_composition", "ql_return_rate", "ai_discovery_rate", "ai_prefill_type", "ai_suggest_match", "ai_space_fail"],
+}
+
+const PAGE_STAT_NAMES: Record<Cat, string[]> = {
+  overview: ["发现与闭环", "链路吞吐", "各阶段待处理", "严重问题空间", "当前存续类型", "事件总数", "区间闭环", "存续事件", "严重事件"],
+  events: ["类型结构", "空间分布", "发生时段", "高发相机", "事件总数"],
+  process: ["各环节停了多久", "哪个网格办完更久", "哪类事件办完更久", "环节存量", "责任网格在办", "平均处置时长", "待立案", "待处置", "待核查", "待作废审核"],
+  quality: ["有效 / 无效 / 消散", "事件有效率", "退回率", "一次核查通过率", "发现有效率", "预填少改", "建议一致率", "空间匹配失败"],
+}
+
+/** 点名就能判断属于哪一页。阶段名在综合态势和流程运行都能问，不放这里。 */
+const EXCLUSIVE_STAT: { title: string; page: Cat }[] = [
+  ["发现与闭环", "overview"], ["链路吞吐", "overview"], ["各阶段待处理", "overview"],
+  ["严重问题空间", "overview"], ["当前存续类型", "overview"], ["区间闭环", "overview"],
+  ["存续事件", "overview"], ["严重事件", "overview"],
+  ["类型结构", "events"], ["空间分布", "events"], ["发生时段", "events"], ["高发相机", "events"],
+  ["各环节停了多久", "process"], ["哪个网格办完更久", "process"], ["哪类事件办完更久", "process"],
+  ["环节存量", "process"], ["责任网格在办", "process"], ["平均处置时长", "process"],
+  ["从派给网格到处置完，平均要多久", "process"],
+  ["有效 / 无效 / 消散", "quality"], ["事件有效率", "quality"], ["退回率", "quality"],
+  ["一次核查通过率", "quality"], ["发现有效率", "quality"], ["预填少改", "quality"],
+  ["建议一致率", "quality"], ["空间匹配失败", "quality"],
+].map(([title, page]) => ({ title, page: page as Cat })).sort((a, b) => b.title.length - a.title.length)
+
+const STAGE_NAMES = ["待作废审核", "待核查", "待处置", "待立案"]
+
+function mentionedStat(q: string): { title: string; pages: Cat[] } | null {
+  const exclusive = EXCLUSIVE_STAT.find((s) => q.includes(s.title))
+  if (exclusive) return { title: exclusive.title, pages: [exclusive.page] }
+  if (q.includes("事件总数")) return { title: "事件总数", pages: ["overview", "events"] }
+  const stage = STAGE_NAMES.find((s) => q.includes(s))
+  if (stage) return { title: stage, pages: ["overview", "process"] }
+  return null
+}
+
+interface KpiReply { title: string; reply: AskReply }
+
+function answerAsk(desc: AskDesc, pool: AskDesc[], kpis: KpiReply[], page: Cat, q: string): AskAnswer {
   if (/为什么|原因|怎么回事|预测|以后会|将来|明天会|会不会再|派人|谁去办|安排谁|追责|问责|处分|其他城市|别的区|和.*区比/.test(q)) {
-    return { ok: false, text: "这里只有这批事件的记录，看不出原因，也不能预测。" }
+    return { ok: false, text: ASK_GENERIC }
   }
-  if (desc.rest && desc.rest.count > 0 && /其余|没画出|没显示|后面那些/.test(q)) {
+  const hit = mentionedStat(q)
+  if (hit && !hit.pages.includes(page)) {
+    const where = hit.pages.map((p) => PAGE_LABEL[p]).join("」或「")
+    return { ok: false, text: `「${hit.title}」不在「${PAGE_LABEL[page]}」里。请打开「${where}」再问。` }
+  }
+  if (desc.rest && desc.rest.count > 0 && /其余|没画出|没显示|后面那些/.test(q) && (!hit || hit.title === desc.title)) {
     return { ok: false, text: `只知道其余 ${desc.rest.count} 个合计 ${desc.rest.sum} 件，没有名单。` }
   }
-  const own = new Set<string>([desc.title, desc.spec.setLabel])
-  for (const e of desc.spec.events) for (const val of Object.values(e)) if (typeof val === "string") own.add(val)
-  for (const i of desc.spec.items ?? []) own.add(i.name)
-  const other = ASK_OTHER_TITLES.find((t) => !own.has(t) && t !== desc.title && q.includes(t))
-  if (other) return { ok: false, text: `这里只看${desc.title}。要看那一项，请打开那一项的问 AI。` }
-  return answerFromEvents(desc.spec, q)
+  const fromPool = (title: string): AskAnswer | null => {
+    const kpiTitle = title.startsWith("从派给网格") ? "平均处置时长" : title
+    const kpi = kpis.find((k) => k.title === kpiTitle)
+    const breakdown = /哪个|哪些|哪几|哪件|集中|最|分别|每天|几点|改成|说明|什么类型|什么点位|在哪/.test(q)
+    if (kpi && !breakdown) return kpi.reply
+    const named = pool.find((d) => d.title === title)
+    if (named?.empty) return { ok: false, text: `「${title}」当前没有可计算的数据。` }
+    if (named) return answerFromEvents(named.spec, q)
+    if (STAGE_NAMES.includes(title)) {
+      const stageSpec = pool.find((d) => d.id === "ov_stages" || d.id === "pr_stages")
+      if (stageSpec?.empty) return { ok: false, text: `「${title}」当前没有可计算的数据。` }
+      if (stageSpec) return answerFromEvents(stageSpec.spec, q)
+    }
+    return null
+  }
+  if (hit && hit.pages.includes(page)) {
+    const routed = fromPool(hit.title)
+    if (routed) return routed
+  }
+  const own = answerFromEvents(desc.spec, q)
+  if (own.ok || own.text !== ASK_GENERIC) return own
+  for (const other of pool) {
+    if (other.id === desc.id || other.empty) continue
+    const ans = answerFromEvents(other.spec, q)
+    if (ans.ok) return ans
+  }
+  return { ok: false, text: `这页只看「${PAGE_LABEL[page]}」：${PAGE_STAT_NAMES[page].join("、")}。这个问题不在这些统计里。` }
 }
 
 const ASK_STORAGE_KEY = "stats-ask-ai-v1.3"
@@ -609,7 +718,7 @@ function VizEvents({ rows, total }: { rows: VizEvent[]; total: number }) {
           {r.metric && <span style={{ fontSize: 12.5, fontWeight: 800, color: C.primary, fontFamily: "JetBrains Mono, monospace", flexShrink: 0 }}>{r.metric}</span>}
         </div>
       ))}
-      {total > rows.length && <div style={{ fontSize: 11, color: C.muted }}>共 {total} 件，这里列 {rows.length} 件；全部在这项统计的切片里。</div>}
+      {total > rows.length && <div style={{ fontSize: 11, color: C.muted }}>共 {total} 件，这里列 {rows.length} 件；全部在这项统计的详情里。</div>}
     </div>
   )
 }
@@ -621,7 +730,7 @@ function AskVizBlock({ viz }: { viz: AskViz }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <span style={{ fontSize: 11.5, color: C.muted }}>{viz.caption}</span>
           <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-            <span className="gradient-text" style={{ fontSize: 30, fontWeight: 800, lineHeight: 1, fontFamily: "JetBrains Mono, monospace" }}>{viz.value}</span>
+            <span className="gradient-text" style={{ fontSize: 30, fontWeight: 800, lineHeight: 1, fontFamily: "JetBrains Mono, monospace" }}>{viz.unit === "%" || viz.unit === "小时" ? viz.value.toFixed(1) : viz.value}</span>
             <span style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>{viz.unit}</span>
           </div>
           {viz.note && <span style={{ fontSize: 11.5, color: C.muted }}>{viz.note}</span>}
@@ -651,7 +760,15 @@ function AskVizBlock({ viz }: { viz: AskViz }) {
   }
 }
 
-function AskAiDrawer({ desc, onClose }: { desc: AskDesc; onClose: () => void }) {
+function AskAiDrawer({
+  desc, pool, kpis, page, onClose,
+}: {
+  desc: AskDesc
+  pool: AskDesc[]
+  kpis: KpiReply[]
+  page: Cat
+  onClose: () => void
+}) {
   const [msgs, setMsgs] = useState<AskMsg[]>([])
   const [input, setInput] = useState("")
   const lastScope = useRef(desc.sig ?? desc.scope)
@@ -670,7 +787,7 @@ function AskAiDrawer({ desc, onClose }: { desc: AskDesc; onClose: () => void }) 
   const send = (raw: string) => {
     const q = raw.trim()
     if (!q) return
-    const ans = answerAsk(desc, q)
+    const ans = answerAsk(desc, pool, kpis, page, q)
     setMsgs((m) => [...m, { role: "q", text: q }, { role: "a", text: ans.text, used: ans.used, ok: ans.ok, viz: ans.viz }])
     persistAsk(desc, q, ans)
     setInput("")
@@ -711,9 +828,10 @@ function AskAiDrawer({ desc, onClose }: { desc: AskDesc; onClose: () => void }) 
               padding: "10px 12px", background: "var(--card-2, rgba(50,109,255,0.04))", borderRadius: 8,
             }}
           >
-            <div>我能帮你看：{desc.scopeLine}</div>
-            <div>{fieldLine}</div>
-            <div style={{ color: C.muted, fontSize: 11 }}>原因判断、预测、改筛选和去办理，这里帮不上。</div>
+            <div>我能帮你看：{desc.filterText ?? desc.scope} 下，「{PAGE_LABEL[page]}」这一页的统计。</div>
+            <div>现在这项是「{desc.title}」。{desc.scopeLine}</div>
+            <div>{fieldLine}同一页的其他统计也能问。</div>
+            <div style={{ color: C.muted, fontSize: 11 }}>别的页面的统计、原因、预测和去办理，这里不回答。</div>
           </div>
 
           {/* 建议问题（§4） */}
@@ -833,7 +951,7 @@ function KpiCard2({
         cursor: clickable ? "pointer" : "default",
         transition: "border-color .15s ease, box-shadow .15s ease",
       }}
-      title={clickable ? "点击查看切片" : undefined}
+      title={clickable ? "点击查看详情" : undefined}
     >
       {icon && (
         <div
@@ -882,7 +1000,7 @@ function KpiCard2({
         {sub && <div style={{ fontSize: 11, color: C.muted, marginTop: 6, fontWeight: 600 }}>{sub}</div>}
         {clickable && (
           <div style={{ fontSize: 10, color: C.primary, marginTop: 6, fontWeight: 700, opacity: 0.75 }}>
-            查看切片 →
+            查看详情 →
           </div>
         )}
       </div>
@@ -946,7 +1064,7 @@ function ChartCard2({
               className="tech-btn-ghost"
               style={{ padding: "5px 12px", fontSize: 11, fontWeight: 600, borderRadius: 8, whiteSpace: "nowrap" }}
             >
-              查看切片
+              查看详情
             </button>
           )}
         </div>
@@ -1463,7 +1581,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
     setSlice({
       title,
       caliber,
-      rows: rows.length > 0 ? rows : EVENT_POOL.slice(0, 3),
+      rows: fillDetail(rows.length > 0 ? rows : EVENT_POOL.slice(0, 3), count),
     })
   }
 
@@ -1893,6 +2011,50 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
 
   const askBuilt = askId ? buildAsk(askId) : null
   const askDesc = askBuilt && !askBuilt.empty ? askBuilt : null
+  const pageBuilt = PAGE_ASK_IDS[cat].map((id) => buildAsk(id)).filter((d): d is AskDesc => !!d)
+  const pageKpis: KpiReply[] = []
+  const valueKpi = (title: string, value: number, unit: string, note?: string): KpiReply => ({
+    title,
+    reply: {
+      ok: true,
+      text: note ? `${title} ${value} ${unit}。${note}` : `${title} ${value} ${unit}。`,
+      viz: { kind: "value", value, unit, caption: title, note },
+    },
+  })
+  const dashKpi = (title: string): KpiReply => ({ title, reply: { ok: true, text: `${title}当前没有可计算的数据。` } })
+  if (cat === "overview" || cat === "events") pageKpis.push(valueKpi("事件总数", v.total, "件"))
+  if (cat === "overview") {
+    pageKpis.push(valueKpi("区间闭环", v.closedAll, "件", `结案 ${v.closedCase} 件，作废或判无效 ${v.closedNonCase} 件`))
+    pageKpis.push(valueKpi("存续事件", v.sustained, "件"))
+    pageKpis.push(valueKpi("严重事件", v.severe, "件"))
+  }
+  if (cat === "process") {
+    pageKpis.push(v.doneAvg === null
+      ? dashKpi("平均处置时长")
+      : valueKpi("平均处置时长", v.doneAvg, "小时", `办完 ${v.doneN} 件`))
+    for (const s of v.stages) pageKpis.push(valueKpi(s.label, s.value, "件"))
+  }
+  if (cat === "quality") {
+    pageKpis.push(v.quality.effectiveRate === "—"
+      ? dashKpi("事件有效率")
+      : valueKpi("事件有效率", parseFloat(v.quality.effectiveRate), "%", `审完 ${v.quality.effectiveDenom} 件，确认有效 ${v.quality.valid} 件`))
+    pageKpis.push(v.quality.firstPassRate === "—"
+      ? dashKpi("一次核查通过率")
+      : valueKpi("一次核查通过率", parseFloat(v.quality.firstPassRate), "%", `已有第一次核查决定 ${v.quality.firstDecided} 件，第一次就结案 ${v.quality.firstPass} 件`))
+    pageKpis.push(v.quality.returnRate === "—"
+      ? dashKpi("退回率")
+      : valueKpi("退回率", parseFloat(v.quality.returnRate), "%", `有核查结果 ${v.quality.inspected} 件，被退回 ${v.quality.returned} 件`))
+    pageKpis.push(v.aiRates.discoveryRate === "—"
+      ? dashKpi("发现有效率")
+      : valueKpi("发现有效率", parseFloat(v.aiRates.discoveryRate), "%", `相机发现 ${v.aiRates.discoveryCandidates} 件，最后要办 ${v.aiRates.discoveryValid} 件`))
+    pageKpis.push(v.aiRates.prefillType === "—"
+      ? dashKpi("预填少改")
+      : valueKpi("预填少改", parseFloat(v.aiRates.prefillType), "%", `AI 预填 ${v.aiRates.prefillTotal} 件，类型没被人工改 ${v.aiRates.prefillMatch} 件`))
+    pageKpis.push(v.aiRates.suggestMatch === "—"
+      ? dashKpi("建议一致率")
+      : valueKpi("建议一致率", parseFloat(v.aiRates.suggestMatch), "%", `系统给建议 ${v.aiRates.suggestTotal} 件，人工判断一致 ${v.aiRates.suggestMatchCount} 件`))
+    pageKpis.push(valueKpi("空间匹配失败", v.aiRates.spaceFail, "件"))
+  }
   if (askDesc) {
     // 切换签名跟「筛选器状态 + tab」走：积压类统计的范围行写「截止此刻」，
     // 但改时间仍是筛选变化，也要插「已切换为 …」。
@@ -2069,7 +2231,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                     )}
                     <div
                       onClick={val >= 1 ? () => openSlice(`链路吞吐 · ${s.label}`, val, "flow", sliceRows({ stages: FUNNEL_SLICE_STAGES[s.key] })) : undefined}
-                      title={val >= 1 ? "点击查看切片" : undefined}
+                      title={val >= 1 ? "点击查看详情" : undefined}
                       style={{
                         flex: 1, minWidth: 140,
                         padding: "4px 6px",
@@ -2549,7 +2711,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       )}
 
       <SliceDrawer slice={slice} onClose={() => setSlice(null)} />
-      {askDesc && <AskAiDrawer key={askDesc.id} desc={askDesc} onClose={() => setAskId(null)} />}
+      {askDesc && <AskAiDrawer key={askDesc.id} desc={askDesc} pool={pageBuilt} kpis={pageKpis} page={cat} onClose={() => setAskId(null)} />}
     </div>
   )
 }
