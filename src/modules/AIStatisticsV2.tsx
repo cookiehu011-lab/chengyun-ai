@@ -276,8 +276,24 @@ function filterPool(f: { stages?: string[]; type?: string | null; street?: strin
   return rows
 }
 
+const DETAIL_COLUMNS = ["类型", "位置", "环节/终态", "发生时间", "当前情况"] as const
+
+/** 办完样本没有明细字段。下载和列表仍用同一套 5 列，不把各环节用时写进表。 */
+function doneDetailRow(r: DoneEv, i: number): EvRow {
+  const stem = r.grid.replace(/-\d+网格$/, "")
+  const closed = r.check !== undefined
+  const sample = EVENT_POOL[i % EVENT_POOL.length]
+  return {
+    type: r.type,
+    place: `${stem}街道 · ${r.grid}`,
+    stage: closed ? "已结案" : "待核查",
+    time: shiftMinute(sample.time, i),
+    status: closed ? "核查通过，已结案" : "处置完成，待核查",
+  }
+}
+
 function downloadCsv(name: string, rows: EvRow[]) {
-  const head = "类型,位置,环节/终态,发生时间,当前情况"
+  const head = DETAIL_COLUMNS.join(",")
   const body = rows
     .map((r) => [r.type, r.place, r.stage, r.time, r.status].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
     .join("\n")
@@ -450,6 +466,8 @@ function SliceDrawer({ slice, onClose }: { slice: SliceState | null; onClose: ()
         <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.6 }}>
             共 {rows.length} 件。列表每次 20 件。下载是全部 {rows.length} 件，不限于当前显示的。
+            <br />
+            表格固定 {DETAIL_COLUMNS.join("、")}。不含事件编号、相机编号、各环节用时。
           </div>
           <button
             onClick={() => downloadCsv(`${slice.title}详情`, rows)}
@@ -794,7 +812,6 @@ function AskAiDrawer({
   }
 
   const suggestions = desc.suggestions
-  const fieldLine = `可以按${desc.askFields.join("、")}来问。`
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "stretch", justifyContent: "flex-end", pointerEvents: "none" }}>
@@ -829,8 +846,7 @@ function AskAiDrawer({
             }}
           >
             <div>我能帮你看：{desc.filterText ?? desc.scope} 下，「{PAGE_LABEL[page]}」这一页的统计。</div>
-            <div>现在这项是「{desc.title}」。{desc.scopeLine}</div>
-            <div>{fieldLine}同一页的其他统计也能问。</div>
+            <div>这一页包括：{PAGE_STAT_NAMES[page].join("、")}。</div>
             <div style={{ color: C.muted, fontSize: 11 }}>别的页面的统计、原因、预测和去办理，这里不回答。</div>
           </div>
 
@@ -2519,13 +2535,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                         `哪个网格办完更久 · ${name}`,
                         gridRows.length,
                         "flow",
-                        gridRows.map<EvRow>((r) => ({
-                          type: r.type,
-                          place: name,
-                          stage: r.check === undefined ? "待核查" : "已结案",
-                          time: `${WIN_LABEL[win]}处置完`,
-                          status: `派给网格 ${r.wait}h · 处置 ${r.doIt}h · ${r.check === undefined ? "还没核查完" : `核查 ${r.check}h`}`,
-                        })),
+                        gridRows.map(doneDetailRow),
                       )
                     }
                   }}
@@ -2557,13 +2567,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                         `哪类事件办完更久 · ${name}`,
                         typeRows.length,
                         "flow",
-                        typeRows.map<EvRow>((r) => ({
-                          type: name,
-                          place: r.grid,
-                          stage: r.check === undefined ? "待核查" : "已结案",
-                          time: `${WIN_LABEL[win]}处置完`,
-                          status: `派给网格 ${r.wait}h · 处置 ${r.doIt}h · ${r.check === undefined ? "还没核查完" : `核查 ${r.check}h`}`,
-                        })),
+                        typeRows.map(doneDetailRow),
                       )
                     }
                   }}
