@@ -519,7 +519,7 @@ const PAGE_ASK_IDS: Record<Cat, string[]> = {
   overview: ["ov_daily", "funnel", "ov_stages", "ov_severe_space", "ov_sustained_types"],
   events: ["ev_type_struct", "ev_space_dist", "ev_hourly", "ev_top_cameras"],
   process: ["pr_dwell", "pr_grid_dur", "pr_type_dur", "pr_stages", "pr_grid"],
-  quality: ["ql_composition", "ql_return_rate", "ai_discovery_rate", "ai_prefill_type", "ai_suggest_match", "ai_space_fail"],
+  quality: ["ql_composition"],
 }
 
 const PAGE_STAT_NAMES: Record<Cat, string[]> = {
@@ -545,6 +545,25 @@ const EXCLUSIVE_STAT: { title: string; page: Cat }[] = [
 
 const STAGE_NAMES = ["待作废审核", "待核查", "待处置", "待立案"]
 
+/** 本期先不开放问 AI。点名或说到这些，直接说明暂不支持。 */
+const ASK_PAUSED: { phrase: string; title: string }[] = [
+  ["空间匹配失败", "空间匹配失败"],
+  ["发现有效率", "发现有效率"],
+  ["建议一致率", "建议一致率"],
+  ["预填少改", "预填少改"],
+  ["匹配失败", "空间匹配失败"],
+  ["建议一致", "建议一致率"],
+  ["被退回", "退回率"],
+  ["退回率", "退回率"],
+  ["不用办", "发现有效率"],
+  ["预填", "预填少改"],
+].map(([phrase, title]) => ({ phrase, title }))
+
+function pausedAsk(q: string): string | null {
+  const hit = ASK_PAUSED.find((s) => q.includes(s.phrase))
+  return hit ? `「${hit.title}」暂不支持问 AI。` : null
+}
+
 function mentionedStat(q: string): { title: string; pages: Cat[] } | null {
   const exclusive = EXCLUSIVE_STAT.find((s) => q.includes(s.title))
   if (exclusive) return { title: exclusive.title, pages: [exclusive.page] }
@@ -560,6 +579,8 @@ function answerAsk(desc: AskDesc, pool: AskDesc[], kpis: KpiReply[], page: Cat, 
   if (/为什么|原因|怎么回事|预测|以后会|将来|明天会|会不会再|派人|谁去办|安排谁|追责|问责|处分|其他城市|别的区|和.*区比/.test(q)) {
     return { ok: false, text: ASK_GENERIC }
   }
+  const paused = pausedAsk(q)
+  if (paused) return { ok: false, text: paused }
   const hit = mentionedStat(q)
   if (hit && !hit.pages.includes(page)) {
     const where = hit.pages.map((p) => PAGE_LABEL[p]).join("」或「")
@@ -847,6 +868,9 @@ function AskAiDrawer({
           >
             <div>我能帮你看：{desc.filterText ?? desc.scope} 下，「{PAGE_LABEL[page]}」这一页的统计。</div>
             <div>这一页包括：{PAGE_STAT_NAMES[page].join("、")}。</div>
+            {page === "quality" && (
+              <div>退回率、发现有效率、预填少改、建议一致率、空间匹配失败，暂不支持问 AI。</div>
+            )}
             <div style={{ color: C.muted, fontSize: 11 }}>别的页面的统计、原因、预测和去办理，这里不回答。</div>
           </div>
 
@@ -1225,12 +1249,12 @@ function CameraRank({
 // §1 问 AI 入口白名单：只有这些 id 在 §1 表格里标了「给入口」
 // 未进名单的（事件总数、区间闭环、存续事件、严重事件、平均处置时长、
 // 四张环节卡、事件有效率、一次核查通过率）一律不给入口。
+// 退回率、发现有效率、预填少改、建议一致率、空间匹配失败本期暂不支持问 AI。
 const ASK_ALLOWED_IDS = new Set<string>([
   "ov_daily", "funnel", "ov_stages", "ov_severe_space", "ov_sustained_types",
   "ev_type_struct", "ev_space_dist", "ev_hourly", "ev_top_cameras",
   "pr_dwell", "pr_grid_dur", "pr_type_dur", "pr_stages", "pr_grid",
-  "ql_composition", "ql_return_rate", "ai_discovery_rate", "ai_prefill_type",
-  "ai_suggest_match", "ai_space_fail",
+  "ql_composition",
 ])
 
 export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
