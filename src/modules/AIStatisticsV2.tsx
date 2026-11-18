@@ -136,11 +136,11 @@ const WIN_FUNNEL: Record<TimeWin, { filed: number }> = {
 }
 
 const FUNNEL_STAGES: { key: "found" | "reviewed" | "filed" | "disposed" | "inspected"; label: string; sub: string; ruleId: string }[] = [
-  { key: "found", label: "识别", sub: "区间新发现", ruleId: "funnel_found" },
-  { key: "reviewed", label: "审核", sub: "区间审完（有效+无效）", ruleId: "funnel_reviewed" },
-  { key: "filed", label: "立案", sub: "区间立案派发成功", ruleId: "funnel_filed" },
-  { key: "disposed", label: "处置", sub: "区间处置完成", ruleId: "funnel_disposed" },
-  { key: "inspected", label: "核查结案", sub: "核查通过并结案", ruleId: "funnel_inspected" },
+  { key: "found", label: "发现", sub: "按发现时间", ruleId: "funnel_found" },
+  { key: "reviewed", label: "审核完成", sub: "按审核完成时间", ruleId: "funnel_reviewed" },
+  { key: "filed", label: "派发成功", sub: "按派发成功时间", ruleId: "funnel_filed" },
+  { key: "disposed", label: "处置完成", sub: "按处置完成时间，含已结案", ruleId: "funnel_disposed" },
+  { key: "inspected", label: "核查结案", sub: "按核查结案时间", ruleId: "funnel_inspected" },
 ]
 
 const FUNNEL_SLICE_STAGES: Record<string, string[]> = {
@@ -276,7 +276,7 @@ function filterPool(f: { stages?: string[]; type?: string | null; street?: strin
   return rows
 }
 
-const DETAIL_COLUMNS = ["类型", "位置", "环节/终态", "发生时间", "当前情况"] as const
+const DETAIL_COLUMNS = ["类型", "位置", "当前状态", "发现时间", "当前情况"] as const
 
 /** 办完样本没有明细字段。下载和列表仍用同一套 5 列，不把各环节用时写进表。 */
 function doneDetailRow(r: DoneEv, i: number): EvRow {
@@ -523,40 +523,46 @@ const PAGE_ASK_IDS: Record<Cat, string[]> = {
 }
 
 const PAGE_STAT_NAMES: Record<Cat, string[]> = {
-  overview: ["发现与闭环", "全流程各环节办结量", "各阶段待处理", "严重问题空间", "当前存续类型", "事件总数", "区间闭环", "存续事件", "严重事件"],
-  events: ["类型结构", "空间分布", "发生时段", "高发相机", "事件总数"],
-  process: ["各环节停了多久", "哪个网格办完更久", "哪类事件办完更久", "环节存量", "责任网格在办", "平均处置时长", "待立案", "待处置", "待核查", "待作废审核"],
-  quality: ["有效 / 无效 / 消散", "事件有效率", "退回率", "一次核查通过率", "发现有效率", "预填少改", "建议一致率", "空间匹配失败"],
+  overview: ["发现与办结", "环节完成量", "环节存量", "严重事件分布", "未办结类型", "发现事件", "办结", "未办结", "严重事件"],
+  events: ["类型结构", "发现分布", "发生时段", "高发相机", "发现事件"],
+  process: ["环节用时", "网格处置用时", "类型处置用时", "环节存量", "网格待处置", "平均用时", "待立案", "待处置", "待核查", "待作废审核"],
+  quality: ["立案有效 / 判无效 / 自然消散", "审核有效率", "核查退回率", "一次核查结案率", "发现立案率", "预填一致率", "处置建议一致率", "未匹配网格"],
 }
 
 /** 点名就能判断属于哪一页。阶段名在综合态势和流程运行都能问，不放这里。 */
 const EXCLUSIVE_STAT: { title: string; page: Cat }[] = [
-  ["发现与闭环", "overview"], ["全流程各环节办结量", "overview"], ["各阶段待处理", "overview"],
-  ["严重问题空间", "overview"], ["当前存续类型", "overview"], ["区间闭环", "overview"],
-  ["存续事件", "overview"], ["严重事件", "overview"],
-  ["类型结构", "events"], ["空间分布", "events"], ["发生时段", "events"], ["高发相机", "events"],
-  ["各环节停了多久", "process"], ["哪个网格办完更久", "process"], ["哪类事件办完更久", "process"],
-  ["环节存量", "process"], ["责任网格在办", "process"], ["平均处置时长", "process"],
+  ["发现与办结", "overview"], ["环节完成量", "overview"], ["环节存量", "overview"],
+  ["严重事件分布", "overview"], ["未办结类型", "overview"], ["办结", "overview"],
+  ["未办结", "overview"], ["严重事件", "overview"],
+  ["类型结构", "events"], ["发现分布", "events"], ["发生时段", "events"], ["高发相机", "events"],
+  ["环节用时", "process"], ["网格处置用时", "process"], ["类型处置用时", "process"],
+  ["网格待处置", "process"], ["平均用时", "process"],
+  ["平均处置时长", "process"],
   ["从派给网格到处置完，平均要多久", "process"],
-  ["有效 / 无效 / 消散", "quality"], ["事件有效率", "quality"], ["退回率", "quality"],
-  ["一次核查通过率", "quality"], ["发现有效率", "quality"], ["预填少改", "quality"],
-  ["建议一致率", "quality"], ["空间匹配失败", "quality"],
+  ["立案有效 / 判无效 / 自然消散", "quality"], ["审核有效率", "quality"], ["核查退回率", "quality"],
+  ["一次核查结案率", "quality"], ["发现立案率", "quality"], ["预填一致率", "quality"],
+  ["处置建议一致率", "quality"], ["未匹配网格", "quality"],
 ].map(([title, page]) => ({ title, page: page as Cat })).sort((a, b) => b.title.length - a.title.length)
 
 const STAGE_NAMES = ["待作废审核", "待核查", "待处置", "待立案"]
 
 /** 本期先不开放问 AI。点名或说到这些，直接说明暂不支持。 */
 const ASK_PAUSED: { phrase: string; title: string }[] = [
-  ["空间匹配失败", "空间匹配失败"],
-  ["发现有效率", "发现有效率"],
-  ["建议一致率", "建议一致率"],
-  ["预填少改", "预填少改"],
-  ["匹配失败", "空间匹配失败"],
-  ["建议一致", "建议一致率"],
-  ["被退回", "退回率"],
-  ["退回率", "退回率"],
-  ["不用办", "发现有效率"],
-  ["预填", "预填少改"],
+  ["空间匹配失败", "未匹配网格"],
+  ["未匹配网格", "未匹配网格"],
+  ["匹配失败", "未匹配网格"],
+  ["发现有效率", "发现立案率"],
+  ["发现立案率", "发现立案率"],
+  ["不用办", "发现立案率"],
+  ["建议一致率", "处置建议一致率"],
+  ["建议一致", "处置建议一致率"],
+  ["处置建议一致率", "处置建议一致率"],
+  ["预填少改", "预填一致率"],
+  ["预填一致率", "预填一致率"],
+  ["预填", "预填一致率"],
+  ["退回率", "核查退回率"],
+  ["核查退回率", "核查退回率"],
+  ["被退回", "核查退回率"],
 ].map(([phrase, title]) => ({ phrase, title }))
 
 function pausedAsk(q: string): string | null {
@@ -567,7 +573,7 @@ function pausedAsk(q: string): string | null {
 function mentionedStat(q: string): { title: string; pages: Cat[] } | null {
   const exclusive = EXCLUSIVE_STAT.find((s) => q.includes(s.title))
   if (exclusive) return { title: exclusive.title, pages: [exclusive.page] }
-  if (q.includes("事件总数")) return { title: "事件总数", pages: ["overview", "events"] }
+  if (q.includes("事件总数") || q.includes("发现事件")) return { title: "发现事件", pages: ["overview", "events"] }
   const stage = STAGE_NAMES.find((s) => q.includes(s))
   if (stage) return { title: stage, pages: ["overview", "process"] }
   return null
@@ -590,7 +596,7 @@ function answerAsk(desc: AskDesc, pool: AskDesc[], kpis: KpiReply[], page: Cat, 
     return { ok: false, text: `只知道其余 ${desc.rest.count} 个合计 ${desc.rest.sum} 件，没有名单。` }
   }
   const fromPool = (title: string): AskAnswer | null => {
-    const kpiTitle = title.startsWith("从派给网格") ? "平均处置时长" : title
+    const kpiTitle = title.startsWith("从派给网格") ? "平均用时" : title
     const kpi = kpis.find((k) => k.title === kpiTitle)
     const breakdown = /哪个|哪些|哪几|哪件|集中|最|分别|每天|几点|改成|说明|什么类型|什么点位|在哪/.test(q)
     if (kpi && !breakdown) return kpi.reply
@@ -869,7 +875,7 @@ function AskAiDrawer({
             <div>我能帮你看：{desc.filterText ?? desc.scope} 下，「{PAGE_LABEL[page]}」这一页的统计。</div>
             <div>这一页包括：{PAGE_STAT_NAMES[page].join("、")}。</div>
             {page === "quality" && (
-              <div>退回率、发现有效率、预填少改、建议一致率、空间匹配失败，暂不支持问 AI。</div>
+              <div>核查退回率、发现立案率、预填一致率、处置建议一致率、未匹配网格，暂不支持问 AI。</div>
             )}
             <div style={{ color: C.muted, fontSize: 11 }}>别的页面的统计、原因、预测和去办理，这里不回答。</div>
           </div>
@@ -1485,10 +1491,10 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
     const dpN = Math.min(flN, funnel.disposed)
     const inN = Math.min(dpN, funnel.inspected)
     const fReach = fill([
-      { name: "核查结案", value: inN }, { name: "处置", value: dpN - inN }, { name: "立案", value: flN - dpN },
-      { name: "审核", value: rvN - flN }, { name: "识别", value: total - rvN },
+      { name: "核查结案", value: inN }, { name: "处置完成", value: dpN - inN }, { name: "派发成功", value: flN - dpN },
+      { name: "审核完成", value: rvN - flN }, { name: "发现", value: total - rvN },
     ], total, rf)
-    const REACH_STAGE: Record<string, string> = { 核查结案: "已结案", 处置: "待核查", 立案: "待处置", 审核: "无效", 识别: "待立案" }
+    const REACH_STAGE: Record<string, string> = { 核查结案: "已结案", 处置完成: "待核查", 派发成功: "待处置", 审核完成: "无效", 发现: "待立案" }
     const foundEv: AskEv[] = Array.from({ length: total }, (_, i) => {
       const stage = REACH_STAGE[fReach[i]]
       return {
@@ -1545,7 +1551,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
     // 治理质量与 AI 成效
     const compN = valid + invalid + dissipated
     const compConc = fill([
-      { name: "立案有效", value: valid }, { name: "无效", value: invalid }, { name: "自然消散", value: dissipated },
+      { name: "立案有效", value: valid }, { name: "判无效", value: invalid }, { name: "自然消散", value: dissipated },
     ], compN, rf, true)
     const INVALID_NOTES = ["不属于事件范围", "识别错误，正常停放被当成占道", "重复发现，已并入前一件"]
     const compTypes = byWeight(compN, typeNames, typeWeights, rf)
@@ -1628,16 +1634,16 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
   const sliceRows = (opts: { stages?: string[]; severe?: boolean }) =>
     filterPool({ street, type, ...opts })
 
-  const openDaySlice = (label: string, series: "发现" | "闭环", value: number) => {
+  const openDaySlice = (label: string, series: "发现" | "办结", value: number) => {
     if (value < 1) return
     const idx = v.days.findIndex((d) => d.label === label)
     const date = idx >= 0 ? v.days[idx].date : ""
-    const stages = series === "闭环"
+    const stages = series === "办结"
       ? ["已结案", "已作废", "无效"]
       : EVENT_POOL.map((e) => e.stage)
     const base = sliceRows({ stages })
     const sameDay = date ? base.filter((r) => r.time.startsWith(date)) : []
-    openSlice(`发现与闭环 · ${label} ${series}`, value, "flow", sameDay.length > 0 ? sameDay : base)
+    openSlice(`发现与办结 · ${label} ${series}`, value, "flow", sameDay.length > 0 ? sameDay : base)
   }
 
   // ── AI 解读：只引用当前 tab、当前筛选下已经显示出来的数 ──
@@ -1645,7 +1651,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
     if (cat === "overview") {
       if (v.total === 0 && v.sustained === 0) return `${filterMeta}：当前范围没有可展示的事件。`
       const parts: string[] = [
-        `${filterMeta}：新发现 ${v.total} 件、区间闭环 ${v.closedAll} 件（结案 ${v.closedCase}、作废/无效 ${v.closedNonCase}）。`,
+        `${filterMeta}：发现事件 ${v.total} 件、办结 ${v.closedAll} 件（结案 ${v.closedCase}、作废/判无效 ${v.closedNonCase}）。`,
       ]
       if (v.dayMode === "line" && (v.total > 0 || v.closedAll > 0)) {
         const gapIdx = v.foundDaily.reduce(
@@ -1655,14 +1661,14 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
         const gap = v.foundDaily[gapIdx] - v.closedDaily[gapIdx]
         parts.push(
           gap > 0
-            ? `${v.days[gapIdx].label} 发现 ${v.foundDaily[gapIdx]} 件、闭环 ${v.closedDaily[gapIdx]} 件，差 ${gap} 件。`
-            : "窗口内每天闭环都不少于发现。",
+            ? `${v.days[gapIdx].label} 发现 ${v.foundDaily[gapIdx]} 件、办结 ${v.closedDaily[gapIdx]} 件，差 ${gap} 件。`
+            : "窗口内每天办结都不少于发现。",
         )
       }
       if (v.sustained > 0) {
         const maxStage = v.stages.reduce((a, b) => (b.value > a.value ? b : a))
         parts.push(
-          `此刻存续 ${v.sustained} 件${maxStage.value > 0 ? `，${maxStage.label} ${maxStage.value} 件最多` : ""}${v.severe > 0 ? `，其中严重 ${v.severe} 件` : ""}。`,
+          `此刻未办结 ${v.sustained} 件${maxStage.value > 0 ? `，${maxStage.label} ${maxStage.value} 件最多` : ""}${v.severe > 0 ? `，其中严重 ${v.severe} 件` : ""}。`,
         )
       }
       return parts.join("")
@@ -1684,7 +1690,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       const peakHours = v.hourly.filter((n) => n === peak).length
       const topCams = v.cameras.filter((c) => c.value === v.cameras[0]?.value)
       return [
-        `${filterMeta}：新发现 ${v.total} 件。`,
+        `${filterMeta}：发现事件 ${v.total} 件。`,
         lead(v.typeStruct.map((t) => ({ name: `「${t.label}」`, value: t.value })), "最多"),
         lead(v.spaceDist, "最集中"),
         peak > 0 && peakHours === 1 && v.total > 1 ? `${String(v.peakHour).padStart(2, "0")} 时前后为高发时段；` : "",
@@ -1694,36 +1700,36 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
 
     if (cat === "process") {
       const flowPart = v.doneAvg !== null
-        ? `${filterMeta}：办完 ${v.doneN} 件，平均处置时长 ${v.doneAvg} 小时。`
-        : `${filterMeta}：这段时间没有办完的事件。`
-      if (v.sustained === 0) return `${flowPart}${backlogMeta}：截止此刻没有存续事件。`
+        ? `${filterMeta}：处置完成 ${v.doneN} 件，平均用时 ${v.doneAvg} 小时。`
+        : `${filterMeta}：这段时间没有处置完成的事件。`
+      if (v.sustained === 0) return `${flowPart}${backlogMeta}：截止此刻没有未办结事件。`
       const topGrid = v.gridOnDuty[0]
-      return `${flowPart}${backlogMeta}：待立案 ${v.stages[0].value}、待处置 ${v.stages[1].value}、待核查 ${v.stages[2].value}、待作废审核 ${v.stages[3].value}，合计存续 ${v.sustained} 件。${topGrid ? `${topGrid.name} 在办 ${topGrid.value} 件最多。` : ""}`
+      return `${flowPart}${backlogMeta}：待立案 ${v.stages[0].value}、待处置 ${v.stages[1].value}、待核查 ${v.stages[2].value}、待作废审核 ${v.stages[3].value}，合计未办结 ${v.sustained} 件。${topGrid ? `${topGrid.name} 在办 ${topGrid.value} 件最多。` : ""}`
     }
 
     const bits: string[] = []
     if (v.quality.composition > 0) {
-      bits.push(`有效 ${v.quality.valid}、无效 ${v.quality.invalid}、自然消散 ${v.quality.dissipated} 件`)
+      bits.push(`立案有效 ${v.quality.valid}、判无效 ${v.quality.invalid}、自然消散 ${v.quality.dissipated} 件`)
     }
     if (v.quality.effectiveRate !== "—") {
-      bits.push(`事件有效率 ${v.quality.effectiveRate}（${v.quality.valid}/${v.quality.effectiveDenom}）`)
+      bits.push(`审核有效率 ${v.quality.effectiveRate}（${v.quality.valid}/${v.quality.effectiveDenom}）`)
     }
     if (v.quality.returnRate !== "—") {
-      bits.push(`退回率 ${v.quality.returnRate}（${v.quality.returned}/${v.quality.inspected}）`)
+      bits.push(`核查退回率 ${v.quality.returnRate}（${v.quality.returned}/${v.quality.inspected}）`)
     }
     if (v.quality.firstPassRate !== "—") {
-      bits.push(`一次核查通过率 ${v.quality.firstPassRate}（${v.quality.firstPass}/${v.quality.firstDecided}）`)
+      bits.push(`一次核查结案率 ${v.quality.firstPassRate}（${v.quality.firstPass}/${v.quality.firstDecided}）`)
     }
     if (v.aiRates.discoveryRate !== "—") {
-      bits.push(`发现有效率 ${v.aiRates.discoveryRate}（${v.aiRates.discoveryValid}/${v.aiRates.discoveryCandidates}）`)
+      bits.push(`发现立案率 ${v.aiRates.discoveryRate}（${v.aiRates.discoveryValid}/${v.aiRates.discoveryCandidates}）`)
     }
     if (v.aiRates.prefillType !== "—") {
-      bits.push(`预填类型一致 ${v.aiRates.prefillType}（${v.aiRates.prefillMatch}/${v.aiRates.prefillTotal}）`)
+      bits.push(`预填一致率 ${v.aiRates.prefillType}（${v.aiRates.prefillMatch}/${v.aiRates.prefillTotal}）`)
     }
     if (v.aiRates.suggestMatch !== "—") {
-      bits.push(`建议一致率 ${v.aiRates.suggestMatch}（${v.aiRates.suggestMatchCount}/${v.aiRates.suggestTotal}）`)
+      bits.push(`处置建议一致率 ${v.aiRates.suggestMatch}（${v.aiRates.suggestMatchCount}/${v.aiRates.suggestTotal}）`)
     }
-    if (v.aiRates.spaceFail > 0) bits.push(`空间匹配失败 ${v.aiRates.spaceFail} 件`)
+    if (v.aiRates.spaceFail > 0) bits.push(`未匹配网格 ${v.aiRates.spaceFail} 件`)
     if (bits.length === 0) return `${filterMeta}：当前范围没有可计算的数据。`
     return `${filterMeta}：${bits.join("；")}。`
   }, [cat, v, filterMeta, backlogMeta])
@@ -1768,14 +1774,14 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       spec: { days: v.days.map((d) => d.label), ...o.spec },
     })
     const backlogSpec = (events: AskEv[], over: Partial<AskSpec>): AskSpec => ({
-      events, setLabel: "存续事件",
+      events, setLabel: "未办结事件",
       fields: ["stage", "type", "street", "grid", "lane", "respGrid"],
       timeKey: "waitH", severeSignal: true, defaultField: "respGrid",
       ...over,
     })
     const foundFields: FieldKey[] = ["type", "street", "grid", "lane", "hour", "camPoint", "stage", "conclusion"]
     const doneSpec = (over: Partial<AskSpec>): AskSpec => ({
-      events: E.doneEv, setLabel: "办完的事件", fields: ["grid", "type", "street"],
+      events: E.doneEv, setLabel: "处置完成的事件", fields: ["grid", "type", "street"],
       timeKey: "durDo", itemUnit: "小时",
       timeByWord: [[/到派给网格|派单/, "durWait"], [/到核查完|核查/, "durCheck"], [/到处置完|处置/, "durDo"]],
       ...over,
@@ -1788,8 +1794,8 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
         const worst = gaps.filter((g) => g.gap > 0).sort((a, b) => b.gap - a.gap)[0]
         const days = v.days.length > 1
         return mk({
-          title: "发现与闭环", scope: filterMeta, empty: v.total === 0 && v.closedAll === 0,
-          phrase: `新发现的 ${v.total} 件和办结的 ${v.closedAll} 件，`, count: v.total + v.closedAll,
+          title: "发现与办结", scope: filterMeta, empty: v.total === 0 && v.closedAll === 0,
+          phrase: `发现的 ${v.total} 件和办结的 ${v.closedAll} 件，`, count: v.total + v.closedAll,
           hint: days ? `例如：${v.days[v.days.length - 1].label}办结的是哪些类型？` : "例如：今天办结的是哪些类型？",
           spec: {
             events: [...E.foundEv, ...E.closedEv], setLabel: "发现和办结的事件",
@@ -1808,16 +1814,16 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
         const gap = gapAt >= 0 ? { a: st[gapAt], b: st[gapAt + 1] } : null
         const gapEvents = gap ? E.foundEv.filter((e) => e.reach === gap.a.name) : []
         return mk({
-          title: "全流程各环节办结量", scope: filterMeta, empty: v.total === 0,
-          phrase: "新发现的事件，", count: v.total,
-          hint: "例如：立案了还没处置完的在哪个网格？",
+          title: "环节完成量", scope: filterMeta, empty: v.total === 0,
+          phrase: "发现的事件，", count: v.total,
+          hint: "例如：派发成功了还没处置完的在哪个网格？",
           spec: {
-            events: E.foundEv, setLabel: "新发现的事件",
+            events: E.foundEv, setLabel: "发现的事件",
             fields: ["reach", "stage", "type", "street", "grid", "conclusion"],
             defaultField: "stage",
             subsets: [
               ...(gap ? [{ re: /差的\s*\d+\s*件/, label: `走到${gap.a.name}、没到${gap.b.name}`, events: gapEvents, field: "stage" as FieldKey }] : []),
-              { re: /立案了?还?没处置|没处置完/, label: "立案了还没处置完", events: E.foundEv.filter((e) => e.reach === "立案") },
+              { re: /立案了?还?没处置|派发成功了?还?没处置|没处置完/, label: "派发成功了还没处置完", events: E.foundEv.filter((e) => e.reach === "派发成功") },
             ],
             extraSuggestions: gap ? [`${gap.a.name}${gap.a.value}件、${gap.b.name}${gap.b.value}件，差的${gap.a.value - gap.b.value}件在哪？`] : [],
           },
@@ -1826,14 +1832,14 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       case "ov_stages":
       case "pr_stages":
         return mk({
-          title: id === "ov_stages" ? "各阶段待处理" : "环节存量", scope: backlogMeta, empty: v.sustained === 0,
+          title: "环节存量", scope: backlogMeta, empty: v.sustained === 0,
           phrase: "还压在各环节的事件", count: v.sustained,
           hint: "例如：待核查的几件分别在哪个网格？",
           spec: backlogSpec(E.backlogEv, { itemField: "stage", items: stageItems, concFields: ["respGrid", "type", "grid"] }),
         })
       case "ov_severe_space":
         return mk({
-          title: "严重问题空间", scope: `${backlogMeta} · 按${GRAN_LABEL[v.effectiveGran]}`, empty: v.severe === 0,
+          title: "严重事件分布", scope: `${backlogMeta} · 按${GRAN_LABEL[v.effectiveGran]}`, empty: v.severe === 0,
           phrase: "还没办完的严重事件", count: v.severe,
           rest: { count: v.severeTop.restCount, sum: v.severeTop.restSum },
           hint: "例如：严重的这几件卡在哪个环节？",
@@ -1844,7 +1850,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
         })
       case "ov_sustained_types":
         return mk({
-          title: "当前存续类型", scope: backlogMeta, empty: v.sustained === 0,
+          title: "未办结类型", scope: backlogMeta, empty: v.sustained === 0,
           phrase: "还没办完的事件", count: v.sustained,
           hint: "例如：施工占道的几件卡在哪个环节？",
           spec: backlogSpec(E.backlogEv, {
@@ -1856,32 +1862,32 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       case "ev_type_struct":
         return mk({
           title: "类型结构", scope: filterMeta, empty: v.total === 0,
-          phrase: "新发现的事件", count: v.total,
+          phrase: "发现的事件", count: v.total,
           hint: "例如：占道经营多在几点发现？",
           spec: {
-            events: E.foundEv, setLabel: "新发现的事件", fields: foundFields, progressSignal: true, defaultField: street ? "grid" : "street",
+            events: E.foundEv, setLabel: "发现的事件", fields: foundFields, progressSignal: true, defaultField: street ? "grid" : "street",
             itemField: "type", items: v.typeStruct.map((t) => ({ name: t.label, value: t.value })),
             concFields: [...spaceConc, "camPoint", "hour"],
           },
         })
       case "ev_space_dist":
         return mk({
-          title: "空间分布", scope: `${filterMeta} · 按${GRAN_LABEL[v.effectiveGran]}`, empty: v.total === 0,
-          phrase: "新发现的事件", count: v.total,
+          title: "发现分布", scope: `${filterMeta} · 按${GRAN_LABEL[v.effectiveGran]}`, empty: v.total === 0,
+          phrase: "发现的事件", count: v.total,
           rest: { count: v.spaceTop.restCount, sum: v.spaceTop.restSum },
           hint: "例如：排第一的地方主要是什么类型？",
           spec: {
-            events: E.foundEv, setLabel: "新发现的事件", fields: foundFields, progressSignal: true, defaultField: "type",
+            events: E.foundEv, setLabel: "发现的事件", fields: foundFields, progressSignal: true, defaultField: "type",
             itemField: granField, items: v.spaceDist, concFields: ["type", "camPoint", "hour"],
           },
         })
       case "ev_hourly":
         return mk({
           title: "发生时段", scope: filterMeta, empty: v.total === 0,
-          phrase: "新发现的事件", count: v.total,
+          phrase: "发现的事件", count: v.total,
           hint: "例如：08时发现的都是什么类型？",
           spec: {
-            events: E.foundEv, setLabel: "新发现的事件", fields: foundFields, progressSignal: true, defaultField: "type",
+            events: E.foundEv, setLabel: "发现的事件", fields: foundFields, progressSignal: true, defaultField: "type",
             itemField: "hour",
             items: v.hourly.map((n, i) => ({ name: `${String(i).padStart(2, "0")}时`, value: n })).filter((h) => h.value > 0),
             concFields: ["type", "camPoint", ...spaceConc],
@@ -1891,7 +1897,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
         const restRows = v.cameras.slice(8)
         return mk({
           title: "高发相机", scope: filterMeta, empty: v.cameras.length === 0,
-          phrase: "有相机编号的新发现事件", count: sum(v.cameras.map((c) => c.value)),
+          phrase: "有相机编号的发现事件", count: sum(v.cameras.map((c) => c.value)),
           rest: { count: restRows.length, sum: sum(restRows.map((c) => c.value)) },
           hint: "例如：排第一的点位报的多是什么类型？",
           spec: {
@@ -1923,8 +1929,8 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
           return null
         })()
         return mk({
-          title: "各环节停了多久", scope: filterMeta, empty: v.doneN === 0,
-          phrase: "办完的事件", count: v.doneN,
+          title: "环节用时", scope: filterMeta, empty: v.doneN === 0,
+          phrase: "处置完成的事件", count: v.doneN,
           hint: "例如：处置完到核查完最慢的是哪几件？",
           extraFields: ["三步各自用时"],
           spec: doneSpec({
@@ -1939,12 +1945,12 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
         const isGrid = id === "pr_grid_dur"
         const d = isGrid ? v.gridDur : v.typeDur
         return mk({
-          title: isGrid ? "哪个网格办完更久" : "哪类事件办完更久", scope: filterMeta, empty: v.doneN === 0,
+          title: isGrid ? "网格处置用时" : "类型处置用时", scope: filterMeta, empty: v.doneN === 0,
           phrase: "从派给网格到处置完的事件", count: v.doneN,
           rest: { count: d.restCount, sum: d.restSum },
           hint: isGrid ? "例如：最慢的网格办的是什么类型？" : "例如：最慢的那类事件在哪个网格？",
           spec: doneSpec({
-            setLabel: "办完的事件", itemField: isGrid ? "grid" : "type",
+            setLabel: "处置完成的事件", itemField: isGrid ? "grid" : "type",
             items: d.visible.map((r) => ({ name: r.name, value: r.value })),
             concFields: isGrid ? ["type"] : ["grid"], defaultField: isGrid ? "type" : "grid",
           }),
@@ -1953,7 +1959,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       // ═══ 流程运行下半段 ═══
       case "pr_grid":
         return mk({
-          title: "责任网格在办", scope: backlogMeta, empty: v.gridOnDutyTop.visible.length === 0,
+          title: "网格待处置", scope: backlogMeta, empty: v.gridOnDutyTop.visible.length === 0,
           phrase: "派给网格、还没处置完的事件", count: v.stages[1].value,
           rest: { count: v.gridOnDutyTop.restCount, sum: v.gridOnDutyTop.restSum },
           hint: "例如：派过去最久的是哪几件？",
@@ -1965,14 +1971,14 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       // ═══ 治理质量与 AI 成效 ═══
       case "ql_composition":
         return mk({
-          title: "有效 / 无效 / 消散", scope: filterMeta, empty: v.quality.composition === 0,
+          title: "立案有效 / 判无效 / 自然消散", scope: filterMeta, empty: v.quality.composition === 0,
           phrase: "已有结论的候选事件", count: v.quality.composition,
           hint: "例如：无效的几件是什么类型？",
           spec: {
             events: E.compEv, setLabel: "已有结论的候选", fields: ["conclusion", "note", "type", "street", "camPoint"],
             defaultField: "type", itemField: "conclusion",
             items: [
-              { name: "立案有效", value: v.quality.valid }, { name: "无效", value: v.quality.invalid },
+              { name: "立案有效", value: v.quality.valid }, { name: "判无效", value: v.quality.invalid },
               { name: "自然消散", value: v.quality.dissipated },
             ],
             concFields: ["type", "camPoint", "street"],
@@ -1983,7 +1989,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
         const r = v.quality.returned
         const returnedEv = E.retEv.filter((e) => (e.returns ?? 0) > 0)
         return mk({
-          title: "退回率", scope: filterMeta, empty: v.quality.inspected === 0,
+          title: "核查退回率", scope: filterMeta, empty: v.quality.inspected === 0,
           phrase: "有核查结果的事件", count: v.quality.inspected,
           hint: "例如：被退回的在哪个网格？",
           spec: {
@@ -1996,7 +2002,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       case "ai_discovery_rate": {
         const no = v.aiRates.discoveryCandidates - v.aiRates.discoveryValid
         return mk({
-          title: "发现有效率", scope: filterMeta, empty: v.aiRates.discoveryCandidates === 0,
+          title: "发现立案率", scope: filterMeta, empty: v.aiRates.discoveryCandidates === 0,
           phrase: "相机识别出的候选", count: v.aiRates.discoveryCandidates,
           hint: "例如：最后不用办的是什么类型？",
           spec: {
@@ -2009,7 +2015,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       case "ai_prefill_type": {
         const k = v.aiRates.prefillTotal - v.aiRates.prefillMatch
         return mk({
-          title: "预填少改", scope: filterMeta, empty: v.aiRates.prefillTotal === 0,
+          title: "预填一致率", scope: filterMeta, empty: v.aiRates.prefillTotal === 0,
           phrase: "有 AI 预填类型的事件", count: v.aiRates.prefillTotal,
           hint: "例如：被改掉的在哪个网格？",
           spec: {
@@ -2022,7 +2028,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       case "ai_suggest_match": {
         const k = v.aiRates.suggestTotal - v.aiRates.suggestMatchCount
         return mk({
-          title: "建议一致率", scope: filterMeta, empty: v.aiRates.suggestTotal === 0,
+          title: "处置建议一致率", scope: filterMeta, empty: v.aiRates.suggestTotal === 0,
           phrase: "系统给了建议的事件", count: v.aiRates.suggestTotal,
           hint: "例如：不一致的是什么类型？",
           spec: {
@@ -2035,7 +2041,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       case "ai_space_fail": {
         const n = v.aiRates.spaceFail
         return mk({
-          title: "空间匹配失败", scope: filterMeta, empty: n === 0,
+          title: "未匹配网格", scope: filterMeta, empty: n === 0,
           phrase: "落不到网格的事件", count: n,
           hint: "例如：落不到网格的是哪些点位报的？",
           spec: {
@@ -2062,38 +2068,38 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
     },
   })
   const dashKpi = (title: string): KpiReply => ({ title, reply: { ok: true, text: `${title}当前没有可计算的数据。` } })
-  if (cat === "overview" || cat === "events") pageKpis.push(valueKpi("事件总数", v.total, "件"))
+  if (cat === "overview" || cat === "events") pageKpis.push(valueKpi("发现事件", v.total, "件"))
   if (cat === "overview") {
-    pageKpis.push(valueKpi("区间闭环", v.closedAll, "件", `结案 ${v.closedCase} 件，作废或判无效 ${v.closedNonCase} 件`))
-    pageKpis.push(valueKpi("存续事件", v.sustained, "件"))
+    pageKpis.push(valueKpi("办结", v.closedAll, "件", `结案 ${v.closedCase} 件，作废或判无效 ${v.closedNonCase} 件`))
+    pageKpis.push(valueKpi("未办结", v.sustained, "件"))
     pageKpis.push(valueKpi("严重事件", v.severe, "件"))
   }
   if (cat === "process") {
     pageKpis.push(v.doneAvg === null
-      ? dashKpi("平均处置时长")
-      : valueKpi("平均处置时长", v.doneAvg, "小时", `办完 ${v.doneN} 件`))
+      ? dashKpi("平均用时")
+      : valueKpi("平均用时", v.doneAvg, "小时", `处置完成 ${v.doneN} 件`))
     for (const s of v.stages) pageKpis.push(valueKpi(s.label, s.value, "件"))
   }
   if (cat === "quality") {
     pageKpis.push(v.quality.effectiveRate === "—"
-      ? dashKpi("事件有效率")
-      : valueKpi("事件有效率", parseFloat(v.quality.effectiveRate), "%", `审完 ${v.quality.effectiveDenom} 件，确认有效 ${v.quality.valid} 件`))
+      ? dashKpi("审核有效率")
+      : valueKpi("审核有效率", parseFloat(v.quality.effectiveRate), "%", `审完 ${v.quality.effectiveDenom} 件，确认有效 ${v.quality.valid} 件`))
     pageKpis.push(v.quality.firstPassRate === "—"
-      ? dashKpi("一次核查通过率")
-      : valueKpi("一次核查通过率", parseFloat(v.quality.firstPassRate), "%", `已有第一次核查决定 ${v.quality.firstDecided} 件，第一次就结案 ${v.quality.firstPass} 件`))
+      ? dashKpi("一次核查结案率")
+      : valueKpi("一次核查结案率", parseFloat(v.quality.firstPassRate), "%", `已有第一次核查决定 ${v.quality.firstDecided} 件，第一次就结案 ${v.quality.firstPass} 件`))
     pageKpis.push(v.quality.returnRate === "—"
-      ? dashKpi("退回率")
-      : valueKpi("退回率", parseFloat(v.quality.returnRate), "%", `有核查结果 ${v.quality.inspected} 件，被退回 ${v.quality.returned} 件`))
+      ? dashKpi("核查退回率")
+      : valueKpi("核查退回率", parseFloat(v.quality.returnRate), "%", `有核查结果 ${v.quality.inspected} 件，被退回 ${v.quality.returned} 件`))
     pageKpis.push(v.aiRates.discoveryRate === "—"
-      ? dashKpi("发现有效率")
-      : valueKpi("发现有效率", parseFloat(v.aiRates.discoveryRate), "%", `相机发现 ${v.aiRates.discoveryCandidates} 件，最后要办 ${v.aiRates.discoveryValid} 件`))
+      ? dashKpi("发现立案率")
+      : valueKpi("发现立案率", parseFloat(v.aiRates.discoveryRate), "%", `相机发现 ${v.aiRates.discoveryCandidates} 件，最后要办 ${v.aiRates.discoveryValid} 件`))
     pageKpis.push(v.aiRates.prefillType === "—"
-      ? dashKpi("预填少改")
-      : valueKpi("预填少改", parseFloat(v.aiRates.prefillType), "%", `AI 预填 ${v.aiRates.prefillTotal} 件，类型没被人工改 ${v.aiRates.prefillMatch} 件`))
+      ? dashKpi("预填一致率")
+      : valueKpi("预填一致率", parseFloat(v.aiRates.prefillType), "%", `AI 预填 ${v.aiRates.prefillTotal} 件，类型没被人工改 ${v.aiRates.prefillMatch} 件`))
     pageKpis.push(v.aiRates.suggestMatch === "—"
-      ? dashKpi("建议一致率")
-      : valueKpi("建议一致率", parseFloat(v.aiRates.suggestMatch), "%", `系统给建议 ${v.aiRates.suggestTotal} 件，人工判断一致 ${v.aiRates.suggestMatchCount} 件`))
-    pageKpis.push(valueKpi("空间匹配失败", v.aiRates.spaceFail, "件"))
+      ? dashKpi("处置建议一致率")
+      : valueKpi("处置建议一致率", parseFloat(v.aiRates.suggestMatch), "%", `系统给建议 ${v.aiRates.suggestTotal} 件，人工判断一致 ${v.aiRates.suggestMatchCount} 件`))
+    pageKpis.push(valueKpi("未匹配网格", v.aiRates.spaceFail, "件"))
   }
   if (askDesc) {
     // 切换签名跟「筛选器状态 + tab」走：积压类统计的范围行写「截止此刻」，
@@ -2199,25 +2205,25 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
       {/* ── 1 综合态势 ── */}
       {cat === "overview" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <SectionHead label="区间流水（随时间、空间、类型变）" />
+          <SectionHead label="发生与办结（随时间、空间、类型变）" />
           <div className="stats-kpi-grid cols-2">
             <KpiCard2
-              label="事件总数" value={v.total} unit="件" color={C.primary} icon="archive" ruleId="ov_total"
+              label="发现事件" value={v.total} unit="件" color={C.primary} icon="archive" ruleId="ov_total"
               sub={`${filterMeta} · 按发现时间归日`}
-              onClick={v.total >= 1 ? () => openSlice("事件总数", v.total, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) : undefined}
+              onClick={v.total >= 1 ? () => openSlice("发现事件", v.total, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) : undefined}
             />
             <KpiCard2
-              label="区间闭环" value={v.closedAll} unit="件" color={C.success} icon="checkCircle" ruleId="ov_closed"
+              label="办结" value={v.closedAll} unit="件" color={C.success} icon="checkCircle" ruleId="ov_closed"
               sub={`结案 ${v.closedCase} 件 · 作废或判无效 ${v.closedNonCase} 件（不只核查结案）`}
-              onClick={v.closedAll >= 1 ? () => openSlice("区间闭环", v.closedAll, "flow", sliceRows({ stages: ["已结案", "已作废", "无效"] })) : undefined}
+              onClick={v.closedAll >= 1 ? () => openSlice("办结", v.closedAll, "flow", sliceRows({ stages: ["已结案", "已作废", "无效"] })) : undefined}
             />
           </div>
 
           <ChartCard2
-            title="发现与闭环"
+            title="发现与办结"
             ruleId="ov_daily"
             onAsk={showAsk("ov_daily", v.total === 0 && v.closedAll === 0) ? () => openAsk("ov_daily") : undefined}
-            note="每天新发现几件、办结几件"
+            note="每天发现几件、办结几件"
           >
             <EchartsDiscoverClose
               labels={v.days.map((d) => d.label)}
@@ -2231,12 +2237,12 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
             />
           </ChartCard2>
 
-          {/* 全流程各环节办结量：横向五阶，不是漏斗 */}
+          {/* 环节完成量：横向五阶，不是漏斗 */}
           <div className="glass-card" style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 13.5, fontWeight: 800, color: C.text, letterSpacing: "0.02em" }}>全流程各环节办结量</span>
+              <span style={{ fontSize: 13.5, fontWeight: 800, color: C.text, letterSpacing: "0.02em" }}>环节完成量</span>
               <RuleChips id="funnel" userRules={STATS2_USER_RULES} algoRules={STATS2_ALGO_RULES} />
-              <span style={{ fontSize: 11.5, color: C.muted, fontWeight: 600 }}>识别 → 审核 → 立案 → 处置 → 核查结案</span>
+              <span style={{ fontSize: 11.5, color: C.muted, fontWeight: 600 }}>发现 → 审核完成 → 派发成功 → 处置完成 → 核查结案</span>
               {showAsk("funnel", v.total === 0) && (
                 <button
                   onClick={() => openAsk("funnel")}
@@ -2270,7 +2276,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                       </div>
                     )}
                     <div
-                      onClick={val >= 1 ? () => openSlice(`全流程各环节办结量 · ${s.label}`, val, "flow", sliceRows({ stages: FUNNEL_SLICE_STAGES[s.key] })) : undefined}
+                      onClick={val >= 1 ? () => openSlice(`环节完成量 · ${s.label}`, val, "flow", sliceRows({ stages: FUNNEL_SLICE_STAGES[s.key] })) : undefined}
                       title={val >= 1 ? "点击查看详情" : undefined}
                       style={{
                         flex: 1, minWidth: 140,
@@ -2308,22 +2314,22 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
             <SectionHead label="当前积压（截止此刻，不随时间变，随空间、类型变）" />
             <div className="stats-kpi-grid cols-2">
               <KpiCard2
-                label="存续事件" value={v.sustained} unit="件" color={C.warning} icon="layers" ruleId="ov_sustained"
+                label="未办结" value={v.sustained} unit="件" color={C.warning} icon="layers" ruleId="ov_sustained"
                 sub="截止此刻 · 四环节之和"
-                onClick={v.sustained >= 1 ? () => openSlice("存续事件", v.sustained, "backlog", sliceRows({})) : undefined}
+                onClick={v.sustained >= 1 ? () => openSlice("未办结", v.sustained, "backlog", sliceRows({})) : undefined}
               />
               <KpiCard2
                 label="严重事件" value={v.severe} unit="件" color={C.danger} icon="alertTriangle" ruleId="ov_severe"
-                sub="存续中等级为严重 · 截止此刻"
+                sub="未办结中等级为严重 · 截止此刻"
                 onClick={v.severe >= 1 ? () => openSlice("严重事件", v.severe, "backlog", sliceRows({ severe: true })) : undefined}
               />
             </div>
             <div className="stats-chart-grid stats-chart-grid-3">
               <ChartCard2
-                title="各阶段待处理" ruleId="ov_stages"
+                title="环节存量" ruleId="ov_stages"
                 note="截止此刻，还压在各环节的件数"
                 sliceEnabled={v.sustained >= 1}
-                onSlice={() => openSlice("各阶段待处理", v.sustained, "backlog", sliceRows({}))}
+                onSlice={() => openSlice("环节存量", v.sustained, "backlog", sliceRows({}))}
                 onAsk={showAsk("ov_stages", v.sustained === 0) ? () => openAsk("ov_stages") : undefined}
               >
                 <StageBar values={v.stages.map((s) => s.value)} skin={skin} onItemClick={(name) => {
@@ -2332,16 +2338,16 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                 }} />
               </ChartCard2>
               <ChartCard2
-                title="严重问题空间" ruleId="ov_severe_space"
+                title="严重事件分布" ruleId="ov_severe_space"
                 extra={<GranToggle street={street} value={v.effectiveGran} onChange={setSpaceGran} />}
                 note={
                   <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    <div>按存续严重计 · 截止此刻</div>
+                    <div>按未办结严重计 · 截止此刻</div>
                     <RankNote by="件数" restCount={v.severeTop.restCount} restSum={v.severeTop.restSum} />
                   </div>
                 }
                 sliceEnabled={v.severe >= 1}
-                onSlice={() => openSlice("严重问题空间", v.severe, "backlog", sliceRows({ severe: true }))}
+                onSlice={() => openSlice("严重事件分布", v.severe, "backlog", sliceRows({ severe: true }))}
                 onAsk={showAsk("ov_severe_space", v.severe === 0) ? () => openAsk("ov_severe_space") : undefined}
               >
                 {v.severe === 0 || v.severeTop.visible.length === 0 ? (
@@ -2352,15 +2358,15 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                     skin={skin}
                     height={210}
                     valueSuffix=" 件"
-                    onItemClick={(name, value) => { if (!name.startsWith("其余")) openSlice(`严重问题空间 · ${name}`, value, "backlog", sliceRows({ severe: true })) }}
+                    onItemClick={(name, value) => { if (!name.startsWith("其余")) openSlice(`严重事件分布 · ${name}`, value, "backlog", sliceRows({ severe: true })) }}
                   />
                 )}
               </ChartCard2>
               <ChartCard2
-                title="当前存续类型" ruleId="ov_sustained_types"
-                note="按存续计 · 截止此刻"
+                title="未办结类型" ruleId="ov_sustained_types"
+                note="按未办结计 · 截止此刻"
                 sliceEnabled={v.sustained >= 1}
-                onSlice={() => openSlice("当前存续类型", v.sustained, "backlog", sliceRows({}))}
+                onSlice={() => openSlice("未办结类型", v.sustained, "backlog", sliceRows({}))}
                 onAsk={showAsk("ov_sustained_types", v.sustained === 0) ? () => openAsk("ov_sustained_types") : undefined}
               >
                 {v.sustained === 0 ? (
@@ -2371,9 +2377,9 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                     skin={skin}
                     height={210}
                     centerText={String(v.sustained)}
-                    centerSub="存续合计"
+                    centerSub="未办结合计"
                     showValueInLegend
-                    onItemClick={(name, value) => openSlice(`当前存续类型 · ${name}`, value, "backlog", sliceRows({}))}
+                    onItemClick={(name, value) => openSlice(`未办结类型 · ${name}`, value, "backlog", sliceRows({}))}
                   />
                 )}
               </ChartCard2>
@@ -2387,9 +2393,9 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="stats-kpi-grid cols-1">
             <KpiCard2
-              label="事件总数" value={v.total} unit="件" color={C.primary} icon="archive" ruleId="ev_total"
+              label="发现事件" value={v.total} unit="件" color={C.primary} icon="archive" ruleId="ev_total"
               sub={`${filterMeta} · 按发现时间归日 · 本版发现均来自相机`}
-              onClick={v.total >= 1 ? () => openSlice("事件总数", v.total, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) : undefined}
+              onClick={v.total >= 1 ? () => openSlice("发现事件", v.total, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) : undefined}
             />
           </div>
           <div className="stats-chart-grid">
@@ -2407,14 +2413,14 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                   skin={skin}
                   height={210}
                   centerText={String(v.total)}
-                  centerSub="事件总数"
+                  centerSub="发现事件"
                   showValueInLegend
                   onItemClick={(name, value) => typeSlice(name, value)}
                 />
               )}
             </ChartCard2>
             <ChartCard2
-              title="空间分布" ruleId="ev_space_dist"
+              title="发现分布" ruleId="ev_space_dist"
               extra={<GranToggle street={street} value={v.effectiveGran} onChange={setSpaceGran} />}
               note={
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -2423,7 +2429,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                 </div>
               }
               sliceEnabled={v.total >= 1}
-              onSlice={() => openSlice("空间分布", v.total, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) }))}
+              onSlice={() => openSlice("发现分布", v.total, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) }))}
               onAsk={showAsk("ev_space_dist", v.total === 0) ? () => openAsk("ev_space_dist") : undefined}
             >
               {v.spaceTop.visible.length === 0 ? (
@@ -2434,7 +2440,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                   skin={skin}
                   height={210}
                   valueSuffix=" 件"
-                  onItemClick={(name, value) => { if (!name.startsWith("其余")) openSlice(`空间分布 · ${name}`, value, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) }}
+                  onItemClick={(name, value) => { if (!name.startsWith("其余")) openSlice(`发现分布 · ${name}`, value, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) }}
                 />
               )}
             </ChartCard2>
@@ -2508,12 +2514,12 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               value={v.doneAvg === null ? "—" : v.doneAvg}
               unit={v.doneAvg === null ? undefined : "小时"}
               color={C.primary} icon="clock" ruleId="pr_avg"
-              sub={v.doneN === 0 ? "当前范围没有可计算的数据" : `办完 ${v.doneN} 件 · 从派给网格到处置完`}
+              sub={v.doneN === 0 ? "当前范围没有可计算的数据" : `处置完成 ${v.doneN} 件 · 从派给网格到处置完成`}
             />
           </div>
           <div className="stats-chart-grid stats-chart-grid-3">
             <ChartCard2
-              title="各环节停了多久" ruleId="pr_dwell"
+              title="环节用时" ruleId="pr_dwell"
               note={
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   <div>前两步按这段时间处置完的 {v.doneN} 件平均，最后一步只算其中已核查完的 {v.checkedN} 件；柱高是平均小时，最长的一步用深色。</div>
@@ -2535,10 +2541,10 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               )}
             </ChartCard2>
             <ChartCard2
-              title="哪个网格办完更久" ruleId="pr_grid_dur"
+              title="网格处置用时" ruleId="pr_grid_dur"
               note={
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <div>深色表示长于当前平均 {v.doneAvg === null ? "—" : `${v.doneAvg} 小时`} · 办完 {v.doneN} 件</div>
+                  <div>深色表示长于当前平均 {v.doneAvg === null ? "—" : `${v.doneAvg} 小时`} · 处置完成 {v.doneN} 件</div>
                   <RankNote by="时长" restCount={v.gridDur.restCount} restSum={v.gridDur.restSum} />
                 </div>
               }
@@ -2556,7 +2562,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                     const gridRows = v.doneRows.filter((e) => e.grid === name)
                     if (gridRows.length > 0) {
                       openSlice(
-                        `哪个网格办完更久 · ${name}`,
+                        `网格处置用时 · ${name}`,
                         gridRows.length,
                         "flow",
                         gridRows.map(doneDetailRow),
@@ -2567,10 +2573,10 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               )}
             </ChartCard2>
             <ChartCard2
-              title="哪类事件办完更久" ruleId="pr_type_dur"
+              title="类型处置用时" ruleId="pr_type_dur"
               note={
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <div>深色表示长于当前平均 {v.doneAvg === null ? "—" : `${v.doneAvg} 小时`} · 办完 {v.doneN} 件</div>
+                  <div>深色表示长于当前平均 {v.doneAvg === null ? "—" : `${v.doneAvg} 小时`} · 处置完成 {v.doneN} 件</div>
                   <RankNote by="时长" restCount={v.typeDur.restCount} restSum={v.typeDur.restSum} />
                 </div>
               }
@@ -2588,7 +2594,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                     const typeRows = v.doneRows.filter((e) => e.type === name)
                     if (typeRows.length > 0) {
                       openSlice(
-                        `哪类事件办完更久 · ${name}`,
+                        `类型处置用时 · ${name}`,
                         typeRows.length,
                         "flow",
                         typeRows.map(doneDetailRow),
@@ -2629,7 +2635,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
             }} />
           </ChartCard2>
           <ChartCard2
-            title="责任网格在办" ruleId="pr_grid"
+            title="网格待处置" ruleId="pr_grid"
             note={
               <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <div>截止此刻，各网格手里还没处置完的件数</div>
@@ -2637,7 +2643,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
               </div>
             }
             sliceEnabled={v.gridOnDuty.some((d) => d.value >= 1)}
-            onSlice={() => openSlice("责任网格在办", v.stages[1].value, "backlog", sliceRows({ stages: ["待处置"] }))}
+            onSlice={() => openSlice("网格待处置", v.stages[1].value, "backlog", sliceRows({ stages: ["待处置"] }))}
             onAsk={showAsk("pr_grid", v.gridOnDuty.length === 0) ? () => openAsk("pr_grid") : undefined}
           >
             {v.gridOnDuty.length === 0 ? (
@@ -2648,7 +2654,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                 skin={skin}
                 height={210}
                 valueSuffix=" 件"
-                onItemClick={(name, value) => { if (!name.startsWith("其余")) openSlice(`责任网格在办 · ${name}`, value, "backlog", sliceRows({ stages: ["待处置"] })) }}
+                onItemClick={(name, value) => { if (!name.startsWith("其余")) openSlice(`网格待处置 · ${name}`, value, "backlog", sliceRows({ stages: ["待处置"] })) }}
               />
             )}
           </ChartCard2>
@@ -2664,9 +2670,9 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
           <SectionHead label="治理质量" />
           <div className="stats-chart-grid">
             <ChartCard2
-              title="有效 / 无效 / 消散" ruleId="ql_composition"
+              title="立案有效 / 判无效 / 自然消散" ruleId="ql_composition"
               sliceEnabled={v.quality.composition >= 1}
-              onSlice={() => openSlice("有效 / 无效 / 消散", v.quality.composition, "flow", sliceRows({ stages: ["已结案", "已作废", "无效", "待立案"] }))}
+              onSlice={() => openSlice("立案有效 / 判无效 / 自然消散", v.quality.composition, "flow", sliceRows({ stages: ["已结案", "已作废", "无效", "待立案"] }))}
               onAsk={showAsk("ql_composition", v.quality.composition === 0) ? () => openAsk("ql_composition") : undefined}
             >
               {v.quality.composition === 0 ? (
@@ -2675,7 +2681,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                 <EchartsPie
                   data={[
                     { label: "立案有效", value: v.quality.valid, color: C.primary },
-                    { label: "无效", value: v.quality.invalid, color: C.danger },
+                    { label: "判无效", value: v.quality.invalid, color: C.danger },
                     { label: "自然消散", value: v.quality.dissipated, color: C.muted },
                   ]}
                   skin={skin}
@@ -2683,24 +2689,24 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                   centerText={String(v.quality.composition)}
                   centerSub="构成合计"
                   showValueInLegend
-                  onItemClick={(name, value) => openSlice(`有效 / 无效 / 消散 · ${name}`, value, "flow", sliceRows({ stages: ["已结案", "已作废", "无效", "待立案"] }))}
+                  onItemClick={(name, value) => openSlice(`立案有效 / 判无效 / 自然消散 · ${name}`, value, "flow", sliceRows({ stages: ["已结案", "已作废", "无效", "待立案"] }))}
                 />
               )}
             </ChartCard2>
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14, alignContent: "start" }}>
               <KpiCard2
-                label="事件有效率" value={v.quality.effectiveRate} color={C.success} icon="target" ruleId="ql_effective_rate"
+                label="审核有效率" value={v.quality.effectiveRate} color={C.success} icon="target" ruleId="ql_effective_rate"
                 sub={v.quality.effectiveDenom === 0 ? "当前范围没有可计算的数据" : `审完 ${v.quality.effectiveDenom} 件，确认有效 ${v.quality.valid} 件`}
-                onClick={v.quality.valid >= 1 ? () => openSlice("事件有效率", v.quality.valid, "flow", sliceRows({ stages: ["已结案", "已作废", "待立案"] })) : undefined}
+                onClick={v.quality.valid >= 1 ? () => openSlice("审核有效率", v.quality.valid, "flow", sliceRows({ stages: ["已结案", "已作废", "待立案"] })) : undefined}
               />
               <KpiCard2
-                label="退回率" value={v.quality.returnRate} color={C.warning} icon="refreshCw" ruleId="ql_return_rate"
+                label="核查退回率" value={v.quality.returnRate} color={C.warning} icon="refreshCw" ruleId="ql_return_rate"
                 sub={v.quality.inspected === 0 ? "当前范围没有可计算的数据" : `有核查结果 ${v.quality.inspected} 件，被退回 ${v.quality.returned} 件`}
-                onClick={v.quality.inspected >= 1 ? () => openSlice("退回率", v.quality.inspected, "flow", sliceRows({ stages: ["待核查", "已结案"] })) : undefined}
+                onClick={v.quality.inspected >= 1 ? () => openSlice("核查退回率", v.quality.inspected, "flow", sliceRows({ stages: ["待核查", "已结案"] })) : undefined}
                 onAsk={showAsk("ql_return_rate", v.quality.inspected === 0) ? () => openAsk("ql_return_rate") : undefined}
               />
               <KpiCard2
-                label="一次核查通过率" value={v.quality.firstPassRate} color={C.purple} icon="checkSquare" ruleId="ql_first_pass"
+                label="一次核查结案率" value={v.quality.firstPassRate} color={C.purple} icon="checkSquare" ruleId="ql_first_pass"
                 sub={v.quality.firstDecided === 0 ? "当前范围没有可计算的数据" : `已有第一次核查决定 ${v.quality.firstDecided} 件，第一次就结案 ${v.quality.firstPass} 件`}
               />
             </div>
@@ -2711,27 +2717,27 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
           </div>
           <div className="stats-kpi-grid cols-4">
             <KpiCard2
-              label="发现有效率" value={v.aiRates.discoveryRate} color={C.primary} icon="target" ruleId="ai_discovery_rate"
+              label="发现立案率" value={v.aiRates.discoveryRate} color={C.primary} icon="target" ruleId="ai_discovery_rate"
               sub={v.aiRates.discoveryCandidates === 0 ? "当前范围没有可计算的数据" : `相机发现 ${v.aiRates.discoveryCandidates} 件，最后要办 ${v.aiRates.discoveryValid} 件`}
-              onClick={v.aiRates.discoveryValid >= 1 ? () => openSlice("发现有效率", v.aiRates.discoveryValid, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) : undefined}
+              onClick={v.aiRates.discoveryValid >= 1 ? () => openSlice("发现立案率", v.aiRates.discoveryValid, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) : undefined}
               onAsk={showAsk("ai_discovery_rate", v.aiRates.discoveryCandidates === 0) ? () => openAsk("ai_discovery_rate") : undefined}
             />
             <KpiCard2
-              label="预填少改" value={v.aiRates.prefillType} color={C.cyan} icon="checkSquare" ruleId="ai_prefill_type"
+              label="预填一致率" value={v.aiRates.prefillType} color={C.cyan} icon="checkSquare" ruleId="ai_prefill_type"
               sub={v.aiRates.prefillTotal === 0 ? "当前范围没有可计算的数据" : `AI 预填 ${v.aiRates.prefillTotal} 件，类型没被人工改 ${v.aiRates.prefillMatch} 件`}
-              onClick={v.aiRates.prefillMatch >= 1 ? () => openSlice("预填少改", v.aiRates.prefillMatch, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) : undefined}
+              onClick={v.aiRates.prefillMatch >= 1 ? () => openSlice("预填一致率", v.aiRates.prefillMatch, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) : undefined}
               onAsk={showAsk("ai_prefill_type", v.aiRates.prefillTotal === 0) ? () => openAsk("ai_prefill_type") : undefined}
             />
             <KpiCard2
-              label="建议一致率" value={v.aiRates.suggestMatch} color={C.purple} icon="thumbsUp" ruleId="ai_suggest_match"
+              label="处置建议一致率" value={v.aiRates.suggestMatch} color={C.purple} icon="thumbsUp" ruleId="ai_suggest_match"
               sub={v.aiRates.suggestTotal === 0 ? "当前范围没有可计算的数据" : `系统给建议 ${v.aiRates.suggestTotal} 件，人工判断一致 ${v.aiRates.suggestMatchCount} 件`}
-              onClick={v.aiRates.suggestMatchCount >= 1 ? () => openSlice("建议一致率", v.aiRates.suggestMatchCount, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) : undefined}
+              onClick={v.aiRates.suggestMatchCount >= 1 ? () => openSlice("处置建议一致率", v.aiRates.suggestMatchCount, "flow", sliceRows({ stages: EVENT_POOL.map((e) => e.stage) })) : undefined}
               onAsk={showAsk("ai_suggest_match", v.aiRates.suggestTotal === 0) ? () => openAsk("ai_suggest_match") : undefined}
             />
             <KpiCard2
-              label="空间匹配失败" value={v.aiRates.spaceFail} unit="件" color={C.warning} icon="mapPin" ruleId="ai_space_fail"
+              label="未匹配网格" value={v.aiRates.spaceFail} unit="件" color={C.warning} icon="mapPin" ruleId="ai_space_fail"
               sub="落不到网格、还要人定点"
-              onClick={v.aiRates.spaceFail >= 1 ? () => openSlice("空间匹配失败", v.aiRates.spaceFail, "flow", sliceRows({ stages: ["待立案"] })) : undefined}
+              onClick={v.aiRates.spaceFail >= 1 ? () => openSlice("未匹配网格", v.aiRates.spaceFail, "flow", sliceRows({ stages: ["待立案"] })) : undefined}
               onAsk={showAsk("ai_space_fail", v.aiRates.spaceFail === 0) ? () => openAsk("ai_space_fail") : undefined}
             />
           </div>

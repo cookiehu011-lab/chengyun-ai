@@ -6,7 +6,7 @@ const FOUND = "#326DFF"
 const CLOSED = "#2E9B68"
 
 /**
- * 发现与闭环：今日用两根柱，近 7 日 / 近 30 日 用双折线。
+ * 发现与办结：今日用两根柱，近 7 日 / 近 30 日 用双折线。
  * 每天为 0 也保留；不在点上铺件数标签。
  */
 export default function EchartsDiscoverClose({
@@ -25,7 +25,7 @@ export default function EchartsDiscoverClose({
   mode: "bar" | "line"
   height?: number
   axisLabelInterval?: number
-  onItemClick?: (day: string, series: "发现" | "闭环", value: number) => void
+  onItemClick?: (day: string, series: "发现" | "办结", value: number) => void
   skin?: Skin
 }) {
   const chartRef = useRef<HTMLDivElement>(null)
@@ -58,7 +58,7 @@ export default function EchartsDiscoverClose({
             ]) },
       },
       {
-        name: "闭环",
+        name: "办结",
         type: isBar ? "bar" : "line",
         data: closed,
         barWidth: isBar ? 26 : undefined,
@@ -124,7 +124,7 @@ export default function EchartsDiscoverClose({
     const handleClick = (p: any) => {
       const name = String(p.name ?? "")
       const seriesName = String(p.seriesName ?? "")
-      if ((seriesName === "发现" || seriesName === "闭环") && name) {
+      if ((seriesName === "发现" || seriesName === "办结") && name) {
         onItemClick?.(name, seriesName, Number(p.value ?? 0))
       }
     }

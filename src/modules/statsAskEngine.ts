@@ -39,7 +39,7 @@ export type TimeKey = "waitH" | "durWait" | "durDo" | "durCheck"
 
 export const FIELD_WORD: Record<FieldKey, string> = {
   type: "类型", street: "街道", grid: "网格", lane: "街巷", stage: "环节", respGrid: "责任网格",
-  camPoint: "点位", hour: "时段", foundDay: "发现日", closedDay: "闭环日", reach: "阶段",
+  camPoint: "点位", hour: "时段", foundDay: "发现日", closedDay: "办结日", reach: "阶段",
   conclusion: "结论", note: "说明", returns: "退回次数", aiType: "AI 预填类型",
   humanType: "人工最终类型", sysSuggest: "系统建议", humanJudge: "人工判断", final: "最终是否要办",
 }
