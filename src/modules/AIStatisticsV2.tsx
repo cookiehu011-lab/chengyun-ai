@@ -128,7 +128,7 @@ const CAMERA_DEFS = [
 // 区间流水：闭环里的「作废或判无效」（按时间窗变）；结案件数 = 链路「核查」阶
 const WIN_CLOSED_NON_CASE: Record<TimeWin, number> = { today: 1, "7d": 4, "30d": 12 }
 
-// 链路吞吐：各阶按本环节完成时间计，件数不必逐阶变少；审核 = 有效 + 无效，处置、核查两阶由办完样本得出
+// 全流程各环节办结量：各阶按本环节完成时间计，件数不必逐阶变少；审核 = 有效 + 无效，处置、核查两阶由办完样本得出
 const WIN_FUNNEL: Record<TimeWin, { filed: number }> = {
   today: { filed: 2 },
   "7d": { filed: 15 },
@@ -140,7 +140,7 @@ const FUNNEL_STAGES: { key: "found" | "reviewed" | "filed" | "disposed" | "inspe
   { key: "reviewed", label: "审核", sub: "区间审完（有效+无效）", ruleId: "funnel_reviewed" },
   { key: "filed", label: "立案", sub: "区间立案派发成功", ruleId: "funnel_filed" },
   { key: "disposed", label: "处置", sub: "区间处置完成", ruleId: "funnel_disposed" },
-  { key: "inspected", label: "核查", sub: "核查通过并结案", ruleId: "funnel_inspected" },
+  { key: "inspected", label: "核查结案", sub: "核查通过并结案", ruleId: "funnel_inspected" },
 ]
 
 const FUNNEL_SLICE_STAGES: Record<string, string[]> = {
@@ -523,7 +523,7 @@ const PAGE_ASK_IDS: Record<Cat, string[]> = {
 }
 
 const PAGE_STAT_NAMES: Record<Cat, string[]> = {
-  overview: ["发现与闭环", "链路吞吐", "各阶段待处理", "严重问题空间", "当前存续类型", "事件总数", "区间闭环", "存续事件", "严重事件"],
+  overview: ["发现与闭环", "全流程各环节办结量", "各阶段待处理", "严重问题空间", "当前存续类型", "事件总数", "区间闭环", "存续事件", "严重事件"],
   events: ["类型结构", "空间分布", "发生时段", "高发相机", "事件总数"],
   process: ["各环节停了多久", "哪个网格办完更久", "哪类事件办完更久", "环节存量", "责任网格在办", "平均处置时长", "待立案", "待处置", "待核查", "待作废审核"],
   quality: ["有效 / 无效 / 消散", "事件有效率", "退回率", "一次核查通过率", "发现有效率", "预填少改", "建议一致率", "空间匹配失败"],
@@ -531,7 +531,7 @@ const PAGE_STAT_NAMES: Record<Cat, string[]> = {
 
 /** 点名就能判断属于哪一页。阶段名在综合态势和流程运行都能问，不放这里。 */
 const EXCLUSIVE_STAT: { title: string; page: Cat }[] = [
-  ["发现与闭环", "overview"], ["链路吞吐", "overview"], ["各阶段待处理", "overview"],
+  ["发现与闭环", "overview"], ["全流程各环节办结量", "overview"], ["各阶段待处理", "overview"],
   ["严重问题空间", "overview"], ["当前存续类型", "overview"], ["区间闭环", "overview"],
   ["存续事件", "overview"], ["严重事件", "overview"],
   ["类型结构", "events"], ["空间分布", "events"], ["发生时段", "events"], ["高发相机", "events"],
@@ -1317,7 +1317,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
     const doneN = doneRows.length
     const checkedN = doneRows.filter((e) => e.check !== undefined).length
 
-    // 链路吞吐（流水）
+    // 全流程各环节办结量（流水）
     const closedCase = checkedN
     const closedNonCase = Math.round(WIN_CLOSED_NON_CASE[win] * ff)
     const closedAll = closedCase + closedNonCase
@@ -1485,10 +1485,10 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
     const dpN = Math.min(flN, funnel.disposed)
     const inN = Math.min(dpN, funnel.inspected)
     const fReach = fill([
-      { name: "核查", value: inN }, { name: "处置", value: dpN - inN }, { name: "立案", value: flN - dpN },
+      { name: "核查结案", value: inN }, { name: "处置", value: dpN - inN }, { name: "立案", value: flN - dpN },
       { name: "审核", value: rvN - flN }, { name: "识别", value: total - rvN },
     ], total, rf)
-    const REACH_STAGE: Record<string, string> = { 核查: "已结案", 处置: "待核查", 立案: "待处置", 审核: "无效", 识别: "待立案" }
+    const REACH_STAGE: Record<string, string> = { 核查结案: "已结案", 处置: "待核查", 立案: "待处置", 审核: "无效", 识别: "待立案" }
     const foundEv: AskEv[] = Array.from({ length: total }, (_, i) => {
       const stage = REACH_STAGE[fReach[i]]
       return {
@@ -1808,7 +1808,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
         const gap = gapAt >= 0 ? { a: st[gapAt], b: st[gapAt + 1] } : null
         const gapEvents = gap ? E.foundEv.filter((e) => e.reach === gap.a.name) : []
         return mk({
-          title: "链路吞吐", scope: filterMeta, empty: v.total === 0,
+          title: "全流程各环节办结量", scope: filterMeta, empty: v.total === 0,
           phrase: "新发现的事件，", count: v.total,
           hint: "例如：立案了还没处置完的在哪个网格？",
           spec: {
@@ -2231,12 +2231,12 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
             />
           </ChartCard2>
 
-          {/* 链路吞吐：横向五阶，不是漏斗 */}
+          {/* 全流程各环节办结量：横向五阶，不是漏斗 */}
           <div className="glass-card" style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 13.5, fontWeight: 800, color: C.text, letterSpacing: "0.02em" }}>链路吞吐</span>
+              <span style={{ fontSize: 13.5, fontWeight: 800, color: C.text, letterSpacing: "0.02em" }}>全流程各环节办结量</span>
               <RuleChips id="funnel" userRules={STATS2_USER_RULES} algoRules={STATS2_ALGO_RULES} />
-              <span style={{ fontSize: 11.5, color: C.muted, fontWeight: 600 }}>识别 → 审核 → 立案 → 处置 → 核查</span>
+              <span style={{ fontSize: 11.5, color: C.muted, fontWeight: 600 }}>识别 → 审核 → 立案 → 处置 → 核查结案</span>
               {showAsk("funnel", v.total === 0) && (
                 <button
                   onClick={() => openAsk("funnel")}
@@ -2270,7 +2270,7 @@ export default function AIStatisticsV2({ skin }: { skin: "light" | "tech" }) {
                       </div>
                     )}
                     <div
-                      onClick={val >= 1 ? () => openSlice(`链路吞吐 · ${s.label}`, val, "flow", sliceRows({ stages: FUNNEL_SLICE_STAGES[s.key] })) : undefined}
+                      onClick={val >= 1 ? () => openSlice(`全流程各环节办结量 · ${s.label}`, val, "flow", sliceRows({ stages: FUNNEL_SLICE_STAGES[s.key] })) : undefined}
                       title={val >= 1 ? "点击查看详情" : undefined}
                       style={{
                         flex: 1, minWidth: 140,
