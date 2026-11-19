@@ -624,7 +624,7 @@ function answerAsk(desc: AskDesc, pool: AskDesc[], kpis: KpiReply[], page: Cat, 
   return { ok: false, text: `这页只看「${PAGE_LABEL[page]}」：${PAGE_STAT_NAMES[page].join("、")}。这个问题不在这些统计里。` }
 }
 
-const ASK_STORAGE_KEY = "stats-ask-ai-v1.3"
+const ASK_STORAGE_KEY = "stats-ask-ai-v2.0"
 
 function persistAsk(desc: AskDesc, q: string, ans: AskAnswer) {
   try {

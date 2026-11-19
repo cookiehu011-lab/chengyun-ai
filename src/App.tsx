@@ -4,7 +4,7 @@ import DongchengHeatmapMap from "./components/DongchengHeatmapMap?v=cr37"
 import AIConclusion from "./components/AIConclusion?v=cr8"
 import EventCarousel from "./components/EventCarousel?v=cr51"
 import AIStatisticsV2 from "./modules/AIStatisticsV2"
-import GovernanceConfigNative from "./modules/gc/GovernanceConfigNative"
+import ConfigApp from "./modules/gc2/ConfigApp"
 import { GcProvider, useGc } from "./modules/gc/store"
 import { IdentityPicker } from "./modules/gc/IdentityPicker"
 import { loadIdentity, resolveIdentity, saveIdentity, type IdentityState } from "./modules/gc/identity"
@@ -140,9 +140,9 @@ export type ModuleId =
   // 自定义菜单项（菜单管理创建的占位模块）：保留内置 6 项的自动补全，同时放行任意字符串 id
   | (string & {})
 
-// V1.3：AI 统计直接进入四类收敛版，不再保留七类切换与 ?v=2 入口。
+// V2.0：治理配置整体重构为组织机构 / 派发规则 / 办理时限 / 事件标准 四组；
 // 原型版本标识：随评审版本更新，展示在顶栏右侧（见 TopNav）
-const APP_VERSION = "V1.3"
+const APP_VERSION = "V2.0"
 
 function Card({
   children,
@@ -18486,7 +18486,7 @@ const DEFAULT_NAV_CONFIG: MenuAdminItem[] = [
   { id: "config", label: "治理配置", iconKey: "gear", builtin: true },
 ]
 
-const NAV_STORAGE_KEY = "app-nav-config-v1.3"
+const NAV_STORAGE_KEY = "app-nav-config-v2.0"
 
 function loadNavConfig(): MenuAdminItem[] {
   try {
@@ -19355,9 +19355,9 @@ export default function App() {
 }
 
 function AppShell() {
-  // 默认以「赵敏 · 东城区」进入（账号配置了 2 个角色，可直接演示角色切换）
+  // 默认以「王倩 · 东城区 · 客户管理员」进入（V2.0 演示身份）
   const [identity, setIdentity] = useState<IdentityState>(
-    () => loadIdentity() ?? { personaId: "p-zm", cid: "", roleKey: "" },
+    () => loadIdentity() ?? { personaId: "p-wq", cid: "", roleKey: "" },
   )
   useEffect(() => {
     saveIdentity(identity)
@@ -19379,7 +19379,7 @@ function AppShell() {
   // 皮肤状态：清爽（浅色）/ 科技（深空蓝），持久化并同步 <html data-theme>
   const [skin, setSkin] = useState<"light" | "tech">(() => {
     try {
-      const v = localStorage.getItem("app-skin-v1.3")
+      const v = localStorage.getItem("app-skin-v2.0")
       return v === "tech" ? "tech" : "light"
     } catch {
       return "light"
@@ -19389,7 +19389,7 @@ function AppShell() {
     // 用 data-skin 承载皮肤（宿主运行时会强制改写 data-theme，故与其解耦）
     document.documentElement.setAttribute("data-skin", skin)
     try {
-      localStorage.setItem("app-skin-v1.3", skin)
+      localStorage.setItem("app-skin-v2.0", skin)
     } catch {
       /* ignore */
     }
@@ -19443,9 +19443,7 @@ function AppShell() {
           <AIStatisticsV2 skin={skin} />
         )}
         {activeModule === "workbench" && <AIWorkbench />}
-        {activeModule === "config" && (
-          <GovernanceConfigNative identity={identity} onIdentityChange={setIdentity} />
-        )}
+        {activeModule === "config" && <ConfigApp />}
         {/* 自定义菜单（菜单管理创建）：渲染占位页 */}
         {(() => {
           const custom = navConfig.find(
