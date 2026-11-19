@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="270" viewBox="0 0 480 270">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F3FAFF"/>
+      <stop offset="100%" stop-color="#E4F3FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="270" fill="url(#bg)"/>
+  <g transform="translate(150, 95)">
+    <rect x="20" y="35" width="140" height="55" rx="10" fill="#326DFF" opacity="0.15" stroke="#326DFF" stroke-width="2"/>
+    <rect x="45" y="50" width="90" height="30" rx="5" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="45" cy="95" r="12" fill="#162D4D" opacity="0.2"/>
+    <circle cx="135" cy="95" r="12" fill="#162D4D" opacity="0.2"/>
+    <rect x="0" y="105" width="180" height="4" rx="2" fill="#24D6D2" opacity="0.4"/>
+  </g>
+  <text x="240" y="230" text-anchor="middle" font-size="14" fill="#6E8197" font-family="Noto Sans SC, Inter, sans-serif">机动车停放场景</text>
+</svg>
