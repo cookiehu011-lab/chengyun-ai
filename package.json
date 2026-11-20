@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "prebuild": "cp node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs public/",
+    "prebuild": "cp node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs public/",
     "build": "vite build",
     "preview": "vite preview",
     "format": "oxfmt"
