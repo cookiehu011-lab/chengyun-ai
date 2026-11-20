@@ -40,6 +40,20 @@ export function TextInput(props: {
   )
 }
 
+/* ── 检索框（表格/树上方，按当前可见文字过滤） ──────────── */
+
+export function SearchBox(props: { value: string; onChange: (v: string) => void }) {
+  return (
+    <input
+      type="text"
+      value={props.value}
+      placeholder="检索"
+      onChange={(e) => props.onChange(e.target.value)}
+      style={{ ...controlBase, width: 220, flexShrink: 0 }}
+    />
+  )
+}
+
 export interface Opt {
   value: string
   label: string

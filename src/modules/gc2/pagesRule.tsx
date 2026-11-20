@@ -1,5 +1,5 @@
-// V2.0 治理配置：派发规则两页 —— 规则（表）、去向（三下拉 + 四行结果）
-import { useState } from "react"
+// V2.0 治理配置：派发规则两页 —— 规则（表）、去向（三下拉 + 默认列表）
+import { useMemo, useState } from "react"
 import type { Rule } from "./model"
 import {
   DISTRICTS,
@@ -13,8 +13,7 @@ import {
   ruleEventText,
   uid,
 } from "./model"
-import { computeRoute, duplicateRuleIds } from "./matching"
-import type { RouteResult } from "./matching"
+import { computeRoute, duplicateRuleIds, ruleCoversMinor, rulePost } from "./matching"
 import { useConfig } from "./store"
 import {
   AddButton,
@@ -23,6 +22,7 @@ import {
   Field,
   Panel,
   RowBtn,
+  SearchBox,
   Select,
   TextInput,
   Toolbar,
@@ -45,8 +45,25 @@ export function RulePage() {
   const { state, dispatch, saved } = useConfig()
   const [drawer, setDrawer] = useState<RuleDraft | null>(null)
   const [errs, setErrs] = useState<Record<string, boolean>>({})
+  const [query, setQuery] = useState("")
 
   const dup = duplicateRuleIds(state)
+
+  const kw = query.trim().toLowerCase()
+  const list = kw
+    ? state.rules.filter((r) =>
+        [
+          r.source,
+          ruleEventText(r.event),
+          r.area,
+          r.path,
+          dup.has(r.id) ? "重复" : r.org === "manual" ? "待人工派发" : orgName(state, r.org),
+        ]
+          .join("\n")
+          .toLowerCase()
+          .includes(kw),
+      )
+    : state.rules
 
   const openAdd = () => {
     setErrs({})
@@ -85,7 +102,7 @@ export function RulePage() {
       org: drawer.org,
     }
     dispatch({ type: "rule/save", rule })
-    // 来源、事件类型、行政区 三项都一样时：保存不关抽屉，两行承办单位列写「重复」
+    // 来源、事件类型、行政区 三项都一样时：保存不关抽屉，两行组织列写「重复」
     const conflict = state.rules.some(
       (r) =>
         r.id !== rule.id &&
@@ -101,6 +118,9 @@ export function RulePage() {
   return (
     <>
       <Toolbar>
+        <div style={{ marginRight: "auto" }}>
+          <SearchBox value={query} onChange={setQuery} />
+        </div>
         <AddButton onClick={openAdd}>新增规则</AddButton>
       </Toolbar>
       <Panel>
@@ -111,12 +131,12 @@ export function RulePage() {
               <th style={thStyle}>事件类型</th>
               <th style={thStyle}>行政区</th>
               <th style={thStyle}>办理路径</th>
-              <th style={thStyle}>承办单位</th>
+              <th style={thStyle}>组织</th>
               <th style={{ ...thStyle, width: 150 }}>操作</th>
             </tr>
           </thead>
           <tbody>
-            {state.rules.map((r) => {
+            {list.map((r) => {
               const isDup = dup.has(r.id)
               return (
                 <tr key={r.id}>
@@ -184,7 +204,7 @@ export function RulePage() {
               groups={[{ options: PATHS.map((p) => ({ value: p, label: p })) }]}
             />
           </Field>
-          <Field label="承办单位">
+          <Field label="组织">
             <Select
               value={drawer.org}
               onChange={(v) => setDrawer({ ...drawer, org: v })}
@@ -202,7 +222,16 @@ export function RulePage() {
   )
 }
 
-/* ══════════ 去向 ══════════ */
+/* ══════════ 去向（默认列表：每条规则一行；三下拉选完只留一行计算结果） ══════════ */
+
+interface RouteRow {
+  source: string
+  event: string
+  area: string
+  path: string
+  org: string
+  post: string
+}
 
 export function RoutePage() {
   const { state } = useConfig()
@@ -211,12 +240,39 @@ export function RoutePage() {
   const [street, setStreet] = useState("")
 
   const ready = !!src && !!minor && !!street
-  let result: RouteResult | null = null
-  if (ready) result = computeRoute(state, src, minor, street)
+
+  const rows = useMemo<RouteRow[]>(() => {
+    if (ready) {
+      const result = computeRoute(state, src, minor, street)
+      return [
+        {
+          source: src,
+          event: minor,
+          area: street,
+          path: result.path,
+          org: result.org,
+          post: result.post,
+        },
+      ]
+    }
+    return state.rules
+      .filter(
+        (r) =>
+          (!src || r.source === src) &&
+          (!minor || ruleCoversMinor(state, r, minor)) &&
+          (!street || r.area === "不限" || r.area === "东城区" || r.area === street),
+      )
+      .map((r) => ({
+        source: r.source,
+        event: ruleEventText(r.event),
+        area: r.area,
+        path: r.path,
+        org: r.org === "manual" ? "待人工派发" : orgName(state, r.org),
+        post: rulePost(state, r),
+      }))
+  }, [state, src, minor, street, ready])
 
   const enabledMinors = state.std.filter((s) => s.status === "启用")
-
-  const selStyle = { width: 220 }
 
   return (
     <>
@@ -232,7 +288,7 @@ export function RoutePage() {
         </div>
         <div>
           <div style={{ fontSize: 12.5, color: "var(--text-sub)", marginBottom: 6 }}>事件类型</div>
-          <div style={selStyle}>
+          <div style={{ width: 220 }}>
             <Select
               value={minor}
               onChange={setMinor}
@@ -252,30 +308,32 @@ export function RoutePage() {
         </div>
       </div>
 
-      {result && (
-        <Panel>
-          <DataTable minWidth={520}>
-            <tbody>
-              <tr>
-                <td style={{ ...tdStyle, width: 160, color: "var(--text-sub)" }}>命中规则</td>
-                <td style={tdStyle}>{result.hit}</td>
+      <Panel>
+        <DataTable minWidth={720}>
+          <thead>
+            <tr>
+              <th style={thStyle}>来源</th>
+              <th style={thStyle}>事件类型</th>
+              <th style={thStyle}>行政区</th>
+              <th style={thStyle}>办理路径</th>
+              <th style={thStyle}>组织</th>
+              <th style={thStyle}>落到岗位</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i}>
+                <td style={tdStyle}>{row.source}</td>
+                <td style={tdStyle}>{row.event}</td>
+                <td style={tdStyle}>{row.area}</td>
+                <td style={tdStyle}>{row.path}</td>
+                <td style={tdStyle}>{row.org}</td>
+                <td style={tdStyle}>{row.post}</td>
               </tr>
-              <tr>
-                <td style={{ ...tdStyle, color: "var(--text-sub)" }}>办理路径</td>
-                <td style={tdStyle}>{result.path}</td>
-              </tr>
-              <tr>
-                <td style={{ ...tdStyle, color: "var(--text-sub)" }}>承办单位</td>
-                <td style={tdStyle}>{result.org}</td>
-              </tr>
-              <tr>
-                <td style={{ ...tdStyle, color: "var(--text-sub)" }}>落到岗位</td>
-                <td style={tdStyle}>{result.post}</td>
-              </tr>
-            </tbody>
-          </DataTable>
-        </Panel>
-      )}
+            ))}
+          </tbody>
+        </DataTable>
+      </Panel>
     </>
   )
 }

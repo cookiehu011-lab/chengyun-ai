@@ -10,6 +10,7 @@ import {
   Field,
   Panel,
   RowBtn,
+  SearchBox,
   TextInput,
   Toolbar,
   MultiSelect,
@@ -48,6 +49,14 @@ export function SlaPage() {
   const { state, dispatch, saved } = useConfig()
   const [drawer, setDrawer] = useState<SlaDraft | null>(null)
   const [errs, setErrs] = useState<Record<string, boolean>>({})
+  const [query, setQuery] = useState("")
+
+  const kw = query.trim().toLowerCase()
+  const list = kw
+    ? state.slas.filter((s) =>
+        [refListText(s.events), s.disposal, s.check].join("\n").toLowerCase().includes(kw),
+      )
+    : state.slas
 
   const openAdd = () => {
     setErrs({})
@@ -61,10 +70,13 @@ export function SlaPage() {
 
   const save = () => {
     if (!drawer) return
+    // 两个时限都空不能保存；只填一个可以保存
+    const dEmpty = !drawer.disposal.trim()
+    const cEmpty = !drawer.check.trim()
     const e: Record<string, boolean> = {
       events: drawer.events.length === 0,
-      disposal: !drawer.disposal.trim(),
-      check: !drawer.check.trim(),
+      disposal: dEmpty && cEmpty,
+      check: dEmpty && cEmpty,
     }
     setErrs(e)
     if (Object.values(e).some(Boolean)) return
@@ -82,6 +94,9 @@ export function SlaPage() {
   return (
     <>
       <Toolbar>
+        <div style={{ marginRight: "auto" }}>
+          <SearchBox value={query} onChange={setQuery} />
+        </div>
         <AddButton onClick={openAdd}>新增</AddButton>
       </Toolbar>
       <Panel>
@@ -95,7 +110,7 @@ export function SlaPage() {
             </tr>
           </thead>
           <tbody>
-            {state.slas.map((s) => (
+            {list.map((s) => (
               <tr key={s.id}>
                 <td style={tdStyle}>{refListText(s.events)}</td>
                 <td style={tdStyle}>{s.disposal}</td>
@@ -224,6 +239,17 @@ export function EventStdPage() {
   const { state, dispatch, saved } = useConfig()
   const [drawer, setDrawer] = useState<StdDraft | null>(null)
   const [errs, setErrs] = useState<Record<string, boolean>>({})
+  const [query, setQuery] = useState("")
+
+  const kw = query.trim().toLowerCase()
+  const list = kw
+    ? state.std.filter((row) =>
+        [row.category, row.major, row.minor, row.criteria, row.materials, row.status]
+          .join("\n")
+          .toLowerCase()
+          .includes(kw),
+      )
+    : state.std
 
   const openAdd = () => {
     setErrs({})
@@ -271,6 +297,9 @@ export function EventStdPage() {
   return (
     <>
       <Toolbar>
+        <div style={{ marginRight: "auto" }}>
+          <SearchBox value={query} onChange={setQuery} />
+        </div>
         <AddButton onClick={openAdd}>新增</AddButton>
       </Toolbar>
       <Panel>
@@ -287,7 +316,7 @@ export function EventStdPage() {
             </tr>
           </thead>
           <tbody>
-            {state.std.map((row) => (
+            {list.map((row) => (
               <tr key={row.id}>
                 <td style={tdStyle}>{row.category}</td>
                 <td style={tdStyle}>{row.major}</td>

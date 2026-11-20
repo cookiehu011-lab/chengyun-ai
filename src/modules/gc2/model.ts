@@ -41,8 +41,8 @@ export interface RoleDef {
   configPages: string[]
   /** AI实时治理二级标签 id（LIVE_TAB_IDS） */
   liveTabs: string[]
-  /** 操作权限（仅在勾选 AI实时治理 时有效） */
-  ops: string[]
+  /** 操作权限，挂在 AI实时治理二级下：tabId → 操作列表（勾选对应二级才生效） */
+  opsByTab: Record<string, string[]>
 }
 
 export interface Post {
@@ -57,7 +57,8 @@ export interface Post {
 export interface Account {
   id: string
   name: string
-  login: string
+  /** 11 位手机号，表内不重复 */
+  phone: string
   orgId: string
   postId: string
   status: "启用" | "停用"
@@ -127,21 +128,13 @@ export const LIVE_TABS = [
   { id: "check", name: "待核查" },
 ]
 
-export const LIVE_OPS = [
-  "受理",
-  "撤回办理",
-  "转复核",
-  "不立案",
-  "派发",
-  "复核",
-  "申请作废",
-  "认领",
-  "处置",
-  "自核查",
-  "申请结案",
-  "外场核查",
-  "确认闭环",
-]
+/** AI实时治理各二级下的操作权限（全量识别无操作） */
+export const LIVE_TAB_OPS: Record<string, string[]> = {
+  recognition: [],
+  accept: ["受理", "撤回办理", "转复核", "不立案", "派发", "复核", "申请作废"],
+  dispose: ["认领", "处置", "自核查", "申请结案", "申请作废"],
+  check: ["外场核查", "申请结案", "申请作废", "确认闭环"],
+}
 
 export const CONFIG_PAGES = [
   { id: "org", name: "组织" },
@@ -251,49 +244,49 @@ export function seedState(): ConfigState {
       id: "r-sl", name: "区受理人",
       dashboard: false, live: true, archive: false, stats: false, workbench: false, config: false,
       configPages: [], liveTabs: ["accept"],
-      ops: ["受理", "撤回办理", "转复核", "不立案", "派发", "申请作废"],
+      opsByTab: { accept: ["受理", "撤回办理", "转复核", "不立案", "派发", "申请作废"] },
     },
     {
       id: "r-zz", name: "值班长",
       dashboard: false, live: true, archive: false, stats: false, workbench: false, config: false,
       configPages: [], liveTabs: ["accept"],
-      ops: ["复核", "派发", "申请作废"],
+      opsByTab: { accept: ["复核", "派发", "申请作废"] },
     },
     {
       id: "r-jdcz", name: "街道处置人",
       dashboard: false, live: true, archive: false, stats: false, workbench: false, config: false,
       configPages: [], liveTabs: ["dispose"],
-      ops: ["认领", "处置", "自核查"],
+      opsByTab: { dispose: ["认领", "处置", "自核查"] },
     },
     {
       id: "r-jdfz", name: "街道负责人",
       dashboard: false, live: true, archive: false, stats: false, workbench: false, config: false,
       configPages: [], liveTabs: ["dispose", "check"],
-      ops: ["申请结案", "申请作废", "确认闭环"],
+      opsByTab: { dispose: ["申请结案", "申请作废"], check: ["申请结案", "申请作废", "确认闭环"] },
     },
     {
       id: "r-hc", name: "核查员",
       dashboard: false, live: true, archive: false, stats: false, workbench: false, config: false,
       configPages: [], liveTabs: ["check"],
-      ops: ["外场核查"],
+      opsByTab: { check: ["外场核查"] },
     },
     {
       id: "r-jbcz", name: "委办局处置人",
       dashboard: false, live: true, archive: false, stats: false, workbench: false, config: false,
       configPages: [], liveTabs: ["dispose"],
-      ops: ["认领", "处置", "自核查"],
+      opsByTab: { dispose: ["认领", "处置", "自核查"] },
     },
     {
       id: "r-jbsh", name: "委办局审核人",
       dashboard: false, live: true, archive: false, stats: false, workbench: false, config: false,
       configPages: [], liveTabs: ["dispose", "check"],
-      ops: ["申请结案", "申请作废"],
+      opsByTab: { dispose: ["申请结案", "申请作废"], check: ["申请结案", "申请作废"] },
     },
     {
       id: "r-khgl", name: "客户管理员",
       dashboard: false, live: false, archive: true, stats: false, workbench: false, config: true,
       configPages: CONFIG_PAGES.map((p) => p.id), liveTabs: [],
-      ops: [],
+      opsByTab: {},
     },
   ]
 
@@ -349,16 +342,16 @@ export function seedState(): ConfigState {
   ]
 
   const accounts: Account[] = [
-    { id: "a-zm", name: "赵敏", login: "zhaomin", orgId: "o-zb", postId: "p-sl", status: "启用" },
-    { id: "a-zn", name: "周宁", login: "zhouning", orgId: "o-zb", postId: "p-fh", status: "启用" },
-    { id: "a-lc", name: "李超", login: "lichao", orgId: "o-zb", postId: "p-hc", status: "启用" },
-    { id: "a-wl", name: "王磊", login: "wanglei", orgId: "o-yw", postId: "p-yw-cz", status: "启用" },
-    { id: "a-zw", name: "张伟", login: "zhangwei", orgId: "o-yw", postId: "p-yw-cz", status: "启用" },
-    { id: "a-cj", name: "陈静", login: "chenjing", orgId: "o-yw", postId: "p-yw-sh", status: "启用" },
-    { id: "a-ly", name: "刘洋", login: "liuyang", orgId: "o-jgm", postId: "p-jgm-cz", status: "启用" },
-    { id: "a-sj", name: "孙洁", login: "sunjie", orgId: "o-jgm", postId: "p-jgm-sh", status: "启用" },
-    { id: "a-mq", name: "马强", login: "maqiang", orgId: "o-sr", postId: "p-sr-cz", status: "启用" },
-    { id: "a-wq2", name: "吴倩", login: "wuqian", orgId: "o-sr", postId: "p-sr-sh", status: "启用" },
+    { id: "a-zm", name: "赵敏", phone: "13800001001", orgId: "o-zb", postId: "p-sl", status: "启用" },
+    { id: "a-zn", name: "周宁", phone: "13800001002", orgId: "o-zb", postId: "p-fh", status: "启用" },
+    { id: "a-lc", name: "李超", phone: "13800001003", orgId: "o-zb", postId: "p-hc", status: "启用" },
+    { id: "a-wl", name: "王磊", phone: "13800001004", orgId: "o-yw", postId: "p-yw-cz", status: "启用" },
+    { id: "a-zw", name: "张伟", phone: "13800001005", orgId: "o-yw", postId: "p-yw-cz", status: "启用" },
+    { id: "a-cj", name: "陈静", phone: "13800001006", orgId: "o-yw", postId: "p-yw-sh", status: "启用" },
+    { id: "a-ly", name: "刘洋", phone: "13800001007", orgId: "o-jgm", postId: "p-jgm-cz", status: "启用" },
+    { id: "a-sj", name: "孙洁", phone: "13800001008", orgId: "o-jgm", postId: "p-jgm-sh", status: "启用" },
+    { id: "a-mq", name: "马强", phone: "13800001009", orgId: "o-sr", postId: "p-sr-cz", status: "启用" },
+    { id: "a-wq2", name: "吴倩", phone: "13800001010", orgId: "o-sr", postId: "p-sr-sh", status: "启用" },
   ]
 
   const rules: Rule[] = [
@@ -388,7 +381,7 @@ export function seedState(): ConfigState {
     { id: "check", todo: "待核查", count: 5 },
   ]
 
-  return { seedRev: 1, orgs, posts, roles, accounts, rules, slas, claim, std }
+  return { seedRev: 2, orgs, posts, roles, accounts, rules, slas, claim, std }
 }
 
 /* ── 查找辅助 ─────────────────────────────────────────── */
@@ -423,9 +416,15 @@ export function roleFeatureText(role: RoleDef): string {
   return parts.join("、")
 }
 
-/** 角色操作权限单元格文本（无 → "无"） */
+/** 角色操作权限单元格文本：操作写在其所属二级后面（无 → "无"） */
 export function roleOpsText(role: RoleDef): string {
-  return role.live && role.ops.length > 0 ? role.ops.join("、") : "无"
+  if (!role.live) return "无"
+  const parts: string[] = []
+  for (const tab of LIVE_TABS) {
+    const ops = role.opsByTab[tab.id]
+    if (ops && ops.length > 0) parts.push(`${tab.name}：${ops.join("、")}`)
+  }
+  return parts.length > 0 ? parts.join("；") : "无"
 }
 
 /** 小类是否被某条规则或某个岗位用上（用于「停用」是否可点） */

@@ -7,7 +7,7 @@ import type { Account, ClaimRow, ConfigState, OrgNode, Post, RoleDef, Rule, Sla,
 import { seedState } from "./model"
 
 const STORAGE_KEY = "gc-config-v2.0"
-const SEED_REV = 1
+const SEED_REV = 2
 
 export type ConfigAction =
   | { type: "org/add"; node: OrgNode }

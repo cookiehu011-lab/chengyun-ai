@@ -5,7 +5,7 @@ import {
   CONFIG_PAGES,
   DISTRICTS,
   FEATURES,
-  LIVE_OPS,
+  LIVE_TAB_OPS,
   LIVE_TABS,
   decodeRef,
   encodeRef,
@@ -28,6 +28,7 @@ import {
   Panel,
   ReadonlyField,
   RowBtn,
+  SearchBox,
   Select,
   TextInput,
   Toolbar,
@@ -35,11 +36,21 @@ import {
   thStyle,
 } from "./ui"
 
-/* ══════════ 组织（树） ══════════ */
+const gridBox = (cols: number) => ({
+  display: "grid" as const,
+  gridTemplateColumns: `repeat(${cols}, 1fr)`,
+  gap: "10px 8px",
+  padding: "12px",
+  border: "1px solid var(--border)",
+  borderRadius: 10,
+})
+
+/* ══════════ 组织（左树右详情） ══════════ */
 
 export function OrgPage() {
   const { state, dispatch, saved } = useConfig()
   const [selected, setSelected] = useState<string | null>(null)
+  const [query, setQuery] = useState("")
   const [drawer, setDrawer] = useState<null | { mode: "add" } | { mode: "edit"; id: string }>(null)
   const [name, setName] = useState("")
   const [type, setType] = useState("")
@@ -56,17 +67,35 @@ export function OrgPage() {
     return map
   }, [state.orgs])
 
+  /** 检索：命中节点 + 命中节点的全部上级（null 表示不过滤） */
+  const visibleIds = useMemo(() => {
+    const kw = query.trim().toLowerCase()
+    if (!kw) return null
+    const byId = new Map(state.orgs.map((o) => [o.id, o]))
+    const keep = new Set<string>()
+    for (const o of state.orgs) {
+      if (!o.name.toLowerCase().includes(kw)) continue
+      let cur: string | null = o.id
+      while (cur && !keep.has(cur)) {
+        keep.add(cur)
+        cur = byId.get(cur)?.parentId ?? null
+      }
+    }
+    return keep
+  }, [query, state.orgs])
+
   const rows = useMemo(() => {
     const out: { node: OrgNode; depth: number }[] = []
     const walk = (parent: string | null, depth: number) => {
       for (const node of childrenOf.get(parent) ?? []) {
+        if (visibleIds && !visibleIds.has(node.id)) continue
         out.push({ node, depth })
         walk(node.id, depth + 1)
       }
     }
     walk(null, 0)
     return out
-  }, [childrenOf])
+  }, [childrenOf, visibleIds])
 
   const selectedNode = state.orgs.find((o) => o.id === selected) ?? null
 
@@ -114,6 +143,11 @@ export function OrgPage() {
       state.accounts.some((a) => a.orgId === node.id)
     )
 
+  const postsHere = selectedNode ? state.posts.filter((p) => p.orgId === selectedNode.id) : []
+  const accountsHere = selectedNode ? state.accounts.filter((a) => a.orgId === selectedNode.id) : []
+  const staffNames = (postId: string) =>
+    state.accounts.filter((a) => a.postId === postId).map((a) => a.name).join("、")
+
   return (
     <>
       <Toolbar>
@@ -121,52 +155,178 @@ export function OrgPage() {
           新增
         </AddButton>
       </Toolbar>
-      <Panel>
-        <DataTable minWidth={560}>
-          <thead>
-            <tr>
-              <th style={{ ...thStyle, width: "42%" }}>名称</th>
-              <th style={thStyle}>类型</th>
-              <th style={thStyle}>上级</th>
-              <th style={{ ...thStyle, width: 150 }}>操作</th>
-            </tr>
-          </thead>
-          <tbody>
+
+      <div style={{ display: "flex", gap: 14, alignItems: "stretch" }}>
+        {/* 左：树 */}
+        <div
+          style={{
+            width: 300,
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+            background: "var(--card-solid, #fff)",
+            border: "1px solid var(--border)",
+            borderRadius: 14,
+            boxShadow: "var(--shadow-sm)",
+          }}
+        >
+          <div style={{ padding: "12px 12px 10px" }}>
+            <SearchBox value={query} onChange={setQuery} />
+          </div>
+          <div style={{ flex: 1, overflowY: "auto", padding: "0 8px 12px" }}>
             {rows.map(({ node, depth }) => {
               const hasChildren = (childrenOf.get(node.id)?.length ?? 0) > 0
+              const active = selected === node.id
               return (
-                <tr
+                <div
                   key={node.id}
                   onClick={() => setSelected(node.id)}
                   style={{
+                    display: "flex",
+                    alignItems: "center",
+                    height: 34,
+                    borderRadius: 8,
                     cursor: "pointer",
-                    background: selected === node.id ? "var(--primary-light)" : undefined,
+                    background: active ? "var(--primary-light)" : undefined,
+                    color: active ? "var(--primary)" : "var(--foreground)",
+                    fontWeight: active ? 600 : 400,
                   }}
                 >
-                  <td style={tdStyle}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, paddingLeft: depth * 20 + 4 }}>
-                      <span style={{ color: "var(--muted-foreground)", fontSize: 10, width: 10 }}>
-                        {hasChildren ? "▾" : ""}
-                      </span>
-                      {node.name}
-                    </div>
-                  </td>
-                  <td style={tdStyle}>{node.type}</td>
-                  <td style={tdStyle}>{node.parentId ? orgName(state, node.parentId) : "—"}</td>
-                  <td style={tdStyle}>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <RowBtn onClick={() => openEdit(node)}>编辑</RowBtn>
-                      <RowBtn danger disabled={!deletable(node)} onClick={() => dispatch({ type: "org/delete", id: node.id })}>
-                        删除
-                      </RowBtn>
-                    </div>
-                  </td>
-                </tr>
+                  {Array.from({ length: depth }).map((_, i) => (
+                    <span
+                      key={i}
+                      style={{
+                        width: 18,
+                        alignSelf: "stretch",
+                        borderLeft: "1px solid var(--border)",
+                        flexShrink: 0,
+                      }}
+                    />
+                  ))}
+                  <span
+                    style={{
+                      color: "var(--muted-foreground)",
+                      fontSize: 10,
+                      width: 16,
+                      textAlign: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {hasChildren ? "▾" : ""}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {node.name}
+                  </span>
+                </div>
               )
             })}
-          </tbody>
-        </DataTable>
-      </Panel>
+          </div>
+        </div>
+
+        {/* 右：选中单位的类型、上级、岗位、账号 */}
+        {selectedNode && (
+          <Panel>
+            <div style={{ padding: "6px 16px 16px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 20,
+                  padding: "12px 0",
+                  borderBottom: "1px solid var(--border)",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{selectedNode.name}</div>
+                <div style={{ fontSize: 13 }}>
+                  <span style={{ color: "var(--text-sub)" }}>类型：</span>
+                  {selectedNode.type}
+                </div>
+                <div style={{ fontSize: 13 }}>
+                  <span style={{ color: "var(--text-sub)" }}>上级：</span>
+                  {selectedNode.parentId ? orgName(state, selectedNode.parentId) : "—"}
+                </div>
+                <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+                  <RowBtn onClick={() => openEdit(selectedNode)}>编辑</RowBtn>
+                  <RowBtn
+                    danger
+                    disabled={!deletable(selectedNode)}
+                    onClick={() => {
+                      dispatch({ type: "org/delete", id: selectedNode.id })
+                      setSelected(null)
+                    }}
+                  >
+                    删除
+                  </RowBtn>
+                </div>
+              </div>
+
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-sub)", margin: "14px 0 8px" }}>
+                岗位
+              </div>
+              <DataTable minWidth={420}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>岗位</th>
+                    <th style={thStyle}>角色</th>
+                    <th style={thStyle}>人员</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {postsHere.length === 0 ? (
+                    <tr>
+                      <td style={tdStyle} colSpan={3}>—</td>
+                    </tr>
+                  ) : (
+                    postsHere.map((p) => (
+                      <tr key={p.id}>
+                        <td style={tdStyle}>{p.name}</td>
+                        <td style={tdStyle}>{roleName(state, p.roleId)}</td>
+                        <td style={tdStyle}>{staffNames(p.id) || "—"}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </DataTable>
+
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-sub)", margin: "18px 0 8px" }}>
+                账号
+              </div>
+              <DataTable minWidth={420}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>姓名</th>
+                    <th style={thStyle}>手机号</th>
+                    <th style={thStyle}>岗位</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {accountsHere.length === 0 ? (
+                    <tr>
+                      <td style={tdStyle} colSpan={3}>—</td>
+                    </tr>
+                  ) : (
+                    accountsHere.map((a) => (
+                      <tr key={a.id}>
+                        <td style={tdStyle}>{a.name}</td>
+                        <td style={tdStyle}>{a.phone}</td>
+                        <td style={tdStyle}>{postName(state, a.postId)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </DataTable>
+            </div>
+          </Panel>
+        )}
+      </div>
 
       {drawer && (
         <Drawer
@@ -212,6 +372,27 @@ export function PostPage() {
   const { state, dispatch, saved } = useConfig()
   const [drawer, setDrawer] = useState<PostDraft | null>(null)
   const [errs, setErrs] = useState<Record<string, boolean>>({})
+  const [query, setQuery] = useState("")
+
+  const staffNames = (postId: string) =>
+    state.accounts.filter((a) => a.postId === postId).map((a) => a.name).join("、")
+
+  const kw = query.trim().toLowerCase()
+  const list = kw
+    ? state.posts.filter((p) =>
+        [
+          p.name,
+          orgName(state, p.orgId),
+          roleName(state, p.roleId),
+          staffNames(p.id),
+          refListText(p.events),
+          p.areas.join("、"),
+        ]
+          .join("\n")
+          .toLowerCase()
+          .includes(kw),
+      )
+    : state.posts
 
   const openAdd = () => {
     setErrs({})
@@ -264,26 +445,31 @@ export function PostPage() {
   return (
     <>
       <Toolbar>
+        <div style={{ marginRight: "auto" }}>
+          <SearchBox value={query} onChange={setQuery} />
+        </div>
         <AddButton onClick={openAdd}>新增岗位</AddButton>
       </Toolbar>
       <Panel>
-        <DataTable minWidth={860}>
+        <DataTable minWidth={960}>
           <thead>
             <tr>
               <th style={thStyle}>岗位</th>
               <th style={thStyle}>组织</th>
               <th style={thStyle}>角色</th>
+              <th style={thStyle}>人员</th>
               <th style={thStyle}>负责的事件</th>
               <th style={thStyle}>负责的行政区</th>
               <th style={{ ...thStyle, width: 150 }}>操作</th>
             </tr>
           </thead>
           <tbody>
-            {state.posts.map((p) => (
+            {list.map((p) => (
               <tr key={p.id}>
                 <td style={tdStyle}>{p.name}</td>
                 <td style={tdStyle}>{orgName(state, p.orgId)}</td>
                 <td style={tdStyle}>{roleName(state, p.roleId)}</td>
+                <td style={tdStyle}>{staffNames(p.id) || "—"}</td>
                 <td style={tdStyle}>{refListText(p.events)}</td>
                 <td style={tdStyle}>{p.areas.join("、")}</td>
                 <td style={tdStyle}>
@@ -362,20 +548,28 @@ interface RoleDraft {
   config: boolean
   configPages: string[]
   liveTabs: string[]
-  ops: string[]
+  opsByTab: Record<string, string[]>
 }
 
 export function RolePage() {
   const { state, dispatch, saved } = useConfig()
   const [drawer, setDrawer] = useState<RoleDraft | null>(null)
   const [nameErr, setNameErr] = useState(false)
+  const [query, setQuery] = useState("")
+
+  const kw = query.trim().toLowerCase()
+  const list = kw
+    ? state.roles.filter((r) =>
+        [r.name, roleFeatureText(r), roleOpsText(r)].join("\n").toLowerCase().includes(kw),
+      )
+    : state.roles
 
   const openAdd = () => {
     setNameErr(false)
     setDrawer({
       id: null, name: "",
       dashboard: false, live: false, archive: false, stats: false, workbench: false, config: false,
-      configPages: [], liveTabs: [], ops: [],
+      configPages: [], liveTabs: [], opsByTab: {},
     })
   }
 
@@ -384,7 +578,9 @@ export function RolePage() {
     setDrawer({
       id: r.id, name: r.name,
       dashboard: r.dashboard, live: r.live, archive: r.archive, stats: r.stats, workbench: r.workbench, config: r.config,
-      configPages: [...r.configPages], liveTabs: [...r.liveTabs], ops: [...r.ops],
+      configPages: [...r.configPages],
+      liveTabs: [...r.liveTabs],
+      opsByTab: Object.fromEntries(Object.entries(r.opsByTab).map(([k, v]) => [k, [...v]])),
     })
   }
 
@@ -393,6 +589,13 @@ export function RolePage() {
     const nErr = !drawer.name.trim()
     setNameErr(nErr)
     if (nErr) return
+    const opsByTab: Record<string, string[]> = {}
+    if (drawer.live) {
+      for (const tab of drawer.liveTabs) {
+        const ops = drawer.opsByTab[tab]
+        if (ops && ops.length > 0) opsByTab[tab] = ops
+      }
+    }
     dispatch({
       type: "role/save",
       role: {
@@ -406,7 +609,7 @@ export function RolePage() {
         config: drawer.config,
         configPages: drawer.config ? drawer.configPages : [],
         liveTabs: drawer.live ? drawer.liveTabs : [],
-        ops: drawer.live ? drawer.ops : [],
+        opsByTab,
       },
     })
     saved()
@@ -416,6 +619,9 @@ export function RolePage() {
   return (
     <>
       <Toolbar>
+        <div style={{ marginRight: "auto" }}>
+          <SearchBox value={query} onChange={setQuery} />
+        </div>
         <AddButton onClick={openAdd}>新增角色</AddButton>
       </Toolbar>
       <Panel>
@@ -429,7 +635,7 @@ export function RolePage() {
             </tr>
           </thead>
           <tbody>
-            {state.roles.map((r) => (
+            {list.map((r) => (
               <tr key={r.id}>
                 <td style={tdStyle}>{r.name}</td>
                 <td style={{ ...tdStyle, color: "var(--text-sub)" }}>{roleFeatureText(r)}</td>
@@ -458,16 +664,7 @@ export function RolePage() {
             <TextInput value={drawer.name} onChange={(v) => setDrawer({ ...drawer, name: v })} error={nameErr} />
           </Field>
           <Field label="功能权限">
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: "10px 8px",
-                padding: "12px",
-                border: "1px solid var(--border)",
-                borderRadius: 10,
-              }}
-            >
+            <div style={gridBox(3)}>
               {FEATURES.map((f) => (
                 <Check
                   key={f.key}
@@ -480,16 +677,7 @@ export function RolePage() {
           </Field>
           {drawer.config && (
             <Field label="治理配置">
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gap: "10px 8px",
-                  padding: "12px",
-                  border: "1px solid var(--border)",
-                  borderRadius: 10,
-                }}
-              >
+              <div style={gridBox(3)}>
                 {CONFIG_PAGES.map((p) => (
                   <Check
                     key={p.id}
@@ -509,16 +697,7 @@ export function RolePage() {
           {drawer.live && (
             <>
               <Field label="AI实时治理">
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(4, 1fr)",
-                    gap: "10px 8px",
-                    padding: "12px",
-                    border: "1px solid var(--border)",
-                    borderRadius: 10,
-                  }}
-                >
+                <div style={gridBox(4)}>
                   {LIVE_TABS.map((t) => (
                     <Check
                       key={t.id}
@@ -528,35 +707,41 @@ export function RolePage() {
                         setDrawer({
                           ...drawer,
                           liveTabs: v ? [...drawer.liveTabs, t.id] : drawer.liveTabs.filter((x) => x !== t.id),
+                          opsByTab: v
+                            ? { ...drawer.opsByTab, [t.id]: drawer.opsByTab[t.id] ?? [] }
+                            : Object.fromEntries(Object.entries(drawer.opsByTab).filter(([k]) => k !== t.id)),
                         })
                       }
                     />
                   ))}
                 </div>
               </Field>
-              <Field label="操作权限">
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(3, 1fr)",
-                    gap: "10px 8px",
-                    padding: "12px",
-                    border: "1px solid var(--border)",
-                    borderRadius: 10,
-                  }}
-                >
-                  {LIVE_OPS.map((op) => (
-                    <Check
-                      key={op}
-                      label={op}
-                      checked={drawer.ops.includes(op)}
-                      onChange={(v) =>
-                        setDrawer({ ...drawer, ops: v ? [...drawer.ops, op] : drawer.ops.filter((x) => x !== op) })
-                      }
-                    />
-                  ))}
-                </div>
-              </Field>
+              {LIVE_TABS.filter((t) => drawer.liveTabs.includes(t.id) && (LIVE_TAB_OPS[t.id] ?? []).length > 0).map(
+                (t) => (
+                  <Field key={t.id} label={`操作权限 · ${t.name}`}>
+                    <div style={gridBox(3)}>
+                      {LIVE_TAB_OPS[t.id].map((op) => (
+                        <Check
+                          key={op}
+                          label={op}
+                          checked={(drawer.opsByTab[t.id] ?? []).includes(op)}
+                          onChange={(v) =>
+                            setDrawer({
+                              ...drawer,
+                              opsByTab: {
+                                ...drawer.opsByTab,
+                                [t.id]: v
+                                  ? [...(drawer.opsByTab[t.id] ?? []), op]
+                                  : (drawer.opsByTab[t.id] ?? []).filter((x) => x !== op),
+                              },
+                            })
+                          }
+                        />
+                      ))}
+                    </div>
+                  </Field>
+                ),
+              )}
             </>
           )}
         </Drawer>
@@ -570,7 +755,7 @@ export function RolePage() {
 interface AccountDraft {
   id: string | null
   name: string
-  login: string
+  phone: string
   orgId: string
   postId: string
 }
@@ -579,24 +764,36 @@ export function AccountPage() {
   const { state, dispatch, saved } = useConfig()
   const [drawer, setDrawer] = useState<AccountDraft | null>(null)
   const [errs, setErrs] = useState<Record<string, boolean>>({})
+  const [query, setQuery] = useState("")
+
+  const kw = query.trim().toLowerCase()
+  const list = kw
+    ? state.accounts.filter((a) =>
+        [a.name, a.phone, orgName(state, a.orgId), postName(state, a.postId), a.status]
+          .join("\n")
+          .toLowerCase()
+          .includes(kw),
+      )
+    : state.accounts
 
   const openAdd = () => {
     setErrs({})
-    setDrawer({ id: null, name: "", login: "", orgId: "", postId: "" })
+    setDrawer({ id: null, name: "", phone: "", orgId: "", postId: "" })
   }
 
   const openEdit = (a: Account) => {
     setErrs({})
-    setDrawer({ id: a.id, name: a.name, login: a.login, orgId: a.orgId, postId: a.postId })
+    setDrawer({ id: a.id, name: a.name, phone: a.phone, orgId: a.orgId, postId: a.postId })
   }
 
   const save = () => {
     if (!drawer) return
+    const phone = drawer.phone.trim()
     const post = state.posts.find((p) => p.id === drawer.postId)
     const mismatch = !!post && !!drawer.orgId && post.orgId !== drawer.orgId
     const e: Record<string, boolean> = {
       name: !drawer.name.trim(),
-      login: !drawer.login.trim(),
+      phone: !/^\d{11}$/.test(phone) || state.accounts.some((a) => a.id !== drawer.id && a.phone === phone),
       orgId: !drawer.orgId || mismatch,
       postId: !drawer.postId || mismatch,
     }
@@ -607,7 +804,7 @@ export function AccountPage() {
       account: {
         id: drawer.id ?? uid("a"),
         name: drawer.name.trim(),
-        login: drawer.login.trim(),
+        phone,
         orgId: drawer.orgId,
         postId: drawer.postId,
         status: "启用",
@@ -620,6 +817,9 @@ export function AccountPage() {
   return (
     <>
       <Toolbar>
+        <div style={{ marginRight: "auto" }}>
+          <SearchBox value={query} onChange={setQuery} />
+        </div>
         <AddButton onClick={openAdd}>新增账号</AddButton>
       </Toolbar>
       <Panel>
@@ -627,7 +827,7 @@ export function AccountPage() {
           <thead>
             <tr>
               <th style={thStyle}>姓名</th>
-              <th style={thStyle}>登录账号</th>
+              <th style={thStyle}>手机号</th>
               <th style={thStyle}>组织</th>
               <th style={thStyle}>岗位</th>
               <th style={thStyle}>状态</th>
@@ -635,10 +835,10 @@ export function AccountPage() {
             </tr>
           </thead>
           <tbody>
-            {state.accounts.map((a) => (
+            {list.map((a) => (
               <tr key={a.id}>
                 <td style={tdStyle}>{a.name}</td>
-                <td style={tdStyle}>{a.login}</td>
+                <td style={tdStyle}>{a.phone}</td>
                 <td style={tdStyle}>{orgName(state, a.orgId)}</td>
                 <td style={tdStyle}>{postName(state, a.postId)}</td>
                 <td
@@ -668,8 +868,8 @@ export function AccountPage() {
           <Field label="姓名">
             <TextInput value={drawer.name} onChange={(v) => setDrawer({ ...drawer, name: v })} error={errs.name} />
           </Field>
-          <Field label="登录账号">
-            <TextInput value={drawer.login} onChange={(v) => setDrawer({ ...drawer, login: v })} error={errs.login} />
+          <Field label="手机号">
+            <TextInput value={drawer.phone} onChange={(v) => setDrawer({ ...drawer, phone: v })} error={errs.phone} />
           </Field>
           <Field label="组织">
             <Select
